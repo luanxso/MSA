@@ -32,6 +32,11 @@
 
   async function api(path, options = {}) {
     const generation = identityGeneration;
+    if (MSA.auth.mode === 'demo') {
+      const data = await MSA.presentation.chatRequest(path, options);
+      if (generation !== identityGeneration) throw new DOMException('Sessão alterada.', 'AbortError');
+      return data;
+    }
     let token;
     try { token = await MSA.auth.token(); }
     catch (error) { if (error.code === 'SESSION_REQUIRED') error.status = 401; throw error; }
@@ -110,7 +115,7 @@
     name.textContent = conversation.name;
     const note = document.createElement('span');
     note.className = 'conversation-note';
-    note.textContent = person ? (conversation.re ? `RE ${conversation.re}` : 'Conversa individual') : conversation.note;
+    note.textContent = person ? (conversation.isDemo ? 'Perfil de demonstração' : conversation.re ? `RE ${conversation.re}` : 'Conversa individual') : conversation.note;
     copy.append(name, note);
     button.append(initial, copy);
     button.addEventListener('click', () => person ? openPerson(conversation) : openConversation(conversation, true));
@@ -264,7 +269,7 @@
   }
 
   async function poll() {
-    if (!visible || !active || loading || polling || document.hidden || !navigator.onLine) return;
+    if (!visible || !active || loading || polling || document.hidden || (MSA.auth.mode !== 'demo' && !navigator.onLine)) return;
     polling = true;
     const conversationId = active.id;
     const controller = loadController;

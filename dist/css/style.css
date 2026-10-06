@@ -441,3 +441,6 @@ p, h1, h2 { margin: 0; }
   .is-chat-page .page-heading p { display: none; }
   .chat-view { margin-top: 14px; }
 }
+
+.presentation-notice{flex-shrink:0;margin:0;padding:9px 24px;background:#f0f8f2;color:#155c2d;font-size:.8125rem;line-height:1.45}
+@media(max-width:767px){.presentation-notice{padding:8px 16px;font-size:.75rem}}

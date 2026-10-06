@@ -1,5 +1,14 @@
 # MSA do Brasil — Login e Cadastro com Firebase
 
+**Para a apresentação, estas etapas não são necessárias.** O modo apresentação está
+ativado em `dist/assets/config.js`: cadastre nome, RE, cargo e uma senha simples.
+O cadastro é liberado imediatamente, sem aprovação no Firebase. O login continua
+usando o RE e a senha cadastrados. O chat utiliza perfis e mensagens de demonstração
+armazenados no navegador.
+
+As instruções abaixo se aplicam somente quando `presentation.enabled` for alterado
+para `false`, retomando o acesso Firebase e o chat compartilhado.
+
 Login e Cadastro por RE conectados ao projeto `msa-safety-9f978`.
 A identidade MSA e a responsividade foram preservadas. O login e o cadastro foram
 simplificados, com a foto do letreiro sem textos sobrepostos, menos repetições e
@@ -60,9 +69,9 @@ sem marcar, a sessão fica restrita à aba. O usuário pode encerrá-la pelo bot
 O RE lembrado e o RE recém-cadastrado são apenas preferências locais, sem autoridade sobre
 identidade ou permissões. O RE não é incluído nos novos links de navegação.
 
-Contas da demonstração anterior permanecem no navegador, mas não são utilizadas ou
-migradas automaticamente. Cadastre novamente no Firebase. Não há fallback silencioso
-para a autenticação simulada.
+Os perfis de apresentação não são contas Firebase e não são migrados automaticamente.
+Ao desativar o modo apresentação, cadastre as contas necessárias no Firebase. Não há
+troca automática para a apresentação em caso de falha no acesso real.
 
 Se o Authentication criar a conta, mas a gravação do perfil falhar, corrija a conexão ou
 as regras e repita o cadastro com o mesmo RE e senha. O adaptador autentica a conta

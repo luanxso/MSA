@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   const page = document.body.dataset.page;
+  if (MSA.auth.mode === 'demo') { MSA.presentation.bindAuth(); return; }
   const $ = id => document.getElementById(id);
   const icon = kind => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${kind === 'check' ? '<path d="m5 12 4 4 10-10"/>' : '<circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3v.1"/>'}</svg>`;
   if (page === 'acesso') {

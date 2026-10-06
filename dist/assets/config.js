@@ -1,6 +1,7 @@
 /* Catálogo de interface. Autorizações de dados devem ser aplicadas no Firebase. */
 window.MSA = window.MSA || {};
 MSA.config = Object.freeze({
+  presentation: { enabled: true, defaultRole: 'supervisor' },
   re: { min: 4, max: 10, pattern: /^\d{4,10}$/ },
   password: { min: 8, max: 64 },
   roles: [
