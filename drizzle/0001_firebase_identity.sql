@@ -1,0 +1,1 @@
+DROP INDEX `chat_profiles_re_unique`;

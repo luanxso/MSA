@@ -1,0 +1,34 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "perfis": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists() && newData.child('status').val() === 'pendente' && !newData.hasChild('cargo') && auth.token.email === 're-' + newData.child('re').val() + '@msa-safety-9f978.invalid'",
+        ".validate": "newData.hasChildren(['nome', 're', 'cargoSolicitado', 'status', 'createdAt'])",
+        "nome": {
+          ".validate": "newData.isString() && newData.val().length <= 120 && newData.val().matches(/^\\S+(\\s+\\S+)+$/)"
+        },
+        "re": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4,10}$/)"
+        },
+        "cargoSolicitado": {
+          ".validate": "newData.isString() && (newData.val() === 'operador' || newData.val() === 'lider' || newData.val() === 'supervisor' || newData.val() === 'manutencao' || newData.val() === 'qualidade' || newData.val() === 'gestor')"
+        },
+        "cargo": {
+          ".validate": "newData.isString() && (newData.val() === 'operador' || newData.val() === 'lider' || newData.val() === 'supervisor' || newData.val() === 'manutencao' || newData.val() === 'qualidade' || newData.val() === 'gestor')"
+        },
+        "status": {
+          ".validate": "newData.val() === 'pendente' || newData.val() === 'ativo' || newData.val() === 'bloqueado'"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now && newData.val() >= now - 60000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
