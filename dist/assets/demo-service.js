@@ -53,7 +53,7 @@
     else if (String(values.senha).length > 64) errors.senha = 'Use uma senha de até 64 caracteres.';
     if (mode === 'cadastro') {
       if (!findRole(values.cargo)) errors.cargo = 'Selecione um cargo.';
-      if (!String(values.nome || '').trim()) errors.nome = 'Informe um nome para a apresentação.';
+      if (!String(values.nome || '').trim()) errors.nome = 'Informe seu nome.';
       else if (String(values.nome).trim().length > 120) errors.nome = 'Use um nome de até 120 caracteres.';
     }
     return errors;
@@ -105,10 +105,14 @@
   });
 
   const rooms = [
-    ['producao', 'Produção'], ['injecao', 'Injeção'], ['montagem', 'Montagem'],
-    ['costura', 'Costura'], ['manutencao', 'Manutenção'], ['qualidade', 'Qualidade'],
-  ].map(([sector, name]) => ({ id: `sector:${sector}`, sector, name, note: 'Conversa do setor', description: 'Conversa de demonstração neste navegador.' }));
-  rooms.push({ id: 'shift:handover', sector: null, name: 'Passagem de turno', note: 'Ocorrências e pendências', description: 'Passagem de turno de demonstração neste navegador.' });
+    ['producao', 'Produção', 'Alinhamentos da produção e áreas de suporte.'],
+    ['injecao', 'Injeção', 'Informações do setor de injeção.'],
+    ['montagem', 'Montagem', 'Informações do setor de montagem.'],
+    ['costura', 'Costura', 'Informações do setor de costura.'],
+    ['manutencao', 'Manutenção', 'Alinhamentos de manutenção e suporte aos equipamentos.'],
+    ['qualidade', 'Qualidade', 'Alinhamentos de qualidade e inspeção.'],
+  ].map(([sector, name, description]) => ({ id: `sector:${sector}`, sector, name, note: 'Conversa do setor', description }));
+  rooms.push({ id: 'shift:handover', sector: null, name: 'Passagem de turno', note: 'Ocorrências e pendências', description: 'Ocorrências e pendências para o próximo turno.' });
   const identity = user => ({ id: user.id, name: user.nome, re: user.re, isDemo: true });
   function fail(status, message) { throw Object.assign(new Error(message), { status }); }
   function chatState() {
@@ -137,7 +141,7 @@
     }
     if (route === 'threads' && method === 'POST') {
       const person = profiles().find(user => user.id === body.person_id && user.id !== current.id);
-      if (!person) fail(400, 'Selecione outro perfil de demonstração.');
+      if (!person) fail(400, 'Selecione outro funcionário.');
       const participants = [current.id, person.id].sort();
       const id = `direct:${participants.join('|')}`;
       if (!state.threads.some(thread => thread.id === id)) {

@@ -9,5 +9,3 @@ dialog{border:1px solid var(--line);border-radius:5px;padding:32px;width:min(440
 @media(max-width:800px){.auth-layout{display:block}.context-panel{display:none}.form-panel{min-height:100svh;padding:35px 25px 24px}.form-content{max-width:430px;margin:auto}.brand-row{margin-bottom:42px}.msa-logo{width:126px}.brand-caption{font-size:16px}.form-heading h1{font-size:34px}.register .form-content{margin:0 auto}.register .brand-row{margin-bottom:30px}.gateway-header{height:auto;min-height:90px;padding:18px 22px}.gateway-header .brand-caption{display:none}.gateway-main{margin-top:38px}}
 @media(max-width:380px){.two-fields{grid-template-columns:1fr;gap:0}.form-panel{padding-inline:20px}.brand-row{gap:12px}.msa-logo{width:112px}.brand-caption{font-size:14px}.options{flex-wrap:wrap;row-gap:12px}.identity-card dl{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}.spinner{animation-duration:1.5s}}
-
-.form-heading .presentation-note{margin-top:12px;font-size:14px;line-height:1.4;color:var(--link)}

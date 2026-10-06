@@ -140,7 +140,7 @@
     pageTitle.textContent = title;
     currentSection.textContent = title;
     currentGroup.textContent = context;
-    pageDescription.textContent = isChat ? (MSA.auth.mode === 'demo' ? 'Conversas de demonstração neste navegador' : 'Conversas entre funcionários e passagem de turno') : 'Acompanhamento e gestão da produção';
+    pageDescription.textContent = isChat ? 'Conversas entre funcionários e passagem de turno' : 'Acompanhamento e gestão da produção';
     pageContent.hidden = isChat;
     main.classList.toggle('is-chat-page', isChat);
     if (isChat) window.MSAChat.show(sectorSelector.value);
@@ -168,12 +168,6 @@
   });
 
   function updateConnectionStatus() {
-    if (MSA.auth.mode === 'demo') {
-      connectionStatus.classList.remove('is-offline');
-      connectionStatus.querySelector('.status-text').textContent = 'Apresentação';
-      connectionStatus.title = 'Apresentação neste navegador';
-      return;
-    }
     const online = navigator.onLine;
     connectionStatus.classList.toggle('is-offline', !online);
     connectionStatus.querySelector('.status-text').textContent = online ? 'Rede disponível' : 'Sem conexão';

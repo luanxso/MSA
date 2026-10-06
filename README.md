@@ -1,18 +1,18 @@
 # MSA — Sistema integrado de gestão da produção
 
-Login, cadastro, menu responsivo por setor e chat em um único projeto HTML, CSS e JavaScript. **O modo apresentação vem ativado:** mantém RE e senha, com cadastro liberado imediatamente e sem aprovação no Firebase. Os demais módulos de produção continuam reservados para desenvolvimento.
+Login por RE e senha, cadastro liberado imediatamente, menu responsivo por setor e chat em um único projeto HTML, CSS e JavaScript. A versão atual usa armazenamento no navegador e não exige aprovação no Firebase. Os demais módulos de produção continuam reservados para desenvolvimento, com integração IoT prevista para uma etapa futura.
 
-## Apresentar o sistema
+## Usar o sistema
 
 1. Abra `dist/index.html` ou o site publicado e selecione **Criar cadastro**.
 2. Preencha nome, RE, cargo e senha. O nome pode ser simples, o RE aceita de 1 a 10 números e a senha não exige maiúsculas, números ou símbolos. Não há confirmação de senha ou aprovação manual.
 3. **Cadastrar e entrar** libera o perfil e abre o menu imediatamente. Depois de sair, use o mesmo **RE e senha** para entrar. O cargo já vem do cadastro, sem seleção adicional no login.
-4. Abra **Chat** para mostrar canais por setor, passagem de turno e conversas individuais entre perfis de demonstração. As conversas começam vazias; você pode digitar e enviar mensagens.
-5. Para demonstrar dois participantes, crie dois cadastros com REs diferentes no mesmo navegador. Envie uma mensagem, saia e entre com o RE e senha do outro cadastro. As mensagens locais permanecem disponíveis.
+4. Abra **Chat** para usar canais por setor, passagem de turno e conversas individuais entre usuários cadastrados. As conversas começam vazias; você pode digitar e enviar mensagens.
+5. Para testar dois participantes, crie dois cadastros com REs diferentes no mesmo navegador. Envie uma mensagem, saia e entre com o RE e senha do outro cadastro. As mensagens locais permanecem disponíveis.
 
-O acesso e o chat de apresentação funcionam sem chamadas ao Firebase ou à API do chat. Os cadastros e mensagens são demonstrativos e ficam apenas no navegador utilizado; não são compartilhados entre computadores. A senha é verificada localmente e seu texto não é armazenado; o cadastro guarda um hash com salt. Use o site HTTPS publicado ou um servidor em `localhost` e mantenha o armazenamento do navegador disponível para conservar os cadastros entre páginas.
+O acesso e o chat atuais funcionam sem chamadas ao Firebase ou à API do chat. Os cadastros e mensagens ficam no navegador utilizado; não são compartilhados entre computadores. A senha é verificada localmente e seu texto não é armazenado; o cadastro guarda um hash com salt. Use o site HTTPS publicado ou um servidor em `localhost` e mantenha o armazenamento do navegador disponível para conservar os cadastros entre páginas.
 
-Abrir `dist/sistema.html` sem uma sessão retorna ao login por RE e senha. A tela identifica o **Modo apresentação**. **Lembrar de mim** preenche o RE no próximo acesso.
+Abrir `dist/sistema.html` sem uma sessão retorna ao login por RE e senha. **Lembrar de mim** preenche o RE no próximo acesso. As telas usam rótulos de funcionários, setores e cadastro, sem avisos de apresentação.
 
 Para voltar ao acesso Firebase, altere `presentation.enabled` de `true` para `false` em `dist/assets/config.js` e publique novamente. O fluxo descrito abaixo passa a valer. Na apresentação, não é necessário executar as etapas de ativação do Firebase.
 

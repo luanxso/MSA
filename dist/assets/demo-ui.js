@@ -2,9 +2,7 @@
   'use strict';
   if (MSA.auth.mode !== 'demo') return;
   const $ = id => document.getElementById(id);
-  document.body.dataset.presentation = 'true';
-  if ($('presentation-notice')) $('presentation-notice').hidden = false;
-  if ($('chat-profile-hint')) $('chat-profile-hint').textContent = 'Perfil de demonstração salvo neste navegador.';
+  if ($('chat-profile-hint')) $('chat-profile-hint').textContent = 'Identificação vinculada ao seu cadastro.';
 
   MSA.presentation.bindAuth = () => {
     const page = document.body.dataset.page;
@@ -14,10 +12,6 @@
     }
     const form = $('auth-form');
     const banner = $('form-banner');
-    const note = document.createElement('p');
-    note.className = 'presentation-note';
-    note.textContent = 'Modo apresentação';
-    document.querySelector('.form-heading').append(note);
     let cargo = $('cargo');
     if (page === 'login') {
       $('re').value = MSA.auth.consumeRegistrationRE() || MSA.auth.rememberedRE();

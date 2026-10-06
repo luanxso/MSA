@@ -115,7 +115,7 @@
     name.textContent = conversation.name;
     const note = document.createElement('span');
     note.className = 'conversation-note';
-    note.textContent = person ? (conversation.isDemo ? 'Perfil de demonstração' : conversation.re ? `RE ${conversation.re}` : 'Conversa individual') : conversation.note;
+    note.textContent = person ? (conversation.re ? `RE ${conversation.re}` : 'Conversa individual') : conversation.note;
     copy.append(name, note);
     button.append(initial, copy);
     button.addEventListener('click', () => person ? openPerson(conversation) : openConversation(conversation, true));
