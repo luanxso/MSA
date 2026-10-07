@@ -14,7 +14,7 @@ window.MSA = window.MSA || {};
   const machines=[],placements={};
   areas.forEach(a => {
     for(let i=0;i<a.count;i++) {
-      const id=a.id==='acabamento'&&i===0?'SEL-01':a.prefix+'-'+String(i+1).padStart(2,'0');
+      const id=a.id==='montagem'&&i===2?'NHPL':a.id==='acabamento'&&i===0?'SEL-01':a.prefix+'-'+String(i+1).padStart(2,'0');
       const columns=a.id==='recebimento'||a.id==='expedicao'?1:a.id==='injecao'?3:2;
       const rows=Math.ceil(a.count/columns),cell=a.width/columns;
       const x=a.x+cell*(i%columns+.5),y=a.y+116+Math.floor(i/columns)*(a.height-210)/Math.max(1,rows-1);

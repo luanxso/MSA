@@ -15,7 +15,7 @@
   const pointers=new Map();
   let drag=null,pinch=null;
   function catalog() {
-    if(telemetry.mode==='simulation')return telemetry.catalog;
+    if(telemetry.mode==='simulation')return context.demo?telemetry.catalog:telemetry.catalog.filter(m=>MSA.rbac.inScope(context.user,m));
     const actual=context.state.maquinas||[];
     if(telemetry.mode==='records')return actual.filter(m=>MSA.rbac.inScope(context.user,m));
     const merged=new Map(MSA.config.machines.filter(m=>MSA.rbac.inScope(context.user,m)).map(m=>[m.id,m]));
@@ -385,6 +385,12 @@
   function openMachine(id) {
     if(selected||summaryId===id&&root.querySelector('.plant-machine-dialog')?.open)return;
     const machine=catalog().find(m=>m.id===id);if(!machine)return;
+    if(machine.id==='NHPL'){
+      closeSummary(false);hideTooltip();
+      const svg=root.querySelector('#plant-svg');pointers.forEach((_,pointerId)=>{if(svg?.hasPointerCapture(pointerId))svg.releasePointerCapture(pointerId);});pointers.clear();drag=null;pinch=null;
+      if(!MSA.nhpl){feedback('O módulo 3D ainda está carregando. Tente novamente.');return;}
+      MSA.nhpl.open({machine,read:()=>sample(machine),manualState:()=>context.state,trigger:root.querySelector('[data-machine="NHPL"]')||document.activeElement});return;
+    }
     closeSummary(false);root.querySelector('.plant-machine-dialog')?.remove();hideTooltip();
     summaryId=id;restoreSummaryFocus=true;
     summaryTrigger=root.querySelector('[data-machine="'+CSS.escape(id)+'"]')||document.activeElement;
@@ -531,7 +537,7 @@
       else update();
     },
     close() {
-      if(!active)return;closeSummary(false);headerControls?.remove();headerControls=null;active=false;cancelAnimationFrame(flowFrame);unbind();resizeObserver?.disconnect();resizeObserver=null;
+      if(!active)return;MSA.nhpl?.close();closeSummary(false);headerControls?.remove();headerControls=null;active=false;cancelAnimationFrame(flowFrame);unbind();resizeObserver?.disconnect();resizeObserver=null;
       stopSubscription?.();stopSubscription=null;telemetry.stop();pointers.clear();hovered='';
     }
   };

@@ -13,6 +13,7 @@ window.MSA = window.MSA || {};
     areas: { 'visao-geral': 'Visão geral', 'mapa-planta': 'Mapa da Planta', producao: 'Produção', maquinas: 'Máquinas', apontamentos: 'Apontamentos', conferencia: 'Conferência', paradas: 'Paradas', qualidade: 'Qualidade', ocorrencias: 'Ocorrências', funcionarios: 'Funcionários', indicadores: 'Indicadores', relatorios: 'Relatórios', chat: 'Chat', notificacoes: 'Notificações', configuracoes: 'Configurações' },
     sectors: [ { id: 'selagem', nome: 'Selagem' }, { id: 'injecao', nome: 'Injeção' }, { id: 'montagem', nome: 'Montagem de abafadores' } ],
     machines: [
+      {id:'NHPL',nome:'NHPL · Montagem de abafadores',setorId:'montagem',processo:'Montagem de abafadores',produto:'VGARD HP / MARK V',productKind:'fones',parametros:{}},
       { id: 'SEL-01', nome: 'Selagem 01', setorId: 'selagem', processo: 'Selagem', produto: 'Selo V-Gard HP', metaDiaria: 1200, parametros: { temperatura: { nome: 'Temperatura', unidade: '°C', min: 250, max: 260 }, pressao: { nome: 'Pressão', unidade: 'bar', min: 6.5, max: 7 }, vacuo: { nome: 'Vácuo', unidade: 'mmHg', min: -600, max: -300 } } },
       { id: 'INJ-01', nome: 'Injetora 01', setorId: 'injecao', processo: 'Injeção', produto: 'Capacete', metaDiaria: 1800, parametros: { temperatura: { nome: 'Temperatura', unidade: '°C', min: 230, max: 260 }, ciclo: { nome: 'Tempo de ciclo', unidade: 's', min: 20, max: 35 } } },
       { id: 'INJ-02', nome: 'Injetora 02', setorId: 'injecao', processo: 'Injeção', produto: 'Capacete', metaDiaria: 1800, parametros: {} },

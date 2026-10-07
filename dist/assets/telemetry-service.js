@@ -70,12 +70,13 @@ window.MSA = window.MSA || {};
         speed:item.state==='operando'?60/item.cycleSeconds*item.partsPerCycle:0,plannedSeconds:item.plannedSeconds,operatingSeconds:item.operatingSeconds,
         stopSeconds:item.stopSeconds,setupSeconds:item.setupSeconds,maintenanceSeconds:item.maintenanceSeconds,phase:phase(item),parameters:values,alarms,
         timeline:clone(item.timeline),events:clone(item.events),samples:clone(item.samples),periodStart:item.periodStart,periodLabel:'Turno demonstrativo',
-        updatedAt:item.updatedAt,source:'simulated',sourceLabel:'Simulação',connected:true,stale:false};
+        updatedAt:item.updatedAt,source:'simulated',sourceLabel:'Simulação',connected:!item.disconnected,stale:!!item.disconnected};
       return {...s,efficiency:efficiency(s)};
     }
     return {
       advance(stamp) {
         machines.forEach(item=>{
+          if(item.disconnected){item.lastAt=stamp;return;}
           const seconds=Math.max(0,(stamp-item.lastAt)/1000);
           if(!seconds)return;
           item.plannedSeconds+=seconds;
@@ -88,7 +89,7 @@ window.MSA = window.MSA || {};
             item.cycleProgress=item.cycleElapsed/item.cycleSeconds;
           } else {
             item[{setup:'setupSeconds',manutencao:'maintenanceSeconds',parada:'stopSeconds'}[item.state]||'stopSeconds']+=seconds;
-            item.cycleProgress=0;
+            if(item.id!=='NHPL')item.cycleProgress=0;
           }
           item.lastAt=stamp;item.updatedAt=stamp;
           if(!item.samples.length||stamp-item.samples.at(-1).time>=30000) {
@@ -98,15 +99,18 @@ window.MSA = window.MSA || {};
         });
       },
       scenario(id,scenario,stamp=Date.now()) {
-        if(!['operando','parada','setup','manutencao','alerta'].includes(scenario))throw new Error('Cenário inválido.');
+        if(!['operando','parada','setup','manutencao','alerta','sem-leitura'].includes(scenario))throw new Error('Cenário inválido.');
         this.advance(stamp);
         const item=machines.get(id);if(!item)throw new Error('Máquina não encontrada.');
+        if(scenario==='sem-leitura'){item.disconnected=true;return;}
+        item.disconnected=false;item.lastAt=stamp;
         const next=scenario==='alerta'?'operando':scenario;
         const reason={operando:'Produção retomada',parada:'Falha de avanço',setup:'Troca de ferramenta',manutencao:'Intervenção programada'}[next];
         const warning=scenario==='alerta';
         if(item.state!==next) {
           item.timeline.at(-1).end=stamp;item.timeline.push({state:next,start:stamp,end:null,reason});item.timeline=item.timeline.slice(-64);
-          item.state=next;item.stateSince=stamp;item.cycleElapsed=0;item.cycleProgress=0;
+          item.state=next;item.stateSince=stamp;
+          if(item.id!=='NHPL'){item.cycleElapsed=0;item.cycleProgress=0;}
           item.events.push({id:id+'-'+stamp+'-'+next,time:stamp,type:'estado',description:reason,state:next});
         }
         if(item.warning!==warning) {
@@ -131,7 +135,7 @@ window.MSA = window.MSA || {};
     out.events=Array.isArray(value.events)?clone(value.events).filter(e=>e&&finite(e.time)).map(e=>({...e,state:Object.hasOwn(states,e.state)?e.state:'desconhecido'})).slice(-100):[];
     out.timeline=Array.isArray(value.timeline)?clone(value.timeline).filter(t=>t&&finite(t.start)&&(t.end==null||finite(t.end))).map(t=>({...t,state:Object.hasOwn(states,t.state)?t.state:'desconhecido'})).slice(-64):[];
     out.samples=Array.isArray(value.samples)?clone(value.samples).slice(-60):[];
-    out.stale=stamp-value.updatedAt>15000;out.connected=value.connected!==false&&!out.stale;
+    out.stale=value.connected===false||stamp-value.updatedAt>15000;out.connected=value.connected!==false&&!out.stale;
     out.efficiency=efficiency(out);return out;
   }
   let catalog=clone(MSA.plantLayout?.machines||MSA.config.machines),simulator=createSimulator(catalog),timer=null,paused=false,mode='simulation',adapter=null,stopAdapter=null,error='';
@@ -165,7 +169,7 @@ window.MSA = window.MSA || {};
           if(previous&&previous.updatedAt>normalized.updatedAt)return;
           error='';live.set(normalized.id,normalized);emit();
         }catch(e){error=e.message;emit();}
-      },()=>{if(adapter!==next)return;error='A fonte de dados está sem comunicação.';live.clear();emit();});
+      },()=>{if(adapter!==next)return;error='A fonte de dados está sem comunicação.';live.forEach(s=>s.connected=false);emit();});
       if(typeof stopAdapter!=='function')stopAdapter=null;
       mode='api';emit();
     },
