@@ -1,5 +1,13 @@
 # MSA — Sistema integrado de gestão da produção
 
+## Entrega do supervisório 3D NHPL — 07/10/2026
+
+Execute `INICIAR-DEMO.cmd` (Windows) ou `npm run demo` e abra `http://127.0.0.1:4173/planta-demo.html`. Clique em **NHPL** no mapa para abrir a cena 3D em popup. O mesmo popup está integrado ao sistema autenticado, com permissões existentes. A demonstração trabalha em memória.
+
+Inclui câmera, estações, montagem visual, indicadores, histórico, estados demonstrativos, comunicação perdida, foco, modo TV e tela cheia. O layout da NHPL é conceitual e o transporte não foi confirmado pela fábrica. Modelos/variantes, unidade de contagem e sinais reais precisam de validação. Instruções e configuração em [Supervisório NHPL](docs/Supervisorio-NHPL.md).
+
+Validação desta entrega: 52 testes aprovados, 1 teste dependente de emulador Firebase ignorado; build concluído e testes locais no Chrome aprovados. Não houve teste com CLP ou banco de produção.
+
 Versão 0.6.0. O projeto possui **Mapa da Planta com supervisório por equipamento**, além dos módulos de Operador, Supervisor e Chefe. Preserva a identidade MSA, login por RE, menu responsivo e chat. Os módulos de apontamento usam o **Firebase Authentication e o Realtime Database já configurados no projeto**.
 
 A página ocupa toda a área de trabalho com 32 equipamentos fictícios, oito setores por cor e rotas animadas de capacetes e fones. O supervisório representa a transformação das peças sobre uma esteira industrial. Abra `planta-demo.html` para apresentar sem cadastro e sem Firebase. Detalhes em [Mapa visual](docs/Mapa-da-Planta-Visual.md). Inclui zoom, movimentação, filtros, estados e supervisórios específicos de injeção, selagem e montagem. A fonte **Simulação** atualiza a demonstração na memória; **Registros do sistema** consulta os apontamentos reais no escopo do usuário. A estrutura e a futura integração com CLPs/IoT estão em [docs/Mapa-da-Planta.md](docs/Mapa-da-Planta.md).
