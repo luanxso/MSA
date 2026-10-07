@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const root = process.cwd();
 const staticDirectory = path.join(root, 'dist');
 const assets = {};
-const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg' };
+const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf' };
 
 async function collect(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -14,7 +14,7 @@ async function collect(directory) {
     const extension = path.extname(entry.name);
     if (!types[extension]) continue;
     const data = await readFile(file);
-    const binary = extension === '.png' || extension === '.jpg';
+    const binary = ['.png', '.jpg', '.ttf'].includes(extension);
     assets[`/${path.relative(staticDirectory, file).split(path.sep).join('/')}`] = { type: types[extension], base64: binary, body: data.toString(binary ? 'base64' : 'utf8') };
   }
 }

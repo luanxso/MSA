@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#009534">
+  <meta name="theme-color" content="#FFFFFF">
   <meta name="description" content="Acesso por RE ao sistema de acompanhamento e gestão da produção da MSA do Brasil.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='3'%20fill='%23009534'/%3E%3Cpath%20d='M7%2023V9l9%209%209-9v14'%20fill='none'%20stroke='white'%20stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/Barlow-Regular.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="assets/styles.css">
-  <link rel="stylesheet" href="assets/auth-layout.css">
+  <link rel="stylesheet" href="assets/login-layout.css">
   <script src="assets/config.js" defer></script>
   <script src="assets/rbac.js" defer></script>
   <script src="assets/validation.js" defer></script>
@@ -19,29 +20,18 @@
 </head>
 <body class="auth-page" data-page="login">
   <a class="skip" href="#auth-form">Ir para o formulário</a>
-  <header class="auth-masthead">
-    <div class="brand-row">
-      <img class="msa-logo" src="assets/msa-logo.png" alt="MSA — The Safety Company" width="901" height="430">
-      <p class="brand-caption">MSA do Brasil</p>
-    </div>
-  </header>
   <div class="auth-layout">
-    <aside class="context-panel" aria-labelledby="context-title">
-      <div class="context-copy">
-        <h2 id="context-title">Gestão da<br>produção</h2>
-        <p>Registros por máquina, acompanhamento do setor e indicadores para a gestão.</p>
-      </div>
-      <figure class="context-figure">
-        <img class="factory-photo" src="assets/msa-instrumentacao.jpg" alt="Manômetro e vacuômetro no painel de uma máquina fotografada na visita à MSA" width="1536" height="864">
-        <figcaption>Instrumentação de processo. Foto da visita à MSA.</figcaption>
-      </figure>
-    </aside>
-    <main class="form-panel">
+    <main class="form-panel login-card" aria-labelledby="form-title">
+      <header class="auth-masthead">
+        <div class="brand-row">
+          <img class="msa-logo" src="assets/msa-logo.png" alt="MSA — The Safety Company" width="901" height="430">
+        </div>
+      </header>
       <div class="form-content">
         <section id="form-section" aria-labelledby="form-title">
           <header class="form-heading">
             <h1 id="form-title">Entrar no sistema</h1>
-            <p>Use seu RE e senha para acessar sua área de trabalho.</p>
+            <p>Use seu RE e senha.</p>
           </header>
           <div id="form-banner" class="banner" role="status" aria-live="polite" hidden></div>
           <form id="auth-form" aria-labelledby="form-title" tabindex="-1" novalidate>

@@ -2,7 +2,7 @@
 
 Versão 0.4.3. O projeto existente foi adaptado para **Operador, Supervisor e Chefe**, preservando a identidade MSA, login por RE, menu responsivo e interface do chat. Os módulos operacionais usam o **Firebase Authentication e o Realtime Database já configurados no projeto**.
 
-Login e Cadastro agora têm composição industrial com fotografia real da visita, cabeçalho MSA comum e campos mais legíveis. A análise das telas anteriores, as decisões visuais, os arquivos alterados e as capturas estão em [docs/Design-acesso.md](docs/Design-acesso.md). O cadastro mantém os campos e o acesso imediato; não há nova etapa de aprovação.
+O Login foi atualizado com formulário centralizado, fotografia MSA no fundo do viewport, overlay escuro e card branco a 97%. O Cadastro conserva a composição original. O visual do Login usa `dist/assets/login-layout.css`, separado do CSS compartilhado para preservar as outras páginas. A análise das telas anteriores, as decisões visuais, os arquivos alterados e as capturas estão em [docs/Design-acesso.md](docs/Design-acesso.md). O cadastro mantém os campos e o acesso imediato; não há nova etapa de aprovação.
 
 O cadastro solicita **Nome, RE, Cargo e Senha**, sem setor ou máquina. O RE identifica a pessoa mesmo quando ela muda de posto. Dentro do sistema, o Operador escolhe a máquina em uso e o setor é derivado desse equipamento; o Supervisor escolhe o setor em acompanhamento no cabeçalho. O Chefe consulta indicadores e consolidações dos setores. As páginas e componentes são compartilhados. Menus, rotas, comandos e regras do banco verificam o cargo e o contexto atual. A mudança está detalhada em [docs/Cadastro-por-RE.md](docs/Cadastro-por-RE.md).
 

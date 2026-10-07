@@ -27,3 +27,11 @@ não representam valores atuais nem conexão automática com a máquina.
 
 Os ativos permanecem sujeitos aos direitos e condições de seus titulares. Usados como
 referências em protótipo acadêmico solicitado para o projeto MSA; sem afirmação de endosso.
+
+## Login atualizado — 07/10/2026
+
+`dist/assets/msa-login-background.jpg`: imagem de 1920 × 600 pixels enviada pelo usuário como `bg-msa-safety-hero-2023-eu(1).jpg`, copiada sem alteração. O Login utiliza a foto como fundo do viewport com overlay escuro e card branco a 97%. O enquadramento e a intensidade se adaptam à tela.
+
+`dist/assets/fonts/`: Barlow Regular (400), SemiBold (600) e Bold (700), provenientes do Login atualizado. A licença OFL está incluída em `OFL.txt`. A fonte é usada somente no Login.
+
+O visual atualizado fica em `dist/assets/login-layout.css`, carregado por `dist/index.html` e `dist/login.html`. O CSS compartilhado original, o Cadastro e as páginas operacionais foram preservados. O build inclui arquivos TTF para servir o Login também pelo Worker.
