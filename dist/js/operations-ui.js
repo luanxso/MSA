@@ -53,11 +53,11 @@
     return `<div class="ops-work-context"><label class="ops-field" for="ops-work-machine">Máquina em uso<select id="ops-work-machine" aria-describedby="ops-work-hint"><option value="" disabled ${!user().maquinaId?'selected':''}>Selecione a máquina</option>${groups}</select></label><p class="ops-note" id="ops-work-hint">Você pode trocar de máquina e setor. A troca vale para os próximos apontamentos.</p></div>`;
   }
   function stats(s = summary()) { return `<div class="ops-grid ops-summary">${[
-    ['Produção aprovada', num(s.aprovadas)+' peças', s.meta ? `${num(s.atendimento)}% da meta de ${num(s.meta)}` : 'Meta ainda não configurada'],
-    ['Refugos',num(s.refugos)+' peças',s.taxaRefugo===null ? 'Sem produção no período' : `${num(s.taxaRefugo)}% de refugo`],
-    ['Perda de material',num(s.kg)+' kg','Perdas registradas no período'],
-    ['Tempo de parada',num(s.minutos)+' min',`${s.abertas.length} ${s.abertas.length===1?'parada aberta':'paradas abertas'}`]
-  ].map(([label,value,hint])=>`<article class="ops-stat"><span>${label}</span><strong>${value}</strong><small>${hint}</small></article>`).join('')}</div>`; }
+    ['Produção aprovada', num(s.aprovadas), 'peças', s.meta ? `${num(s.atendimento)}% da meta de ${num(s.meta)}` : 'Meta ainda não configurada'],
+    ['Refugos',num(s.refugos),'peças',s.taxaRefugo===null ? 'Sem produção no período' : `${num(s.taxaRefugo)}% de refugo`],
+    ['Perda de material',num(s.kg),'kg','Perdas registradas no período'],
+    ['Tempo de parada',num(s.minutos),'min',`${s.abertas.length} ${s.abertas.length===1?'parada aberta':'paradas abertas'}`]
+  ].map(([label,value,unit,hint])=>`<article class="ops-stat"><span>${label}</span><strong>${value} <small class="ops-unit">${unit}</small></strong><small>${hint}</small></article>`).join('')}</div>`; }
   function verification(record) { return record.verificado ? `${badge('Conferido','good')}<small>${esc(personName(record.verificadoPor))}</small>` : badge('A conferir'); }
   function rowActions(collection, record) {
     let actions='';
@@ -141,6 +141,7 @@
     }
     if (!page || !user() || !MSA.rbac.route(page,user())) { content.replaceChildren(); return; }
     if (page==='chat') return;
+    if (page==='mapa-planta') { MSA.plant.open(content,{user:user(),sector,state}); return; }
     if (state.error) { content.innerHTML=`<div class="operation-alert">${esc(state.error)} ${button('Tentar novamente','retry')}</div>`; return; }
     if (!state.ready) { content.innerHTML='<div class="ops-empty">Carregando os dados compartilhados…</div>'; return; }
     const s=summary();
@@ -157,7 +158,7 @@
     if (page==='paradas') html=toolbar(allowed('paradas:registrar')?button('Registrar parada','new','paradas','',true):'')+stats(s)+panel('Histórico de paradas',stopTable());
     if (page==='qualidade') html=toolbar(allowed('perdas:registrar')?button('Registrar refugo / perda','new','perdas','',true):'')+stats(s)+panel('Refugos, material e peças suspeitas',`<p class="ops-note">Peças suspeitas: ${num(s.suspeitas)}. Refugos em peças e perdas em kg permanecem separados.</p>${lossTable()}`);
     if (page==='ocorrencias') html=toolbar(allowed('ocorrencias:registrar')?button('Registrar ocorrência','new','ocorrencias','',true):'')+panel('Ocorrências da operação',occurrenceTable());
-    if (page==='maquinas') html=toolbar(allowed('maquinas:gerenciar')?button('Cadastrar máquina','machine','','',true):'',false)+(machines().length?machineCards():panel('Máquinas',empty('Prepare o catálogo de exemplo em Configurações ou cadastre uma máquina do setor.')))+`<p class="ops-note">A situação usa as paradas registradas pelos operadores. As metas são diárias. Os parâmetros do catálogo inicial são exemplos para demonstração e devem ser validados com a MSA.</p>`;
+    if (page==='maquinas') html=toolbar(allowed('maquinas:gerenciar')?button('Cadastrar máquina','machine','','',true):'',false)+(machines().length?machineCards():panel('Máquinas',empty('Prepare o catálogo de exemplo em Configurações ou cadastre uma máquina do setor.')))+`<p class="ops-note">A situação usa as paradas registradas pelos operadores. As metas são diárias. </p>`;
     if (page==='conferencia') html=toolbar(button('Consolidar setor','consolidate','','',true))+stats(s)+panel('Registros a conferir',reviewTable())+panel('Consolidações do setor',reports());
     if (page==='funcionarios') html=`<div class="staff-context"><strong>${state.perfis.filter(p=>user().cargo==='chefe'?(sector==='todos'||p.setorId===sector):p.setorId===user().setorId).length} funcionários no contexto selecionado</strong><span>A máquina indica o posto atual, sem vínculo permanente com o setor.</span></div>`+panel('Equipe e máquina em uso',staffTable())+'<p class="ops-note">O RE identifica a pessoa. Trocas de máquina ou setor preservam a origem dos apontamentos anteriores.</p>';
     if (page==='indicadores') {
@@ -167,7 +168,8 @@
     if (page==='relatorios') html=toolbar(button('Exportar registros CSV','export','','',true))+stats(s)+panel('Consolidações dos supervisores',reports())+panel('Resumo por máquina',table(['Máquina / setor','Meta do período','Aprovadas','Atendimento','Refugos','Material','Paradas'],performanceRows()));
     if (page==='notificacoes') html=toolbar('',false)+panel('Pendências atuais',table(['Tipo','Máquina','Informação','Desde','Acesso'],alerts(),'Nenhuma pendência registrada nas máquinas do seu acesso.'));
     if (page==='configuracoes') html=panel('Meu acesso',`<dl class="profile-details"><dt>Nome</dt><dd>${esc(user().nome)}</dd><dt>RE</dt><dd>${esc(user().re)}</dd><dt>Cargo</dt><dd>${esc(MSA.auth.role(user()).label)}</dd><dt>Setor atual</dt><dd>${esc(sectorName(user().setorId)||(user().cargo==='chefe'?'Todos os setores':'Ainda não selecionado'))}</dd><dt>Máquina em uso</dt><dd>${esc(machineName(user().maquinaId)||'Nenhuma selecionada')}</dd></dl>`)+(allowed('maquinas:gerenciar')||allowed('setores:gerenciar')?panel('Preparar apresentação',hasContext?`<p>Cadastre as máquinas de exemplo ${user().cargo==='chefe'?'dos três setores':'do setor em acompanhamento'}. A preparação não cria apontamentos de produção.</p><p class="ops-note">Nomes, metas e limites iniciais são exemplos. Cadastros existentes são preservados.</p><div class="ops-actions">${button('Preparar máquinas de exemplo','seed','','',true)}</div>`:'<p>Selecione um setor no topo para preparar suas máquinas de exemplo.</p>'):'');
-    content.innerHTML=context+html;
+    const hasDemo=['registrosProducao','perdas','paradas','ocorrencias'].some(key=>(state[key]||[]).some(record=>record.id?.startsWith('demo-v1-')));
+    content.innerHTML=context+(hasDemo?'<p class="demo-data-label">Dados de demonstração</p>':'')+html;
   }
   function field(name,label,value='',type='text',options='') { return `<label class="ops-field ${type==='textarea'?'full':''}">${esc(label)}${type==='textarea'?`<textarea name="${name}" maxlength="2000" ${options}>${esc(value)}</textarea>`:`<input name="${name}" type="${type}" value="${esc(value)}" ${options}>`}</label>`; }
   function select(name,label,values,value,required=true) { return `<label class="ops-field">${esc(label)}<select name="${name}" ${required?'required':''}>${values.map(([key,text])=>`<option value="${esc(key)}" ${key===value?'selected':''}>${esc(text)}</option>`).join('')}</select></label>`; }
@@ -228,6 +230,7 @@
     const a=document.createElement('a');a.href=url;a.download=`MSA-registros-${from}-${to}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   content.addEventListener('change',event=>{
+    if(page==='mapa-planta')return;
     if (event.target.id==='ops-work-machine') {
       const control=event.target;
       if(busy)return;
@@ -261,6 +264,7 @@
   MSA.operations = {
     open(nextPage,nextSector) {
       const u=user();if(!u)return;
+      if(nextPage!=='mapa-planta')MSA.plant.close();
       const key=[u.id,u.cargo,u.setorId,u.maquinaId].join('|');
       if(key!==identity || MSA.data.user?.id!==u.id) { identity=key;machineFilter='';if(dialog.open)dialog.close();void MSA.data.start(u); }
       if(nextPage!==page||nextSector!==sector)machineFilter='';

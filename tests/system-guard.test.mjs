@@ -40,16 +40,34 @@ test('abrir o menu sem sessão mantém a tela protegida oculta e volta ao login'
   assert.deepEqual(f.state.redirects, ['index.html?expired=1']);
 });
 
-test('login válido abre o menu com nome, cargo, RE e avatar da conta', async () => {
+test('login válido abre o menu com nome abreviado e preserva a identificação da conta', async () => {
   const f = fixture();
   assert.equal(await f.context.MSA.system.ready, active);
   assert.equal(f.elements.get('#system-shell').hidden, false);
   assert.equal(f.elements.get('#session-screen').hidden, true);
-  assert.equal(f.elements.get('.user-name').textContent, 'Ana Silva');
+  assert.equal(f.elements.get('.user-name').textContent, 'Ana S.');
+  assert.equal(f.elements.get('.user-name').attributes.title, 'Ana Silva');
   assert.equal(f.elements.get('#header-user-role').textContent, 'Supervisor');
   assert.equal(f.elements.get('#header-user-re').textContent, 'RE 001234');
   assert.equal(f.elements.get('.user-avatar').textContent, 'AS');
   assert.equal(f.state.redirects.length, 0);
+});
+
+test('header abrevia Luan Miguel e conserva o nome completo no perfil', async () => {
+  const user = { ...active, nome: 'Luan Miguel dos Santos' };
+  const f = fixture(user);
+  await f.context.MSA.system.ready;
+  assert.equal(f.elements.get('.user-name').textContent, 'Luan M.');
+  assert.equal(f.elements.get('.user-profile').attributes['aria-label'], 'Luan Miguel dos Santos, Supervisor, RE 001234');
+  assert.equal(user.nome, 'Luan Miguel dos Santos');
+});
+
+test('nome curto e sobrenome com preposição permanecem legíveis no header', async () => {
+  for (const [nome, expected] of [['Luan', 'Luan'], ['Maria dos Santos', 'Maria S.'], ['  Ana   Silva  ', 'Ana S.']]) {
+    const f = fixture({ ...active, nome });
+    await f.context.MSA.system.ready;
+    assert.equal(f.elements.get('.user-name').textContent, expected);
+  }
 });
 
 test('contas sem acesso ativo seguem para a tela de situação do acesso', async () => {

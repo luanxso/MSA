@@ -20,6 +20,7 @@ O = Operador; S = Supervisor; C = Chefe. Todo acesso autenticado exige perfil at
 | Funcionários | Acompanhar a equipe e garantir que o Operador trabalhe no contexto correto: nome, RE, cargo, setor e máquina | S vincula Operador do seu setor a uma máquina desse setor; C consulta equipe dos setores | **Compartilhada S/C**; S edita vínculo, C visualiza |
 | Relatórios | Substituir a consolidação manual em planilhas: resumo por máquina, apontamentos e observações dos supervisores | S/C filtram período e exportam registros CSV; resumos são cadastrados em Conferência | **Compartilhada S/C**; leitura e exportação |
 | Visão geral | Resumo do contexto do usuário: aprovadas, refugos, kg, parada, produção por máquina e pendências atuais | Filtrar período; abrir pendências | **Todos**; visualização da máquina O, setor S ou setores C |
+| Mapa da Planta | Planta fictícia de setores e equipamentos; supervisório com ciclo, produção, parâmetros, alarmes, paradas e histórico | Selecionar máquina, ampliar, movimentar e filtrar; demonstrar cenários somente na fonte Simulação | **Todos**; simulação fictícia; Registros e API respeitam a máquina O, setor S ou setores C |
 | Produção | Acompanhar planejado/realizado e origem dos números: metas, aprovadas, lote, turno, operador, leituras e conferência | Filtrar período/máquina; O corrige produção própria; S confere registros | **Todos**; O edita próprio, S confere, C visualiza |
 | Máquinas | Conhecer o equipamento e os parâmetros: código, nome, processo, produto, setor, meta diária e limites | S cadastra/edita máquinas e parâmetros do setor; C altera metas; O consulta sua máquina | **Todos**; permissões de escrita específicas por ação |
 | Paradas | Registrar e acompanhar motivo/duração: início/fim, causa/ação, responsável e conferência | O registra/edita parada própria aberta e a encerra; S encerra e confere paradas do setor; C consulta | **Todos**; O/S atualizam conforme escopo, C visualiza |
@@ -30,7 +31,7 @@ O = Operador; S = Supervisor; C = Chefe. Todo acesso autenticado exige perfil at
 | Configurações | Explicar o acesso atual: nome, RE, cargo, setor e máquina; preparar catálogo inicial | Todos consultam próprio perfil; S prepara catálogo do setor; C prepara catálogo dos três setores | **Todos**; perfil somente leitura; preparação por S/C |
 | Login / Cadastro / Situação do acesso | Identificar o usuário pelo RE | Entrar/sair; cadastrar Nome, RE, Cargo e Senha; tentar conexão novamente | Disponíveis para todos; cadastro imediato, sem setor ou máquina e sem fila de aprovação |
 
-As telas compartilhadas entre todos são as mesmas nove páginas. A exclusividade de Indicadores é da página gerencial comparativa: os demais cargos continuam vendo indicadores úteis ao seu trabalho em Visão geral e Produção. Alterar meta é uma ação do Chefe na página compartilhada Máquinas, não uma página adicional.
+As telas compartilhadas reutilizam os mesmos componentes por cargo. A exclusividade de Indicadores é da página gerencial comparativa: os demais cargos continuam vendo indicadores úteis ao seu trabalho em Visão geral e Produção. Alterar meta é uma ação do Chefe na página compartilhada Máquinas, não uma página adicional.
 
 ## Fluxo de acesso
 

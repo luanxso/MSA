@@ -1,0 +1,132 @@
+/* Paleta por tema, comum ao acesso, painel, chat e planta. */
+:root, html[data-theme="light"] {
+  --theme-bg: #f1f5f3;
+  --theme-surface: #fff;
+  --theme-control: #f7faf8;
+  --theme-text: #192b22;
+  --theme-muted: #50675b;
+  --theme-border: #cddad1;
+  --theme-hover: #eaf0ec;
+  --theme-good: #007c35;
+  --theme-good-bg: #e8f5ec;
+  --theme-warning: #835700;
+  --theme-warning-bg: #fff4dd;
+  --theme-danger: #a42b2b;
+  --theme-danger-bg: #fff0ee;
+  --theme-plot: #f1f5f3;
+  --theme-metal: #d1ddd5;
+  --theme-panel: #e3ece6;
+  --theme-grid: #dce6df;
+  --panel-surface: var(--theme-bg);
+  --panel-ink: var(--theme-text);
+  --panel-muted: var(--theme-muted);
+  --panel-line: var(--theme-border);
+  --border: var(--theme-border);
+  --line: var(--theme-border);
+  --text-secondary: var(--theme-muted);
+  --link: var(--theme-good);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --theme-bg: #171f1b;
+  --theme-surface: #222d26;
+  --theme-control: #29372e;
+  --theme-text: #e6efe9;
+  --theme-muted: #b4c5bb;
+  --theme-border: #45594b;
+  --theme-hover: #304135;
+  --theme-good: #6edf9c;
+  --theme-good-bg: #1f3e2b;
+  --theme-warning: #f3cc78;
+  --theme-warning-bg: #3b3220;
+  --theme-danger: #ff9f9f;
+  --theme-danger-bg: #40292a;
+  --theme-plot: #16251c;
+  --theme-metal: #526e5d;
+  --theme-panel: #344c3d;
+  --theme-grid: #304c3a;
+  --auth-muted: var(--theme-muted);
+  --auth-border: var(--theme-border);
+  --error: var(--theme-danger);
+}
+.theme-toggle { display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:8px; min-width:44px; min-height:44px; padding:9px; border:1px solid var(--theme-border); border-radius:4px; background:var(--theme-surface); color:var(--theme-text); font:inherit; cursor:pointer; }
+.theme-toggle svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+.theme-toggle:hover { background:var(--theme-hover); }
+.theme-toggle:focus-visible { outline:2px solid var(--theme-good); outline-offset:3px; }
+.app-header .theme-toggle { background:transparent; border-color:#495851; color:#dce9e1; }
+.app-header .theme-toggle:hover { background:#303c36; }
+.app-header .theme-toggle:focus-visible { outline-color:#7ee5a4; }
+.app-header .theme-toggle-label { display:none; }
+.auth-masthead { justify-content:space-between; gap:12px; }
+.auth-masthead .theme-toggle { margin-left:auto; font-size:.875rem; }
+.gateway-header { gap:12px; }
+.gateway-header .theme-toggle { margin-left:auto; }
+html[data-theme] body { color:var(--theme-text); }
+html[data-theme] .main-content:not(.is-plant-page), html[data-theme] .session-screen, html[data-theme] .gateway { background:var(--theme-bg); }
+html[data-theme] .app-shell .sidebar, html[data-theme] .app-shell .sidebar-brand { background:var(--theme-surface); border-color:var(--theme-border); }
+html[data-theme] .app-shell .sidebar-nav { scrollbar-color:var(--theme-border) var(--theme-surface); }
+html[data-theme] .app-shell .nav-item, html[data-theme] .app-shell .nav-item .icon, html[data-theme] .brand-caption, html[data-theme] .app-shell .drawer-title, html[data-theme] .app-shell .drawer-close { color:var(--theme-muted); }
+html[data-theme] .app-shell .nav-item:hover { color:var(--theme-text); background:var(--theme-hover); }
+html[data-theme] .app-shell .nav-item.is-active { background:var(--theme-good-bg); color:var(--theme-good); border-left-color:var(--theme-good); }
+html[data-theme] .app-shell .nav-item.is-active .icon { color:var(--theme-good); }
+html[data-theme] .sidebar :where(a,button):focus-visible { outline-color:var(--theme-good); }
+html[data-theme] .sidebar-brand .brand-logo, html[data-theme] .sidebar-brand .brand-compact { background:#fff; border-radius:3px; }
+html[data-theme] .ops-table, html[data-theme] .ops-table td, html[data-theme] .machine-card, html[data-theme] .profile-details, html[data-theme] .session-screen h1 { color:var(--theme-text); }
+html[data-theme] .ops-table th, html[data-theme] .ops-table td, html[data-theme] .machine-register-row, html[data-theme] .staff-context { border-color:var(--theme-border); }
+html[data-theme] .ops-table th, html[data-theme] .machine-register-heading { background:transparent; color:var(--theme-muted); }
+html[data-theme] .ops-table tr:hover td { background:var(--theme-hover); }
+html[data-theme] .ops-table td small, html[data-theme] .ops-muted, html[data-theme] .ops-empty, html[data-theme] .machine-card dt, html[data-theme] .profile-details dt, html[data-theme] .session-screen p { color:var(--theme-muted); }
+html[data-theme] .ops-empty strong, html[data-theme] .ops-summary .ops-stat strong, html[data-theme] .machine-identity strong, html[data-theme] .machine-output strong { color:var(--theme-text); }
+html[data-theme] .ops-toolbar input, html[data-theme] .ops-toolbar select, html[data-theme] .ops-field input, html[data-theme] .ops-field select, html[data-theme] .ops-field textarea, html[data-theme] .profile-dialog input { background:var(--theme-control); color:var(--theme-text); border-color:var(--theme-border); }
+html[data-theme] .operation-dialog, html[data-theme] .profile-dialog, html[data-theme] dialog { background:var(--theme-surface); color:var(--theme-text); border-color:var(--theme-border); }
+html[data-theme] .secondary-button { background:var(--theme-surface); color:var(--theme-text); border-color:var(--theme-border); }
+html[data-theme] .secondary-button:hover { background:var(--theme-hover); }
+html[data-theme] .text-button, html[data-theme] .ops-link { color:var(--theme-good); }
+html[data-theme] .ops-badge { background:var(--theme-hover); color:var(--theme-muted); }
+html[data-theme] .ops-badge.good, html[data-theme] .operation-feedback { background:var(--theme-good-bg); color:var(--theme-good); }
+html[data-theme] .ops-badge.warning { background:var(--theme-warning-bg); color:var(--theme-warning); }
+html[data-theme] .ops-badge.danger, html[data-theme] .operation-feedback.is-error, html[data-theme] .operation-alert { background:var(--theme-danger-bg); color:var(--theme-danger); }
+html[data-theme] .ops-attention { background:var(--theme-hover); }
+html[data-theme] .ops-attention.needs-attention { background:var(--theme-danger-bg); }
+html[data-theme] .parameter-deviation { color:var(--theme-danger)!important; }
+html[data-theme] .ops-bar-track, html[data-theme] .machine-progress .ops-bar-track { background:var(--theme-border); }
+html[data-theme] .chat-view, html[data-theme] .chat-conversations, html[data-theme] .chat-thread { background:var(--theme-surface); border-color:var(--theme-border); color:var(--theme-text); }
+html[data-theme] .chat-search input, html[data-theme] .chat-composer textarea { background:var(--theme-control); color:var(--theme-text); border-color:var(--theme-border); }
+html[data-theme] .chat-thread-header h2, html[data-theme] .chat-list-heading h2, html[data-theme] .conversation-name, html[data-theme] .message-heading strong, html[data-theme] .chat-empty h3 { color:var(--theme-text); }
+html[data-theme] .conversation-item:hover, html[data-theme] .conversation-item.is-active, html[data-theme] .message.is-own { background:var(--theme-hover); }
+html[data-theme] .chat-tabs button, html[data-theme] .chat-thread-header p, html[data-theme] .message-heading time, html[data-theme] .chat-list-footer, html[data-theme] .chat-empty p { color:var(--theme-muted); }
+html[data-theme] .chat-tabs button[aria-selected="true"] { color:var(--theme-good); border-color:var(--theme-good); }
+html[data-theme] .message-body { color:var(--theme-text); }
+html[data-theme] .auth-page .login-card, html[data-theme] .auth-page .form-panel, html[data-theme] .auth-page .auth-masthead, html[data-theme] .gateway-header, html[data-theme] .gateway-main { background:var(--theme-surface); border-color:var(--theme-border); color:var(--theme-text); }
+html[data-theme] .auth-page .form-heading h1, html[data-theme] .auth-page .field label, html[data-theme] .gateway h1 { color:var(--theme-text); }
+html[data-theme] .auth-page .form-heading p, html[data-theme] .auth-page .role-hint, html[data-theme] .auth-page .hint, html[data-theme] .auth-page .account-link, html[data-theme] .auth-page .options, html[data-theme] .auth-page .auth-footer p, html[data-theme] dialog p { color:var(--theme-muted); }
+html[data-theme] .auth-page .field input, html[data-theme] .auth-page .field select { background:var(--theme-control); color:var(--theme-text); border-color:var(--theme-border); }
+html[data-theme] .auth-page input::placeholder { color:var(--theme-muted); }
+html[data-theme] .auth-page .toggle-password { color:var(--theme-muted); }
+html[data-theme] .auth-page .toggle-password:hover { background:var(--theme-hover); color:var(--theme-text); }
+html[data-theme] .auth-page .msa-logo, html[data-theme] .gateway .msa-logo { background:#fff; border-radius:3px; }
+html[data-theme] .secondary { background:var(--theme-surface); color:var(--theme-text); border-color:var(--theme-border); }
+html[data-theme] .banner { background:var(--theme-good-bg); color:var(--theme-good); border-color:var(--theme-good); }
+html[data-theme] .banner.error-banner { background:var(--theme-danger-bg); color:var(--theme-danger); border-color:var(--theme-danger); }
+/* A planta v0.7.1 usa sua própria paleta neutra, sincronizada pelo tema global. */
+html[data-theme] .app-shell:has(.is-plant-page) .app-header { background:var(--plant-surface); color:var(--plant-text); border-color:var(--plant-border); }
+html[data-theme] .app-shell:has(.is-plant-page) .app-header :is(.user-name,#current-section,.icon-button,.logout-button) { color:var(--plant-text); }
+html[data-theme] .app-shell:has(.is-plant-page) .app-header :is(.user-role,.header-section) { color:var(--plant-muted); }
+html[data-theme] .app-shell:has(.is-plant-page) .sidebar-nav { background:transparent; scrollbar-color:var(--theme-border) var(--theme-surface); }
+html[data-theme] .app-shell:has(.is-plant-page) :is(.nav-group-label,.brand-caption) { color:var(--theme-muted); }
+html[data-theme] .app-shell:has(.is-plant-page) .theme-toggle { color:var(--plant-text); border-color:var(--plant-border); background:transparent; }
+html[data-theme] .app-shell:has(.is-plant-page) .theme-toggle:hover { background:var(--plant-hover); }
+html[data-theme] .app-shell:has(.is-plant-page) .simulation-label { color:var(--plant-muted); }
+html[data-theme] .plant-machine-dialog { background:var(--plant-surface); color:var(--plant-text); border-color:var(--plant-border); }
+html[data-theme] .plant-machine-dialog p { color:var(--plant-muted); }
+@media (max-width:600px) {
+  .auth-masthead .theme-toggle-label, .gateway-header .theme-toggle-label { display:none; }
+  .app-header>.simulation-label { min-width:0; max-width:140px; white-space:normal; font-size:11px; }
+}
+@media (max-width:380px) {
+  .app-header:has(.theme-toggle) .header-section { display:none; }
+  .app-header .theme-toggle { padding:8px; }
+}
+
+
+

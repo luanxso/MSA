@@ -137,12 +137,13 @@
     sectorSelector.options[0].textContent = currentUser.cargo === 'operador' ? 'Selecione uma máquina na operação' : 'Selecione o setor em acompanhamento';
     document.querySelector('.context-label').textContent = currentUser.cargo === 'supervisor' ? 'Setor em acompanhamento' : 'Setor';
     sectorSelector.value = currentUser.cargo === 'chefe' ? (previousSector || 'todos') : currentUser.setorId;
-    let pageId = window.location.hash.slice(1) || role.home;
+    const requestedPage = window.location.hash.slice(1).split('/')[0];
+    let pageId = requestedPage || role.home;
     if (!MSA.rbac.route(pageId, currentUser)) {
       MSA.operations.notify('Esta tela não está disponível para seu cargo.', true);
       pageId = role.home;
     }
-    if (window.location.hash !== '#' + pageId) history.replaceState(null, '', '#' + pageId);
+    if (pageId !== requestedPage) history.replaceState(null, '', '#' + pageId);
     const selectedItem = navigationItems.find(item => item.dataset.page === pageId);
     const title = selectedItem.querySelector('.nav-text').textContent;
     const group = selectedItem.closest('.nav-group').querySelector('.nav-group-label').textContent;
@@ -174,8 +175,10 @@
       chat: 'Conversas entre funcionários e passagem de turno'
     };
     pageDescription.textContent = descriptions[pageId] || '';
+    pageDescription.hidden = !pageDescription.textContent;
     pageContent.hidden = isChat;
     main.classList.toggle('is-chat-page', isChat);
+    main.classList.toggle('is-plant-page', pageId === 'mapa-planta');
     MSA.operations.open(pageId, sectorSelector.value);
     if (isChat) window.MSAChat.show(sectorSelector.value);
     else window.MSAChat.hide();

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8"><script src="assets/theme.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#FFFFFF">
   <meta name="description" content="Base visual do sistema de acompanhamento e gestão da produção da MSA do Brasil.">
@@ -9,6 +9,10 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23333333'%20stroke-width='2'%3E%3Cpath%20d='M3%2021V8l6%203V8l6%203V3h6v18Z'/%3E%3Cpath%20stroke='%23009534'%20d='M3%2021h18'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
   <script src="assets/config.js" defer></script>
+  <script src="assets/plant-layout.js" defer></script>
+  <script src="assets/telemetry-service.js" defer></script>
+  <script src="assets/process-visuals.js" defer></script>
+  <script src="js/plant-ui.js" defer></script>
   <script src="assets/rbac.js" defer></script><script src="assets/validation.js" defer></script>
   <script src="assets/firebase-config.js" defer></script>
   <script src="assets/firebase-client.js" defer></script>
@@ -17,7 +21,9 @@
   <script src="js/script.js" defer></script>
   <link rel="stylesheet" href="assets/operations.css">
   <link rel="stylesheet" href="css/panel-layout.css">
-</head>
+  <link rel="stylesheet" href="assets/plant.css">
+  <link rel="stylesheet" href="css/panel-clean.css">
+<link rel="stylesheet" href="assets/theme.css"></head>
 <body data-page="sistema">
   <a class="skip-link" href="#main-content">Ir para o conteúdo principal</a>
 
@@ -70,6 +76,7 @@
           <h2 class="nav-group-label" id="operation-label">Operação</h2>
           <ul class="nav-list">
             <li><a class="nav-item is-active" href="#visao-geral" data-page="visao-geral" aria-current="page" aria-label="Visão geral" title="Visão geral"><svg class="icon" aria-hidden="true"><use href="#icon-overview"></use></svg><span class="nav-text">Visão geral</span></a></li>
+            <li><a class="nav-item" href="#mapa-planta" data-page="mapa-planta" aria-label="Mapa da Planta" title="Mapa da Planta"><svg class="icon" aria-hidden="true"><use href="#icon-factory"></use></svg><span class="nav-text">Mapa da Planta</span></a></li>
             <li><a class="nav-item" href="#producao" data-page="producao" aria-label="Produção" title="Produção"><svg class="icon" aria-hidden="true"><use href="#icon-factory"></use></svg><span class="nav-text">Produção</span></a></li>
             <li><a class="nav-item" href="#maquinas" data-page="maquinas" aria-label="Máquinas" title="Máquinas"><svg class="icon" aria-hidden="true"><use href="#icon-machine"></use></svg><span class="nav-text">Máquinas</span></a></li>
             <li><a class="nav-item" href="#apontamentos" data-page="apontamentos" aria-label="Apontamentos" title="Apontamentos"><svg class="icon" aria-hidden="true"><use href="#icon-clipboard"></use></svg><span class="nav-text">Apontamentos</span></a></li>
@@ -131,7 +138,7 @@
 
         <div class="header-right">
           <!-- Indica a disponibilidade de rede do navegador; não representa conexão com máquinas ou CLPs. -->
-          <div class="connection-status" role="status" aria-live="polite" title="Conexão dos registros com o Firebase">
+          <div class="connection-status sr-only" role="status" aria-live="polite" title="Conexão dos registros com o Firebase">
             <span class="status-dot" aria-hidden="true"></span>
             <span class="status-text">Conectando registros</span>
           </div>
@@ -140,7 +147,7 @@
             <span class="notification-count" id="notification-count" hidden></span>
           </a>
           <div class="user-profile" aria-label="Perfil do funcionário">
-            <span class="user-avatar" aria-hidden="true"></span>
+            <span class="user-avatar" aria-hidden="true" hidden></span>
             <div class="user-copy"><p class="user-name"></p><p class="user-role"><span id="header-user-role"></span><span aria-hidden="true"> · </span><span id="header-user-re"></span></p></div>
           </div>
           <button class="logout-button" id="system-logout" type="button" aria-label="Sair do sistema" title="Sair"><svg class="icon" aria-hidden="true"><use href="#icon-logout"></use></svg><span class="logout-label">Sair</span></button>

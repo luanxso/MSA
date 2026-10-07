@@ -283,15 +283,15 @@
   .auth-page .options { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 
-/* Login: card centralizado; a fotografia é apenas ambientação do viewport. */
-.auth-page[data-page='login'] {
+/* Login e cadastro compartilham o mesmo cartão e a fotografia de fundo. */
+.auth-page:is([data-page='login'], [data-page='cadastro']) {
   --login-background-position: 92% center;
   --login-overlay-opacity: .52;
   isolation: isolate;
   background: #191a1a;
 }
 
-.auth-page[data-page='login']::before {
+.auth-page:is([data-page='login'], [data-page='cadastro'])::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -309,7 +309,7 @@
   background-position: center, center, var(--login-background-position);
 }
 
-.auth-page[data-page='login'] .auth-layout {
+.auth-page:is([data-page='login'], [data-page='cadastro']) .auth-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
@@ -319,7 +319,7 @@
   padding: 32px 24px;
 }
 
-.auth-page[data-page='login'] .login-card {
+.auth-page:is([data-page='login'], [data-page='cadastro']) .login-card {
   width: 100%;
   max-width: 480px;
   min-height: 0;
@@ -330,51 +330,94 @@
   box-shadow: 0 4px 20px #00000014;
 }
 
-.auth-page[data-page='login'] .auth-masthead {
+.auth-page:is([data-page='login'], [data-page='cadastro']) .auth-masthead {
   min-height: 0;
   padding: 0;
   margin-bottom: 28px;
 }
 
-.auth-page[data-page='login'] .brand-row { margin: 0; }
-.auth-page[data-page='login'] .msa-logo { width: 96px; }
+.auth-page:is([data-page='login'], [data-page='cadastro']) .brand-row { margin: 0; }
+.auth-page:is([data-page='login'], [data-page='cadastro']) .msa-logo { width: 96px; }
 
-.auth-page[data-page='login'] .form-content {
+.auth-page:is([data-page='login'], [data-page='cadastro']) .form-content {
   max-width: none;
   margin: 0;
   padding: 0;
 }
 
-.auth-page[data-page='login'] .form-heading { margin-bottom: 28px; }
-.auth-page[data-page='login'] .form-heading h1 { font-size: 2rem; line-height: 1.2; }
-.auth-page[data-page='login'] .form-heading p { margin-top: 8px; }
-.auth-page[data-page='login'] .field { margin-bottom: 20px; }
-.auth-page[data-page='login'] .options { margin-bottom: 24px; }
-.auth-page[data-page='login'] .account-link { margin-top: 20px; }
+.auth-page:is([data-page='login'], [data-page='cadastro']) .form-heading { margin-bottom: 28px; }
+.auth-page:is([data-page='login'], [data-page='cadastro']) .form-heading h1 { font-size: 2rem; line-height: 1.2; }
+.auth-page:is([data-page='login'], [data-page='cadastro']) .form-heading p { margin-top: 8px; }
+.auth-page:is([data-page='login'], [data-page='cadastro']) .field { margin-bottom: 20px; }
+.auth-page:is([data-page='login'], [data-page='cadastro']) .options { margin-bottom: 24px; }
+.auth-page:is([data-page='login'], [data-page='cadastro']) .account-link { margin-top: 20px; }
 
 @media (max-width: 1440px) {
-  .auth-page[data-page='login'] { --login-background-position: 90% 45%; }
+  .auth-page:is([data-page='login'], [data-page='cadastro']) { --login-background-position: 90% 45%; }
 }
 
 @media (orientation: portrait) {
-  .auth-page[data-page='login'] {
+  .auth-page:is([data-page='login'], [data-page='cadastro']) {
     --login-background-position: 100% center;
     --login-overlay-opacity: .62;
   }
 }
 
 @media (max-width: 600px) {
-  .auth-page[data-page='login'] {
+  .auth-page:is([data-page='login'], [data-page='cadastro']) {
     --login-background-position: 100% center;
     --login-overlay-opacity: .68;
   }
-  .auth-page[data-page='login'] .auth-layout { padding: 24px 16px; }
-  .auth-page[data-page='login'] .login-card { padding: 28px 24px; }
-  .auth-page[data-page='login'] .auth-masthead { margin-bottom: 24px; }
-  .auth-page[data-page='login'] .form-heading { margin-bottom: 24px; }
+  .auth-page:is([data-page='login'], [data-page='cadastro']) .auth-layout { padding: 24px 16px; }
+  .auth-page:is([data-page='login'], [data-page='cadastro']) .login-card { padding: 28px 24px; }
+  .auth-page:is([data-page='login'], [data-page='cadastro']) .auth-masthead { margin-bottom: 24px; }
+  .auth-page:is([data-page='login'], [data-page='cadastro']) .form-heading { margin-bottom: 24px; }
 }
 
 @media (max-width: 360px) {
-  .auth-page[data-page='login'] .login-card { padding-inline: 20px; }
-  .auth-page[data-page='login'] .form-heading h1 { font-size: 1.875rem; }
+  .auth-page:is([data-page='login'], [data-page='cadastro']) .login-card { padding-inline: 20px; }
+  .auth-page:is([data-page='login'], [data-page='cadastro']) .form-heading h1 { font-size: 1.875rem; }
+}
+
+/* Cadastro compacto: o documento cresce e rola quando o formulário não cabe. */
+.auth-page[data-page='cadastro'] {
+  min-height: 100svh;
+  min-height: 100dvh;
+  overflow-y: auto;
+}
+
+.auth-page[data-page='cadastro'] .auth-layout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 16px;
+}
+
+.auth-page[data-page='cadastro'] .login-card {
+  flex-shrink: 0;
+  padding: 24px 32px;
+}
+
+.auth-page[data-page='cadastro'] .auth-masthead { margin-bottom: 12px; }
+.auth-page[data-page='cadastro'] .msa-logo { width: 84px; }
+.auth-page[data-page='cadastro'] .form-heading { margin-bottom: 16px; }
+.auth-page[data-page='cadastro'] .form-heading h1 { font-size: 1.75rem; }
+.auth-page[data-page='cadastro'] .form-heading p { margin-top: 6px; }
+.auth-page[data-page='cadastro'] .field { margin-bottom: 12px; }
+.auth-page[data-page='cadastro'] .field label { margin-bottom: 6px; }
+.auth-page[data-page='cadastro'] .field input,
+.auth-page[data-page='cadastro'] .field select { height: 48px; }
+.auth-page[data-page='cadastro'] .toggle-password { top: 2px; right: 2px; }
+.auth-page[data-page='cadastro'] .hint { margin-top: 6px; }
+.auth-page[data-page='cadastro'] .role-hint { margin: -4px 0 12px; }
+.auth-page[data-page='cadastro'] .primary {
+  min-height: 48px;
+  margin-top: 4px;
+  padding: 10px 16px;
+}
+.auth-page[data-page='cadastro'] .account-link { margin-top: 12px; }
+
+@media (max-width: 600px) {
+  .auth-page[data-page='cadastro'] .auth-layout { padding: 16px 12px; }
+  .auth-page[data-page='cadastro'] .login-card { padding: 20px; }
 }

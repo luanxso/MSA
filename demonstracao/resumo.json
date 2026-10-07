@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-10-07T18:23:50.051Z",
+  "timeZone": "America/Sao_Paulo",
+  "counts": {
+    "setores": 3,
+    "maquinas": 5,
+    "perfis": 8,
+    "registrosProducao": 70,
+    "leituras": 14,
+    "paradas": 36,
+    "perdas": 75,
+    "ocorrencias": 5,
+    "consolidacoes": 3
+  }
+}
