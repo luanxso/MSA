@@ -10,8 +10,8 @@ vm.runInNewContext(await readFile(new URL('../dist/assets/config.js',import.meta
 const now=Date.parse('2026-10-07T14:30:00-03:00');
 const payload=buildDemoData(context.MSA.config,now);
 test('exemplos têm produção de hoje, referências consistentes, unidades separadas e nenhuma senha',()=>{
-  assert.equal(Object.keys(payload.maquinas).length,5);
-  assert.equal(Object.keys(payload.registrosProducao).length,70);
+  assert.equal(Object.keys(payload.maquinas).length,context.MSA.config.machines.length);
+  assert.equal(Object.keys(payload.registrosProducao).length,14*context.MSA.config.machines.length);
   for(const key of ['registrosProducao','leituras','paradas','perdas','ocorrencias'])for(const row of Object.values(payload[key])){
     assert.equal(payload.maquinas[row.maquinaId].setorId,row.setorId);
     assert(payload.perfis[row.usuarioId]);

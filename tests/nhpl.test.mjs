@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+import {createNhplData,applicableGoal,reliability} from '../dist/assets/nhpl-data.js';
+function fixture(){let now=Date.now();class Clock extends Date{static now(){return now;}}const ctx=vm.createContext({Date:Clock,setInterval(){},clearInterval(){}});ctx.window=ctx;for(const f of ['config','plant-layout','telemetry-service'])vm.runInContext(readFileSync(`dist/assets/${f}.js`,'utf8'),ctx);return ctx.MSA;}
+test('NHPL preserva o ciclo parcial e não recupera produção durante perda de comunicação',()=>{
+  const msa=fixture(),sim=msa.telemetry.createSimulator(msa.telemetry.catalog,100000),first=sim.get('NHPL');
+  sim.scenario('NHPL','parada',101000);const stopped=sim.get('NHPL');sim.advance(121000);assert.equal(sim.get('NHPL').totalCount,stopped.totalCount);
+  sim.scenario('NHPL','operando',121000);sim.advance(123000);assert.equal(sim.get('NHPL').totalCount,first.totalCount);
+  sim.scenario('NHPL','sem-leitura',123000);const last=sim.get('NHPL');sim.advance(183000);assert.equal(sim.get('NHPL').updatedAt,last.updatedAt);assert.equal(sim.get('NHPL').totalCount,last.totalCount);assert.equal(sim.get('NHPL').connected,false);
+  sim.scenario('NHPL','operando',183000);sim.advance(184000);assert.equal(sim.get('NHPL').totalCount,last.totalCount);
+});
+test('metas exigem origem e vigência de data, turno e ordem',()=>{const goals=[{source:'simulated',validFrom:'2026-01-01',validTo:'2027-01-01',shift:'A',order:'1',hourTarget:30}];assert(applicableGoal(goals,{source:'simulated',shift:'A',order:'1'},new Date(2026,9,7)));assert.equal(applicableGoal(goals,{source:'api',shift:'A',order:'1'},new Date(2026,9,7)),null);assert.equal(applicableGoal(goals,{source:'simulated',shift:'B',order:'1'},new Date(2026,9,7)),null);assert.equal(applicableGoal(goals,{source:'simulated',shift:'A',order:'1'},new Date(2027,0,1)),null);});
+test('produção hora a hora usa somente diferenças de saídas e não duplica leituras',()=>{const data=createNhplData(),t=Date.now();const raw={id:'NHPL',goodCount:100,updatedAt:t,connected:true,state:'operando',alarms:[]};data.read(raw,'simulation');const second=data.read({...raw,goodCount:102,updatedAt:t+1000},'simulation');assert.equal(second.hourCount,2);assert.equal(data.read({...raw,goodCount:102,updatedAt:t+1000},'simulation').hourCount,2);assert.equal(data.read({...raw,goodCount:102,updatedAt:t+1000,stale:true},'simulation').hourCount,2);});
+test('dados insuficientes não fabricam OEE, confiabilidade, metas ou posições',()=>{const s=createNhplData().read({id:'NHPL',updatedAt:Date.now(),connected:true,state:'operando',alarms:[]},'api');assert.equal(s.hourCount,null);assert.equal(s.goalRecord,null);assert.equal(s.efficiency,null);assert.deepEqual(s.reliability,{mtbf:null,mttr:null});assert.deepEqual(s.stationStates,{});assert.equal(reliability({operatingSeconds:100,timeline:[{state:'parada',start:10,end:20}]}).mtbf,null);});
+test('leituras reais perdidas preservam o horário e voltam somente com nova amostra',()=>{const msa=fixture();let send,fail;msa.telemetry.useAdapter({subscribe(onSample,onError){send=onSample;fail=onError;}});const at=Date.now();send({id:'NHPL',updatedAt:at,goodCount:32,state:'operando'});fail();assert.equal(msa.telemetry.get('NHPL').updatedAt,at);assert.equal(msa.telemetry.get('NHPL').connected,false);send({id:'NHPL',updatedAt:at+1,goodCount:32,state:'operando'});assert.equal(msa.telemetry.get('NHPL').connected,true);});

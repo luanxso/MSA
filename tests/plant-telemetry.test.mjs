@@ -15,7 +15,7 @@ const plain=value=>JSON.parse(JSON.stringify(value));
 
 test('planta de demonstração separa 32 postos fictícios do cadastro operacional e conserva os totais',()=>{
   const f=fixture(),sim=f.telemetry.createSimulator(f.catalog,f.now());
-  assert.equal(f.catalog.length,32);assert.equal(f.realCatalog.length,5);assert.equal(f.layout.areas.length,8);
+  assert.equal(f.catalog.length,32);assert.equal(f.realCatalog.length,6);assert.equal(f.layout.areas.length,8);
   const before=new Map(f.catalog.map(m=>[m.id,sim.get(m.id)]));sim.advance(f.now()+60000);
   for(const m of f.catalog){
     assert(f.layout.placements[m.id]);const s=sim.get(m.id),old=before.get(m.id);
@@ -91,7 +91,7 @@ test('adaptador descarta leituras antigas e sinaliza perda e recuperação de co
   send({id:'INJ-01',state:'parada',goodCount:200,updatedAt:f.now()-1000});
   assert.equal(t.get('INJ-01').goodCount,300);assert.equal(t.get('INJ-01').state,'operando');
   f.advance(16000);assert.equal(t.get('INJ-01').stale,true);assert.equal(t.get('INJ-01').connected,false);
-  fail();assert(t.error.includes('comunicação'));assert.equal(t.get('INJ-01'),null);
+  fail();assert(t.error.includes('comunicação'));assert.equal(t.get('INJ-01').connected,false);assert.equal(t.get('INJ-01').goodCount,300);
   send({id:'INJ-01',state:'operando',goodCount:301,updatedAt:f.now()});
   assert.equal(t.error,'');assert.equal(t.get('INJ-01').stale,false);
   t.disconnectAdapter();assert(stopped);assert.equal(t.mode,'simulation');
