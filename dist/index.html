@@ -1,1 +1,84 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#009534"><meta name="description" content="Acesso por RE ao sistema de acompanhamento e gestão da produção da MSA do Brasil."><link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%23009534'/%3E%3Cpath d='M7 23V9l9 9 9-9v14' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E"><link rel="stylesheet" href="assets/styles.css"><script src="assets/config.js" defer></script><script src="assets/validation.js" defer></script><script src="assets/firebase-config.js" defer></script><script src="assets/firebase-client.js" defer></script><script src="assets/auth-service.js" defer></script><script src="assets/demo-service.js" defer></script><script src="assets/demo-ui.js" defer></script><script src="assets/auth-ui.js" defer></script><title>Bem-vindo | MSA do Brasil</title></head><body data-page="login"><a class="skip" href="#auth-form">Ir para o formulário</a><div class="auth-layout"><aside class="context-panel" aria-label="Identidade MSA"><img class="factory-photo" src="assets/msa-campus.png" alt="Letreiro MSA — The Safety Company em um jardim" width="1462" height="1080"></aside><main class="form-panel "><div class="form-content"><div class="brand-row"><img class="msa-logo" src="assets/msa-logo.png" alt="MSA — The Safety Company" width="901" height="430"><p class="brand-caption">Gestão da produção</p></div><section id="form-section"><header class="form-heading"><h1>Entrar no sistema</h1></header><div id="form-banner" class="banner" role="status" aria-live="polite" hidden></div><form id="auth-form" novalidate><div class="field"><label for="re">RE</label><input id="re" name="re" type="text" placeholder="Informe seu RE" autocomplete="username" aria-describedby="re-error re-hint" aria-invalid="false" required inputmode="numeric" maxlength="10"><p class="hint" id="re-hint">Registro do funcionário</p><p id="re-error" class="error" hidden></p></div><div class="field"><label for="senha">Senha</label><div class="input-wrap"><input id="senha" name="senha" type="password" placeholder="Informe sua senha" autocomplete="current-password" aria-describedby="senha-error" aria-invalid="false" required maxlength="64"><button type="button" class="toggle-password" data-password="senha" aria-label="Mostrar senha" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></div><p class="caps-note" hidden>Caps Lock está ativado.</p><p id="senha-error" class="error" hidden></p></div><div class="options"><label class="remember"><input type="checkbox" name="remember" id="remember">Lembrar de mim</label><button class="text-button" type="button" id="open-recovery">Esqueci minha senha</button></div><button class="primary" type="submit" data-label="Entrar"><span class="button-label">Entrar</span></button></form><p class="account-link"><a href="cadastro.html">Criar cadastro</a></p></section><section id="registration-success" class="success-screen" hidden tabindex="-1" aria-labelledby="success-title"><div class="success-mark"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10"/></svg></div><p class="eyebrow">CADASTRO CONCLUÍDO</p><h1 id="success-title">Tudo pronto para acessar.</h1><p>Seu cadastro foi realizado com sucesso.</p><p id="success-identity"></p><a class="primary" id="success-login" href="index.html">Ir para o login</a><p class="hint">Use seu RE e a senha que acabou de criar.</p></section></div></main></div><dialog id="recovery-dialog" aria-labelledby="recovery-title"><h2 id="recovery-title">Recuperar acesso</h2><p>Para redefinir sua senha, procure a equipe de TI ou o responsável pelo acesso ao sistema e informe seu RE.</p><p class="support-note">A redefinição é realizada pelo responsável após a confirmação da sua identidade.</p><button class="secondary" type="button" id="close-recovery">Entendi</button></dialog><noscript><p>Ative o JavaScript para utilizar os formulários.</p></noscript></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#009534">
+  <meta name="description" content="Acesso por RE ao sistema de acompanhamento e gestão da produção da MSA do Brasil.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='3'%20fill='%23009534'/%3E%3Cpath%20d='M7%2023V9l9%209%209-9v14'%20fill='none'%20stroke='white'%20stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/auth-layout.css">
+  <script src="assets/config.js" defer></script>
+  <script src="assets/rbac.js" defer></script>
+  <script src="assets/validation.js" defer></script>
+  <script src="assets/firebase-config.js" defer></script>
+  <script src="assets/firebase-client.js" defer></script>
+  <script src="assets/auth-service.js" defer></script>
+  <script src="assets/auth-ui.js" defer></script>
+  <title>Entrar | MSA do Brasil</title>
+</head>
+<body class="auth-page" data-page="login">
+  <a class="skip" href="#auth-form">Ir para o formulário</a>
+  <header class="auth-masthead">
+    <div class="brand-row">
+      <img class="msa-logo" src="assets/msa-logo.png" alt="MSA — The Safety Company" width="901" height="430">
+      <p class="brand-caption">MSA do Brasil</p>
+    </div>
+  </header>
+  <div class="auth-layout">
+    <aside class="context-panel" aria-labelledby="context-title">
+      <div class="context-copy">
+        <h2 id="context-title">Gestão da<br>produção</h2>
+        <p>Registros por máquina, acompanhamento do setor e indicadores para a gestão.</p>
+      </div>
+      <figure class="context-figure">
+        <img class="factory-photo" src="assets/msa-instrumentacao.jpg" alt="Manômetro e vacuômetro no painel de uma máquina fotografada na visita à MSA" width="1536" height="864">
+        <figcaption>Instrumentação de processo. Foto da visita à MSA.</figcaption>
+      </figure>
+    </aside>
+    <main class="form-panel">
+      <div class="form-content">
+        <section id="form-section" aria-labelledby="form-title">
+          <header class="form-heading">
+            <h1 id="form-title">Entrar no sistema</h1>
+            <p>Use seu RE e senha para acessar sua área de trabalho.</p>
+          </header>
+          <div id="form-banner" class="banner" role="status" aria-live="polite" hidden></div>
+          <form id="auth-form" aria-labelledby="form-title" tabindex="-1" novalidate>
+            <div class="field">
+              <label for="re">RE</label>
+              <input id="re" name="re" type="text" placeholder="Informe seu RE" autocomplete="username" aria-describedby="re-error re-hint" aria-invalid="false" required inputmode="numeric" maxlength="10">
+              <p class="hint" id="re-hint">Registro do funcionário</p>
+              <p id="re-error" class="error" hidden></p>
+            </div>
+            <div class="field">
+              <label for="senha">Senha</label>
+              <div class="input-wrap">
+                <input id="senha" name="senha" type="password" placeholder="Informe sua senha" autocomplete="current-password" aria-describedby="senha-error" aria-invalid="false" required maxlength="64">
+                <button type="button" class="toggle-password" data-password="senha" aria-label="Mostrar senha" aria-pressed="false">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
+              <p class="caps-note" hidden>Caps Lock está ativado.</p>
+              <p id="senha-error" class="error" hidden></p>
+            </div>
+            <div class="options">
+              <label class="remember"><input type="checkbox" name="remember" id="remember">Lembrar meu RE</label>
+              <button class="text-button" type="button" id="open-recovery">Esqueci minha senha</button>
+            </div>
+            <button class="primary" type="submit" data-label="Entrar"><span class="button-label">Entrar</span></button>
+          </form>
+          <p class="account-link"><span>Ainda não tem cadastro?</span> <a href="cadastro.html">Criar cadastro</a></p>
+        </section>
+      </div>
+    </main>
+  </div>
+  <dialog id="recovery-dialog" aria-labelledby="recovery-title">
+    <h2 id="recovery-title">Recuperar acesso</h2>
+    <p>Para redefinir sua senha, procure a equipe de TI ou o responsável pelo acesso ao sistema e informe seu RE.</p>
+    <p class="support-note">A redefinição é realizada pelo responsável após a confirmação da sua identidade.</p>
+    <button class="secondary" type="button" id="close-recovery">Entendi</button>
+  </dialog>
+  <noscript><p>Ative o JavaScript para utilizar os formulários.</p></noscript>
+</body>
+</html>

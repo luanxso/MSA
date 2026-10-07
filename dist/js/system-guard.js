@@ -14,6 +14,8 @@
   };
 
   function hideSystem() {
+    MSA.data?.stop();
+    document.querySelector('#operation-dialog')?.close?.();
     shell.hidden = true;
     screen.hidden = false;
     window.MSAChat?.hide();
@@ -85,6 +87,7 @@
     logout.disabled = true;
     shell.inert = true;
     window.MSAChat?.hide();
+    MSA.data?.stop();
     try {
       await MSA.auth.logout();
       window.MSAChat?.clear();
@@ -93,7 +96,7 @@
     finally { logout.disabled = false; shell.inert = false; }
   });
   document.querySelector('#session-retry').addEventListener('click', connect);
-  window.addEventListener('pagehide', () => { revision += 1; stopWatching(); });
+  window.addEventListener('pagehide', () => { revision += 1; stopWatching(); MSA.data?.stop(); });
   window.addEventListener('pageshow', (event) => { if (event.persisted) void connect(); });
   void connect();
 })();

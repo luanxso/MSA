@@ -1,0 +1,203 @@
+/* Acesso MSA: superfícies planas, fotografia do processo e controles legíveis.
+   Escopo restrito a Login/Cadastro; styles.css e as telas operacionais permanecem. */
+.auth-page {
+  --auth-header-height: 92px;
+  --auth-muted: #575b58;
+  background: var(--white);
+}
+
+.auth-page .auth-masthead {
+  height: var(--auth-header-height);
+  display: flex;
+  align-items: center;
+  padding: 16px clamp(32px, 4.5vw, 64px);
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+
+.auth-page .brand-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 28px;
+  margin: 0;
+}
+
+.auth-page .msa-logo { width: 110px; }
+
+.auth-page .brand-caption {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.auth-page .auth-layout {
+  grid-template-columns: minmax(360px, 44%) minmax(0, 56%);
+  min-height: calc(100svh - var(--auth-header-height));
+}
+
+.auth-page .context-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - var(--auth-header-height));
+  min-height: 620px;
+  background: var(--charcoal);
+  color: var(--white);
+}
+
+.auth-page .context-copy {
+  padding: clamp(40px, 5vw, 72px) clamp(32px, 4.5vw, 64px) 40px;
+}
+
+.auth-page .context-copy h2 {
+  max-width: 400px;
+  margin: 0;
+  font-size: clamp(36px, 3.1vw, 46px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -1px;
+}
+
+.auth-page .context-copy p {
+  max-width: 360px;
+  margin: 22px 0 0;
+  color: #d8dada;
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.auth-page .context-figure { margin: auto 0 0; }
+
+.auth-page .factory-photo {
+  position: static;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center;
+}
+
+.auth-page .context-figure figcaption {
+  padding: 18px clamp(32px, 4.5vw, 64px);
+  color: #d8dada;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.auth-page .form-panel {
+  min-height: calc(100svh - var(--auth-header-height));
+  padding: 44px clamp(40px, 5vw, 80px);
+  background: var(--white);
+}
+
+.auth-page .form-content { max-width: 460px; margin: 0 auto; }
+
+.auth-page .form-heading { margin-bottom: 32px; }
+
+.auth-page .form-heading h1 {
+  margin: 0;
+  color: var(--black);
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -.7px;
+}
+
+.auth-page .form-heading p {
+  max-width: 44ch;
+  margin: 12px 0 0;
+  color: var(--auth-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.auth-page .field { margin-bottom: 24px; }
+
+.auth-page .field label { margin-bottom: 9px; font-size: 14px; line-height: 1.3; }
+
+.auth-page .field input,
+.auth-page .field select { border-color: #898c8d; border-radius: 2px; }
+
+.auth-page .field input:hover,
+.auth-page .field select:hover { border-color: var(--charcoal); }
+
+.auth-page .field input:focus,
+.auth-page .field select:focus { border-color: var(--msa-green); box-shadow: 0 0 0 2px #00953426; }
+
+.auth-page .field [aria-invalid="true"] { border-color: var(--error); box-shadow: 0 0 0 1px var(--error); }
+
+.auth-page .hint,
+.auth-page .role-hint { color: var(--auth-muted); font-size: 13px; line-height: 1.5; }
+
+.auth-page .options { margin: 4px 0 28px; font-size: 14px; }
+
+.auth-page .primary { min-height: 52px; border-radius: 2px; font-size: 19px; }
+
+.auth-page .account-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--auth-muted);
+  text-align: left;
+}
+
+.auth-page .account-link a { margin: 0; padding-block: 4px; }
+
+.auth-page .register { justify-content: flex-start; padding-block: 28px; }
+
+.auth-page .register .form-heading { margin-bottom: 20px; }
+
+.auth-page .register .field { margin-bottom: 12px; }
+
+.auth-page .register .field label { margin-bottom: 7px; }
+
+.auth-page .register .field .hint { margin-top: 6px; }
+
+.auth-page .register .toggle-password { top: 2px; height: 44px; }
+
+.auth-page .register .field input,
+.auth-page .register .field select { height: 48px; }
+
+.auth-page .two-fields { grid-template-columns: 1fr 1fr; column-gap: 20px; row-gap: 0; }
+
+.auth-page .role-hint { margin: 0 0 12px; }
+
+.auth-page .register .primary { margin-top: 4px; }
+
+.auth-page .register .account-link { margin-top: 18px; padding-top: 12px; }
+
+@media (min-width: 1600px) {
+  .auth-page .context-copy { padding-top: 80px; }
+}
+
+@media (max-width: 1000px) {
+  .auth-page { --auth-header-height: 84px; }
+  .auth-page .auth-layout { display: block; }
+  .auth-page .context-panel { display: none; }
+  .auth-page .form-panel { padding: 40px 32px; }
+  .auth-page .register { padding-block: 28px; }
+}
+
+@media (max-width: 600px) {
+  .auth-page .auth-masthead { padding-inline: 24px; }
+  .auth-page .brand-row { gap: 22px; }
+  .auth-page .msa-logo { width: 100px; }
+  .auth-page .form-panel { padding: 32px 24px; }
+  .auth-page .form-heading h1 { font-size: 29px; }
+  .auth-page .two-fields { grid-template-columns: 1fr; }
+  .auth-page .role-hint { margin-top: -5px; }
+  .auth-page .options { gap: 12px; flex-wrap: wrap; }
+  .auth-page .register .form-content { margin: 0 auto; }
+}
+
+@media (max-width: 360px) {
+  .auth-page .auth-masthead,
+  .auth-page .form-panel { padding-inline: 20px; }
+  .auth-page .brand-row { gap: 18px; }
+  .auth-page .brand-caption { font-size: 14px; }
+}

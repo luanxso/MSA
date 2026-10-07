@@ -1,160 +1,61 @@
-# MSA do Brasil — Login e Cadastro com Firebase
+# Ativar o Firebase deste protótipo
 
-**Para a apresentação, estas etapas não são necessárias.** O modo apresentação está
-ativado em `dist/assets/config.js`: cadastre nome, RE, cargo e uma senha simples.
-O cadastro é liberado imediatamente, sem aprovação no Firebase. O login continua
-usando o RE e a senha cadastrados. O chat utiliza perfis e mensagens de demonstração
-armazenados no navegador.
+O código utiliza a configuração pública original de `msa-safety-9f978`, presente em `dist/assets/firebase-config.js`. Não foi criada uma segunda base. O SDK modular continua na CDN oficial 12.19.0. Authentication identifica a conta; Realtime Database compartilha os dados operacionais e o chat.
 
-As instruções abaixo se aplicam somente quando `presentation.enabled` for alterado
-para `false`, retomando o acesso Firebase e o chat compartilhado.
+**As regras foram validadas no emulador oficial, mas não foram publicadas no projeto remoto.** A chave pública do aplicativo não permite publicar regras ou configurar provedores. Nenhuma conta ou apontamento foi criado no Firebase remoto durante o desenvolvimento.
 
-Login e Cadastro por RE conectados ao projeto `msa-safety-9f978`.
-A identidade MSA e a responsividade foram preservadas. O login e o cadastro foram
-simplificados, com a foto do letreiro sem textos sobrepostos, menos repetições e
-sem divisórias decorativas.
-HTML, CSS e JavaScript, com Firebase Web SDK modular 12.19.0 via CDN oficial.
+## Configuração inicial
 
-## Ativar no Firebase Console
+1. Abra o projeto `msa-safety-9f978` no Firebase Console.
+2. Em **Authentication → Sign-in method**, habilite **E-mail/senha**.
+3. Confira a política de senha. O protótipo usa mínimo de **6 caracteres**; se existir política obrigatória mais forte, use uma senha que a satisfaça ou ajuste a política do projeto para a demonstração. A interface aceita até 64 caracteres.
+4. Em **Authentication → Settings → Authorized domains**, inclua o domínio onde o protótipo será servido. Se usar servidor local, confira `localhost`.
+5. Em **Realtime Database → Rules**, substitua o conteúdo pelo arquivo **`database.rules.json`** da raiz e clique em **Publish**. Use a instância informada em `firebase-config.js`.
+6. Sirva `dist` em HTTP/HTTPS. Cadastre os três perfis da demonstração.
+7. Pelo Chefe, prepare máquinas em **Configurações**. Pelo Operador, escolha **Máquina em uso** e registre. Pelo Supervisor, selecione o setor no cabeçalho e acompanhe; pelo Chefe, confira os indicadores.
 
-A configuração Web enviada está em `dist/assets/firebase-config.js`. Ela inicializa o
-aplicativo, Firebase Authentication, Realtime Database e Analytics. A configuração Web
-não concede acesso administrativo para habilitar provedores ou publicar regras.
-
-1. No projeto `msa-safety-9f978`, abra **Authentication → Sign-in method** e habilite
-   **E-mail/senha**. A aplicação continua solicitando somente **RE e senha**.
-2. Em **Authentication → Settings → Password policy**, configure a política como
-   obrigatória: mínimo de 8 caracteres, maiúscula, minúscula e número. A interface limita
-   a senha a 64 caracteres. A validação do navegador não substitui a política do servidor.
-3. Em **Realtime Database → Rules**, publique `database.rules.json`. Se já houver regras
-   de outros módulos, integre o bloco `perfis` às regras existentes, preservando as
-   autorizações desses módulos. O arquivo fornecido nega os demais caminhos por padrão.
-4. Crie um cadastro pelo sistema. Em **Realtime Database → Data**, localize
-   `perfis/<uid>`. Confira o RE contra a base de funcionários e aprove o cargo:
-   adicione `cargo` com um dos IDs abaixo e altere `status` para `ativo`.
-   Um acesso em análise permanece com `status: "pendente"`; use `bloqueado` para retirar
-   as permissões. Também é possível desabilitar a conta em Authentication.
-
-| Cargo | ID para o campo cargo |
-| --- | --- |
-| Operador | operador |
-| Líder | lider |
-| Supervisor | supervisor |
-| Manutenção | manutencao |
-| Qualidade | qualidade |
-| Gestor | gestor |
-
-Para aplicar as regras usando um Firebase CLI já autenticado com autorização administrativa:
+Alternativa para quem já usa o Firebase CLI autenticado:
 
 ```sh
 firebase deploy --only database --project msa-safety-9f978
 ```
 
-O site continua hospedado em Sites. `firebase.json` configura somente o banco, sem alterar
-hospedagem. A conexão com o projeto real depende da ativação do provedor e das regras;
-não foram criadas contas de teste no projeto remoto nem modificadas suas regras pelo assistente.
+Essa publicação é apenas das regras do Realtime Database. Não publica o site. Não importe um JSON na raiz para preparar a demonstração: o próprio botão de preparação adiciona apenas os setores/máquinas ausentes.
 
-## RE e autenticação
+## Contas e escopo
 
-O RE é preservado como string, incluindo zeros à esquerda. A regra provisória continua
-sendo de 4 a 10 dígitos. O adaptador converte internamente o RE em
-`re-<RE>@msa-safety-9f978.invalid`, pois o provedor de senha do Firebase utiliza e-mail.
-Esse endereço técnico não é um e-mail corporativo nem um canal de comunicação.
-A unicidade desse alias no Authentication impede dois cadastros para o mesmo RE.
+O login solicita RE e senha. O RE vira um alias interno `re-<RE>@msa-safety-9f978.invalid`; não precisa existir uma caixa postal. Zeros iniciais são preservados. Senhas ficam sob responsabilidade do Firebase Auth, sem campos de senha no banco operacional.
 
-A senha é transmitida somente ao Firebase Authentication por HTTPS. Não é salva no
-Realtime Database, nos perfis nem pelo código da aplicação em localStorage. O Firebase
-SDK gerencia os tokens da sessão. **Lembrar de mim** seleciona persistência local do SDK;
-sem marcar, a sessão fica restrita à aba. O usuário pode encerrá-la pelo botão Sair.
-O RE lembrado e o RE recém-cadastrado são apenas preferências locais, sem autoridade sobre
-identidade ou permissões. O RE não é incluído nos novos links de navegação.
+O cadastro do protótipo solicita Nome, RE, Cargo e Senha e já cria um perfil ativo, sem setor ou máquina. `setorId` e `maquinaId` começam vazios. Dentro do sistema, o Operador escolhe uma máquina cadastrada, e seu setor é derivado dela; o Supervisor escolhe o setor em acompanhamento. Esses campos guardam o contexto atual e podem mudar com a mesma conta. Chefe acompanha os três setores. Não existe aprovação de cadastro ou fila de liberação. Um perfil criado não pode promover seu próprio cargo alterando o banco.
 
-Os perfis de apresentação não são contas Firebase e não são migrados automaticamente.
-Ao desativar o modo apresentação, cadastre as contas necessárias no Firebase. Não há
-troca automática para a apresentação em caso de falha no acesso real.
+Para reutilizar perfis reais antigos compatíveis, o adaptador migra `gestor` para `chefe` e perfis pendentes de cargos compatíveis para ativos. Conserva nome, RE e data de criação. Perfis sem contexto começam vazios; nenhuma máquina ou setor é atribuído automaticamente. Contextos existentes são conservados. Perfis bloqueados continuam sem acesso. Cargos antigos sem correspondência automática (`lider`, `manutencao`, `qualidade`) devem receber um dos três cargos pelo responsável no Console ou ser recriados para a demonstração.
 
-Se o Authentication criar a conta, mas a gravação do perfil falhar, corrija a conexão ou
-as regras e repita o cadastro com o mesmo RE e senha. O adaptador autentica a conta
-existente e conclui somente um perfil ainda inexistente, sem sobrescrever um perfil aprovado.
+Contas do modo local anterior não são contas Firebase. Recrie-as com RE e senha de pelo menos seis caracteres. Os dados guardados nos navegadores não foram apagados nem importados. Se a conta Auth for criada, mas o perfil falhar por conexão/regras, corrija a causa e repita o cadastro com o mesmo RE e senha. Um perfil existente nunca é sobrescrito pelo cadastro.
 
-## Perfis e níveis de acesso
+## Regras fornecidas
 
-O cadastro salva `nome`, `re`, `cargoSolicitado`, `status: "pendente"` e `createdAt`
-com timestamp do servidor em `perfis/<uid>`. Somente o próprio usuário pode ler seu
-perfil pelas regras fornecidas. O cliente pode criar apenas seu perfil pendente e não
-pode alterar cargo aprovado, status ou outros perfis. A aprovação é feita pelo administrador
-no Firebase Console ou futuramente em um backend com Admin SDK.
+- Leitura e escrita são negadas por padrão.
+- Todos os perfis ativos consultam o catálogo de máquinas para escolher seu contexto. Esse acesso não permite registrar dados em qualquer máquina sem escolhê-la como contexto atual.
+- Operador pode atualizar a própria máquina/setor, desde que a máquina exista e pertença ao setor informado. Consulta os registros da máquina em uso e aponta/corrige registros de sua autoria. Origem, autor e data de criação não podem mudar.
+- Supervisor pode escolher outro setor. Consulta registros/perfis do setor em acompanhamento, confere registros e atualiza os campos de encerramento/resolução; não substitui a quantidade original da produção. Pode cadastrar/editar máquinas e atribuir uma máquina do setor a um Operador atualmente nesse setor.
+- Chefe consulta os setores e altera metas das máquinas; não grava apontamentos dos operadores. Pode preparar o catálogo inicial.
+- Cadastro cria somente o perfil do UID autenticado, compatível com o alias do RE. A escolha inicial de cargo é deliberadamente simples para a apresentação.
+- Nome, quantidade, unidade, períodos, limites e origem são validados também no banco.
+- Consultas de O/S devem incluir o filtro exigido pelas regras. Esconder o menu não libera consultas sem esse filtro.
+- Conversas privadas exigem participação. O diretório do chat contém apenas identificação mínima.
 
-`cargoSolicitado` registra a seleção do funcionário. `cargo` contém o cargo aprovado.
-Escolher Gestor no formulário não concede permissões. Perfis pendentes ou bloqueados
-podem consultar seu estado de acesso, mas não recebem áreas operacionais.
-A página inicial acompanha alterações do próprio perfil e encerramento de sessão.
+## Conexão e histórico
 
-`config.js` organiza os seis cargos, suas áreas e permissões de interface. A matriz
-continua sendo uma proposta do projeto, sem representar uma política oficial da MSA.
-Ao adicionar cargos, atualize também as validações de cargo em `database.rules.json`.
-Ao criar módulos de produção, máquinas ou relatórios, implemente suas regras de dados
-no Firebase verificando UID, status ativo e cargo aprovado. `MSA.auth.can()` organiza
-somente a interface; não protege dados por si só. Os módulos futuros estão negados nas
-regras atuais e não foram implementados como um dashboard.
+Os módulos de operação usam `onValue`: outras sessões recebem mudanças pela conexão Firebase. O indicador no cabeçalho informa a conexão com o Firebase. Se já estiver desconectado, o serviço recusa novos apontamentos; não usa armazenamento local como alternativa. Se a conexão cair durante um envio, pode haver uma operação ainda aguardando confirmação. O erro orienta consultar o histórico antes de reenviar, para evitar duplicação manual.
 
-## Recuperação e Analytics
+O chat mantém sua interface original e consulta mensagens a cada 5 segundos enquanto aberto. Rascunhos não enviados ficam em memória. O envio tem chave de idempotência: repetir a mesma mensagem com a mesma chave reaproveita o registro.
 
-Como o login utiliza um alias de RE sem caixa postal, a recuperação por link de e-mail
-não foi habilitada. A tela encaminha ao suporte para confirmação de identidade.
-A redefinição poderá ser feita por um serviço administrativo com Admin SDK ou por um
-futuro canal corporativo verificado; não há redefinição de senha com a chave Web pública.
+Relatórios/indicadores usam os registros atuais. Consolidações armazenam somente setor, responsável, período e resumo. Não há cópia extra dos totais. Corrigir um registro atualiza o relatório sem somar uma segunda produção.
 
-Analytics é inicializado somente em ambientes compatíveis. Bloqueadores, restrições do
-navegador ou falhas de Analytics não impedem autenticação. A integração não envia nome,
-RE, senha ou UID como eventos personalizados/propriedades de usuário, e remove query
-strings e fragmentos dos parâmetros de URL configurados no Analytics.
+A recuperação por e-mail continua desativada, pois o alias do RE não recebe mensagens. O botão informa o canal de suporte do sistema. Analytics opcional não impede o uso em caso de bloqueio/falha; não foram adicionados eventos contendo nome, RE, senha ou UID.
 
-## Executar e verificar
+## Verificação executada
 
-Abra o site HTTPS publicado ou sirva o diretório `dist`:
+Testes unitários de Authentication usam o adaptador simulado. Testes de regras executam o JAR oficial do Realtime Database Emulator com tokens fictícios, cobrindo consultas e escritas permitidas/negadas. O teste de navegador usa Chrome, o SDK de Database real e o emulador; substitui somente Authentication por identidades de teste no servidor local. Não altera o Firebase remoto e não comprova a configuração do provedor/domínio no seu projeto.
 
-```sh
-python3 -m http.server 8000 --directory dist
-node --test tests/auth-service.test.cjs
-```
-
-Os testes usam um cliente Firebase simulado, sem criar usuários no projeto real. Verificam
-cadastro pendente, login por RE, zeros à esquerda, persistência, erros, recuperação de
-cadastro incompleto, logout e os seis cargos após aprovação. Não substituem um teste de
-ponta a ponta com o projeto configurado. As regras precisam ser publicadas pelo responsável
-com acesso administrativo antes de validar a integração real.
-
-## Organização
-
-| Arquivo | Responsabilidade |
-| --- | --- |
-| dist/assets/styles.css | Visual original, tokens MSA e responsividade |
-| dist/assets/config.js | Catálogo de cargos, áreas e regra de RE |
-| dist/assets/validation.js | Validações dos campos |
-| dist/assets/firebase-config.js | Configuração pública do projeto Firebase |
-| dist/assets/firebase-client.js | SDK, inicialização e Analytics opcional |
-| dist/assets/auth-service.js | Authentication, persistência e perfis |
-| dist/assets/auth-ui.js | Eventos, loading, mensagens e acessibilidade |
-| database.rules.json | Controle de acesso e validação dos perfis |
-| firebase.json | Configuração de publicação das regras |
-| tests/auth-service.test.cjs | Verificação local do contrato de autenticação |
-
-Interfaces: `dist/index.html` e `dist/login.html` (Login), `dist/cadastro.html` (Cadastro),
-`dist/acesso.html` (resumo do perfil e estado de liberação).
-
-## Identidade e ativos
-
-Base visual: https://us.msasafety.com/vbl/design . Arial; verde #009534 como destaque,
-neutros e logo original com assinatura. Gotham não foi incluída sem licença disponível.
-Créditos e fontes dos ativos em `ASSETS.md`. Ativos MSA pertencem aos respectivos titulares;
-o protótipo não representa endosso oficial.
-
-A interface mantém labels, autocomplete, validação por campo, foco no primeiro erro,
-aria-describedby, aria-invalid, feedback anunciado, exibição de senha, Caps Lock e loading.
-WebMCP opcional expõe somente navegação e requisitos públicos, sem acessar credenciais.
-
-Referências técnicas: https://firebase.google.com/docs/web/alt-setup ,
-https://firebase.google.com/docs/auth/web/password-auth ,
-https://firebase.google.com/docs/auth/web/auth-state-persistence ,
-https://firebase.google.com/docs/database/security .
+Referências oficiais: [Authentication por senha](https://firebase.google.com/docs/auth/web/password-auth), [leituras e gravações](https://firebase.google.com/docs/database/web/read-and-write), [condições das regras](https://firebase.google.com/docs/database/security/rules-conditions), [API das regras](https://firebase.google.com/docs/reference/security/database) e [Realtime Database Emulator](https://firebase.google.com/docs/emulator-suite/connect_rtdb).

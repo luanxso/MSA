@@ -3,7 +3,6 @@ window.MSA = window.MSA || {};
 (() => {
   'use strict';
   const REMEMBER = 'msa.auth.remembered-re';
-  const REGISTRATION = 'msa.auth.registration-re';
   const aliasDomain = 'msa-safety-9f978.invalid';
   let current = null;
   const emailForRE = re => `re-${re}@${aliasDomain}`;
@@ -29,7 +28,7 @@ window.MSA = window.MSA || {};
       return failure(code, 'RE ou senha incorretos. Verifique os dados e tente novamente.', 'senha');
     }
     if (code === 'auth/email-already-in-use') return failure(code, 'Este RE já possui cadastro. Acesse sua conta ou procure o suporte interno.', 're');
-    if (['auth/weak-password', 'auth/password-does-not-meet-requirements'].includes(code)) return failure(code, 'A senha não atende aos requisitos de segurança. Use uma senha mais forte.', 'senha');
+    if (['auth/weak-password', 'auth/password-does-not-meet-requirements'].includes(code)) return failure(code, 'A senha não atende aos requisitos de segurança. Use uma senha com pelo menos 6 caracteres.', 'senha');
     if (code === 'auth/user-disabled') return failure(code, 'Seu acesso está bloqueado. Procure o responsável pelo sistema.');
     if (code === 'auth/too-many-requests') return failure(code, 'Muitas tentativas de acesso. Aguarde alguns minutos e tente novamente.');
     if (code.includes('permission_denied') || code.includes('permission-denied')) return failure(code, 'Não foi possível acessar seu perfil. Procure o responsável pelo sistema.');
@@ -44,7 +43,7 @@ window.MSA = window.MSA || {};
       throw failure('PROFILE_MISSING', 'Seu acesso ainda não está completo. Volte ao cadastro com o mesmo RE e senha ou procure o suporte interno.');
     }
     if (!['pendente', 'ativo', 'bloqueado'].includes(profile.status)) throw failure('PROFILE_INVALID', 'Seu perfil precisa ser revisado pelo responsável pelo sistema.');
-    if (profile.status === 'ativo' && !MSA.config.roles.some(role => role.id === profile.cargo)) throw failure('ROLE_INVALID', 'Seu cargo precisa ser liberado pelo responsável pelo sistema.');
+    if (profile.status === 'ativo' && !MSA.config.roles.some(role => role.id === profile.cargo)) throw failure('ROLE_INVALID', 'Escolha Operador, Supervisor ou Chefe no cadastro.');
     return Object.freeze({
       id: firebaseUser.uid,
       nome: profile.nome,
@@ -52,13 +51,27 @@ window.MSA = window.MSA || {};
       cargoSolicitado: profile.cargoSolicitado,
       cargo: profile.status === 'ativo' ? profile.cargo : null,
       status: profile.status,
+      setorId: profile.setorId || '',
+      maquinaId: profile.maquinaId || '',
       createdAt: profile.createdAt
     });
   }
   const profileRef = (client, uid) => client.databaseSDK.ref(client.database, `perfis/${uid}`);
   async function readProfile(client, firebaseUser) {
     const snapshot = await request(client.databaseSDK.get(profileRef(client, firebaseUser.uid)));
-    return publicUser(firebaseUser, snapshot.val());
+    let profile = snapshot.val();
+    if (profile && profile.status !== 'bloqueado') {
+      const previousRole = profile.cargo || profile.cargoSolicitado;
+      const cargo = previousRole === 'gestor' ? 'chefe' : previousRole;
+      if (MSA.config.roles.some(role => role.id === cargo) && (profile.status === 'pendente' || profile.cargo !== cargo || profile.setorId == null || profile.maquinaId == null)) {
+        const maquinaId = cargo === 'operador' ? (profile.maquinaId || '') : '';
+        const setorId = cargo === 'chefe' || (cargo === 'operador' && !maquinaId) ? '' : (profile.setorId || '');
+        const patch = { cargo, status: 'ativo', setorId, maquinaId };
+        await request(client.databaseSDK.update(profileRef(client, firebaseUser.uid), patch));
+        profile = { ...profile, ...patch };
+      }
+    }
+    return publicUser(firebaseUser, profile);
   }
   async function quietlySignOut(client) {
     current = null;
@@ -102,15 +115,18 @@ window.MSA = window.MSA || {};
         const profile = {
           nome: values.nome.trim().replace(/\s+/g, ' '),
           re,
-          cargoSolicitado: values.cargo,
-          status: 'pendente',
+          cargo: values.cargo,
+          // Contexto de trabalho começa vazio. O RE não depende do setor atual.
+          setorId: '',
+          maquinaId: '',
+          status: 'ativo',
           createdAt: client.databaseSDK.serverTimestamp()
         };
         await request(client.databaseSDK.set(target, profile));
-        try { sessionStorage.setItem(REGISTRATION, re); } catch { /* Preferência opcional. */ }
-        return publicUser(credential.user, profile);
-      } catch (error) { throw translated(error); }
-      finally { if (client) await quietlySignOut(client); }
+        current = publicUser(credential.user, profile);
+        return current;
+      } catch (error) { if (client) await quietlySignOut(client); throw translated(error); }
+      /* O cadastro já mantém a sessão para entrar imediatamente. */
     },
     async login({ re, senha, remember = false }) {
       validate({ re, senha }, 'login');
@@ -164,12 +180,8 @@ window.MSA = window.MSA || {};
       return () => { stopAuth(); stopProfile(); };
     },
     rememberedRE() { try { return localStorage.getItem(REMEMBER) || ''; } catch { return ''; } },
-    consumeRegistrationRE() {
-      try { const re = sessionStorage.getItem(REGISTRATION) || ''; sessionStorage.removeItem(REGISTRATION); return re; }
-      catch { return ''; }
-    },
     role(user = current) { return user?.status === 'ativo' ? MSA.config.roles.find(role => role.id === user.cargo) || null : null; },
-    can(permission, user = current) { return this.role(user)?.permissions.includes(permission) || false; },
+    can(permission, user = current) { return MSA.rbac.can(permission, user); },
     home(user = current) {
       const role = this.role(user);
       return user ? (role ? `sistema.html#${encodeURIComponent(role.home)}` : 'acesso.html') : 'index.html';

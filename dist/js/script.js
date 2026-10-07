@@ -13,6 +13,7 @@
   const pageTitle = document.querySelector('#page-title');
   const currentSection = document.querySelector('#current-section');
   const currentGroup = document.querySelector('#current-group');
+  const contextDivider = document.querySelector('#context-divider');
   const main = document.querySelector('#main-content');
   const pageDescription = document.querySelector('#page-description');
   const pageContent = document.querySelector('#page-content');
@@ -120,14 +121,33 @@
   mobileViewport.addEventListener('change', handleViewportChange);
   tabletViewport.addEventListener('change', handleViewportChange);
 
-  // Somente o chat possui conteúdo nesta etapa; os demais módulos permanecem vazios.
+  // A mesma navegação adapta páginas e contexto à sessão atual.
   function updatePage({ moveFocus = false } = {}) {
-    const pageId = window.location.hash.slice(1) || 'visao-geral';
-    const selectedItem = navigationItems.find((item) => item.dataset.page === pageId) || navigationItems[0];
+    const currentUser = MSA.auth.session();
+    const role = MSA.rbac.role(currentUser);
+    if (!role) return;
+    navigationItems.forEach(item => { item.closest('li').hidden = !MSA.rbac.route(item.dataset.page, currentUser); });
+    document.querySelectorAll('.nav-group').forEach(group => { group.hidden = ![...group.querySelectorAll('li')].some(item => !item.hidden); });
+    const previousSector = sectorSelector.value;
+    [...sectorSelector.options].forEach(option => {
+      option.hidden = currentUser.cargo === 'operador' ? option.value !== currentUser.setorId
+        : currentUser.cargo === 'supervisor' ? option.value === 'todos' : option.value === '';
+    });
+    sectorSelector.disabled = currentUser.cargo === 'operador';
+    sectorSelector.options[0].textContent = currentUser.cargo === 'operador' ? 'Selecione uma máquina na operação' : 'Selecione o setor em acompanhamento';
+    document.querySelector('.context-label').textContent = currentUser.cargo === 'supervisor' ? 'Setor em acompanhamento' : 'Setor';
+    sectorSelector.value = currentUser.cargo === 'chefe' ? (previousSector || 'todos') : currentUser.setorId;
+    let pageId = window.location.hash.slice(1) || role.home;
+    if (!MSA.rbac.route(pageId, currentUser)) {
+      MSA.operations.notify('Esta tela não está disponível para seu cargo.', true);
+      pageId = role.home;
+    }
+    if (window.location.hash !== '#' + pageId) history.replaceState(null, '', '#' + pageId);
+    const selectedItem = navigationItems.find(item => item.dataset.page === pageId);
     const title = selectedItem.querySelector('.nav-text').textContent;
     const group = selectedItem.closest('.nav-group').querySelector('.nav-group-label').textContent;
-    const sector = sectorSelector.selectedOptions[0].textContent;
-    const context = group === 'GESTÃO' ? 'Gestão' : group === 'SISTEMA' ? 'Sistema' : sector;
+    const sector = sectorSelector.selectedOptions[0]?.textContent || 'Produção';
+    const context = group;
     const isChat = selectedItem.dataset.page === 'chat';
 
     navigationItems.forEach((item) => {
@@ -140,9 +160,23 @@
     pageTitle.textContent = title;
     currentSection.textContent = title;
     currentGroup.textContent = context;
-    pageDescription.textContent = isChat ? 'Conversas entre funcionários e passagem de turno' : 'Acompanhamento e gestão da produção';
+    const sameContext = context.trim() === title.trim();
+    currentSection.hidden = sameContext;
+    contextDivider.hidden = sameContext;
+    const descriptions = {
+      'visao-geral': currentUser.cargo === 'operador' ? 'Sua máquina, produção registrada e pendências.' : 'Produção registrada e condições das máquinas em acompanhamento.',
+      producao: 'Metas, apontamentos e parâmetros do período.', maquinas: 'Equipamentos, processos e parâmetros registrados.',
+      apontamentos: 'Registre a produção e os parâmetros da máquina em uso.', conferencia: 'Confira os registros e consolide as informações do setor.',
+      paradas: 'Motivos, duração e encerramento das paradas.', qualidade: 'Refugos, perdas de material e peças segregadas.',
+      ocorrencias: 'Problemas registrados e ações de resolução.', funcionarios: 'Identificação por RE e contexto atual de trabalho.',
+      indicadores: 'Compare a produção dos setores e acompanhe as consolidações.', relatorios: 'Registros e resumos para acompanhamento da produção.',
+      notificacoes: 'Paradas abertas, ocorrências e desvios de parâmetros.', configuracoes: 'Seu acesso e o catálogo de equipamentos.',
+      chat: 'Conversas entre funcionários e passagem de turno'
+    };
+    pageDescription.textContent = descriptions[pageId] || '';
     pageContent.hidden = isChat;
     main.classList.toggle('is-chat-page', isChat);
+    MSA.operations.open(pageId, sectorSelector.value);
     if (isChat) window.MSAChat.show(sectorSelector.value);
     else window.MSAChat.hide();
     document.title = `${title} | MSA do Brasil`;
@@ -153,7 +187,14 @@
 
   window.addEventListener('hashchange', () => updatePage({ moveFocus: true }));
   window.addEventListener('msa:profile-changed', () => updatePage());
-  sectorSelector.addEventListener('change', () => {
+  sectorSelector.addEventListener('change', async () => {
+    if (MSA.auth.session()?.cargo === 'supervisor') {
+      sectorSelector.disabled = true;
+      try { await MSA.data.changeContext({setorId: sectorSelector.value}); }
+      catch (error) { MSA.operations.notify(error.message, true); }
+      finally { updatePage(); }
+      return;
+    }
     window.MSAChat.setSector(sectorSelector.value);
     updatePage();
   });
@@ -168,14 +209,15 @@
   });
 
   function updateConnectionStatus() {
-    const online = navigator.onLine;
+    const online = navigator.onLine && MSA.data.state.connected;
     connectionStatus.classList.toggle('is-offline', !online);
-    connectionStatus.querySelector('.status-text').textContent = online ? 'Rede disponível' : 'Sem conexão';
+    connectionStatus.querySelector('.status-text').textContent = online ? 'Registros conectados' : 'Registros sem conexão';
   }
 
   window.addEventListener('online', updateConnectionStatus);
   window.addEventListener('offline', updateConnectionStatus);
 
+  MSA.data.subscribe(updateConnectionStatus);
   updateLayout();
   shell.classList.add('is-ready');
   updatePage();

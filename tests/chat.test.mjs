@@ -111,7 +111,7 @@ test('validação impede uso anônimo, mensagens inválidas, alteração do RE e
   assert.equal((await request(null, 'a', 'bootstrap')).status, 503);
 });
 
-test('aprovação é exigida também na API e o bloqueio posterior interrompe novos envios', async (t) => {
+test('perfil ativo é exigido também na API e bloqueio posterior interrompe novos envios', async (t) => {
   const state = mockFirebase(t), db = database();
   state.profiles.get('a').status = 'pendente';
   assert.equal((await request(db, 'a', 'bootstrap')).status, 403);

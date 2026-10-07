@@ -9,7 +9,7 @@ const flush = () => new Promise((resolve) => setImmediate(resolve));
 
 function fixture(initialUser = active) {
   const elements = new Map();
-  for (const selector of ['#system-shell', '#session-screen', '#session-actions', '#system-logout', '#session-title', '#session-description', '.user-name', '#header-user-role', '#header-user-re', '.user-avatar', '.user-profile', '#session-retry']) {
+  for (const selector of ['#system-shell', '#session-screen', '#session-actions', '#system-logout', '#session-title', '#session-description', '.user-name', '#header-user-role', '#header-user-re', '.user-avatar', '.user-profile', '#session-retry', '#operation-dialog']) {
     elements.set(selector, { hidden: selector !== '#session-screen', inert: false, disabled: false, textContent: '', attributes: {}, listeners: new Map(), setAttribute(name, value) { this.attributes[name] = value; }, addEventListener(name, listener) { this.listeners.set(name, listener); } });
   }
   const state = { user: initialUser, error: null, redirects: [], logoutCalls: 0, hideCalls: 0, clearCalls: 0, watcher: null, stopped: 0 };
@@ -40,7 +40,7 @@ test('abrir o menu sem sessão mantém a tela protegida oculta e volta ao login'
   assert.deepEqual(f.state.redirects, ['index.html?expired=1']);
 });
 
-test('login aprovado abre o menu com nome, cargo, RE e avatar da conta', async () => {
+test('login válido abre o menu com nome, cargo, RE e avatar da conta', async () => {
   const f = fixture();
   assert.equal(await f.context.MSA.system.ready, active);
   assert.equal(f.elements.get('#system-shell').hidden, false);
@@ -52,7 +52,7 @@ test('login aprovado abre o menu com nome, cargo, RE e avatar da conta', async (
   assert.equal(f.state.redirects.length, 0);
 });
 
-test('contas pendentes e bloqueadas seguem para a tela de liberação', async () => {
+test('contas sem acesso ativo seguem para a tela de situação do acesso', async () => {
   for (const status of ['pendente', 'bloqueado']) {
     const f = fixture({ ...active, status });
     assert.equal(await f.context.MSA.system.ready, null);

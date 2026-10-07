@@ -32,29 +32,8 @@
 
   async function api(path, options = {}) {
     const generation = identityGeneration;
-    if (MSA.auth.mode === 'demo') {
-      const data = await MSA.presentation.chatRequest(path, options);
-      if (generation !== identityGeneration) throw new DOMException('Sessão alterada.', 'AbortError');
-      return data;
-    }
-    let token;
-    try { token = await MSA.auth.token(); }
-    catch (error) { if (error.code === 'SESSION_REQUIRED') error.status = 401; throw error; }
+    const data = await MSA.firebaseChat.request(path, options);
     if (generation !== identityGeneration) throw new DOMException('Sessão alterada.', 'AbortError');
-    const response = await fetch(`/api/chat/${path}`, {
-      credentials: 'same-origin',
-      ...options,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...options.headers },
-    });
-    let data;
-    try { data = await response.json(); }
-    catch { throw new Error('Não foi possível carregar o chat. Tente novamente.'); }
-    if (generation !== identityGeneration) throw new DOMException('Sessão alterada.', 'AbortError');
-    if (!response.ok) {
-      const error = new Error(data.error || 'Não foi possível concluir a ação.');
-      error.status = response.status;
-      throw error;
-    }
     return data;
   }
 

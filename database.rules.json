@@ -3,30 +3,581 @@
     ".read": false,
     ".write": false,
     "perfis": {
+      ".indexOn": [
+        "setorId"
+      ],
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && query.orderByChild === 'setorId' && query.equalTo === root.child('perfis').child(auth.uid).child('setorId').val()))",
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists() && newData.child('status').val() === 'pendente' && !newData.hasChild('cargo') && auth.token.email === 're-' + newData.child('re').val() + '@msa-safety-9f978.invalid'",
-        ".validate": "newData.hasChildren(['nome', 're', 'cargoSolicitado', 'status', 'createdAt'])",
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()))))",
+        ".write": "auth != null && newData.exists() && ((auth.uid === $uid && ((!data.exists() && newData.child('status').val() === 'ativo' && auth.token.email === 're-' + newData.child('re').val() + '@msa-safety-9f978.invalid') || (data.exists() && data.child('status').val() !== 'bloqueado' && newData.child('nome').val() === data.child('nome').val() && newData.child('re').val() === data.child('re').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('cargoSolicitado').val() === data.child('cargoSolicitado').val() && ((data.child('status').val() === 'ativo' && newData.child('status').val() === data.child('status').val() && newData.child('cargo').val() === data.child('cargo').val()) || ((!data.hasChild('setorId') || !data.hasChild('maquinaId') || data.child('status').val() === 'pendente' || data.child('cargo').val() === 'gestor') && (newData.child('cargo').val() === data.child('cargo').val() || (data.child('cargo').val() === 'gestor' && newData.child('cargo').val() === 'chefe') || (!data.hasChild('cargo') && (newData.child('cargo').val() === data.child('cargoSolicitado').val() || (data.child('cargoSolicitado').val() === 'gestor' && newData.child('cargo').val() === 'chefe'))))))))) || (auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.child('cargo').val() === 'operador' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && newData.child('setorId').val() === data.child('setorId').val() && newData.child('cargo').val() === data.child('cargo').val() && newData.child('status').val() === data.child('status').val() && newData.child('nome').val() === data.child('nome').val() && newData.child('re').val() === data.child('re').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('cargoSolicitado').val() === data.child('cargoSolicitado').val() && root.child('maquinas').child(newData.child('maquinaId').val()).child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()))",
+        ".validate": "newData.hasChildren(['nome','re','cargo','status','setorId','maquinaId','createdAt'])",
         "nome": {
-          ".validate": "newData.isString() && newData.val().length <= 120 && newData.val().matches(/^\\S+(\\s+\\S+)+$/)"
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120"
         },
         "re": {
-          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4,10}$/)"
-        },
-        "cargoSolicitado": {
-          ".validate": "newData.isString() && (newData.val() === 'operador' || newData.val() === 'lider' || newData.val() === 'supervisor' || newData.val() === 'manutencao' || newData.val() === 'qualidade' || newData.val() === 'gestor')"
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,10}$/)"
         },
         "cargo": {
-          ".validate": "newData.isString() && (newData.val() === 'operador' || newData.val() === 'lider' || newData.val() === 'supervisor' || newData.val() === 'manutencao' || newData.val() === 'qualidade' || newData.val() === 'gestor')"
+          ".validate": "(newData.val() === 'operador' || newData.val() === 'supervisor' || newData.val() === 'chefe')"
+        },
+        "cargoSolicitado": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
         },
         "status": {
-          ".validate": "newData.val() === 'pendente' || newData.val() === 'ativo' || newData.val() === 'bloqueado'"
+          ".validate": "newData.val() === 'ativo'"
+        },
+        "setorId": {
+          ".validate": "newData.isString() && (newData.parent().child('cargo').val() === 'chefe' ? newData.val() === '' : (newData.val() === '' || newData.val() === 'selagem' || newData.val() === 'injecao' || newData.val() === 'montagem'))"
+        },
+        "maquinaId": {
+          ".validate": "newData.isString() && newData.val().length <= 40 && (newData.parent().child('cargo').val() === 'operador' ? ((newData.val() === '' && newData.parent().child('setorId').val() === '') || (newData.val().length > 0 && root.child('maquinas').child(newData.val()).exists() && root.child('maquinas').child(newData.val()).child('setorId').val() === newData.parent().child('setorId').val())) : newData.val() === '')"
         },
         "createdAt": {
-          ".validate": "newData.isNumber() && newData.val() <= now && newData.val() >= now - 60000"
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
         },
         "$other": {
           ".validate": false
+        }
+      }
+    },
+    "setores": {
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo'",
+      "$id": {
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && newData.exists() && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && $id === root.child('perfis').child(auth.uid).child('setorId').val() && !data.exists()))",
+        ".validate": "newData.hasChildren(['nome'])",
+        "nome": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "maquinas": {
+      ".indexOn": [
+        "setorId"
+      ],
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo'",
+      "$id": {
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && (!data.exists() || data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val())) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && $id === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && newData.exists() && ((root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && newData.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && (!data.exists() || data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val())) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' && !data.exists()))",
+        ".validate": "newData.hasChildren(['nome','setorId','processo','produto','metaDiaria','createdAt','updatedAt','atualizadoPor']) && (!data.exists() || (newData.child('setorId').val() === data.child('setorId').val() && newData.child('createdAt').val() === data.child('createdAt').val()))",
+        "nome": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120"
+        },
+        "setorId": {
+          ".validate": "newData.val() === 'selagem' || newData.val() === 'injecao' || newData.val() === 'montagem'"
+        },
+        "processo": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120"
+        },
+        "produto": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120"
+        },
+        "metaDiaria": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' && data.parent().exists()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' && data.parent().exists()"
+        },
+        "atualizadoPor": {
+          ".validate": "newData.val() === auth.uid",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' && data.parent().exists()"
+        },
+        "parametros": {
+          "$key": {
+            ".validate": "newData.hasChildren(['nome','unidade','min','max']) && newData.child('min').isNumber() && newData.child('max').isNumber() && newData.child('max').val() > newData.child('min').val()",
+            "nome": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80"
+            },
+            "unidade": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
+            },
+            "min": {
+              ".validate": "newData.isNumber() && newData.val() >= -100000"
+            },
+            "max": {
+              ".validate": "newData.isNumber() && newData.val() >= -100000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "registrosProducao": {
+      ".indexOn": [
+        "maquinaId",
+        "setorId",
+        "inicio"
+      ],
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && query.orderByChild === 'setorId' && query.equalTo === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && query.orderByChild === 'maquinaId' && query.equalTo === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+      "$id": {
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && data.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && newData.exists() && newData.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val() && newData.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && newData.child('usuarioId').val() === auth.uid && newData.child('usuarioRe').val() === root.child('perfis').child(auth.uid).child('re').val() && newData.child('verificado').val() === false && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        ".validate": "newData.hasChildren([\"setorId\", \"maquinaId\", \"usuarioId\", \"usuarioRe\", \"createdAt\", \"updatedAt\", \"atualizadoPor\", \"verificado\", \"observacao\", \"quantidade\", \"inicio\", \"fim\", \"turno\", \"produto\", \"lote\"]) && (newData.child('verificado').val() === false || newData.hasChildren(['verificadoPor','verificadoEm'])) && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        "setorId": {
+          ".validate": "newData.val() === root.child('maquinas').child(newData.parent().child('maquinaId').val()).child('setorId').val()"
+        },
+        "maquinaId": {
+          ".validate": "newData.isString() && root.child('maquinas').child(newData.val()).exists()"
+        },
+        "usuarioId": {
+          ".validate": "newData.isString()"
+        },
+        "usuarioRe": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,10}$/)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "atualizadoPor": {
+          ".validate": "newData.val() === auth.uid",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificado": {
+          ".validate": "newData.isBoolean() && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === false || (data.val() === true && newData.val() === true))",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "observacao": {
+          ".validate": "newData.isString() && newData.val().length >= 0 && newData.val().length <= 1000"
+        },
+        "verificadoPor": {
+          ".validate": "newData.isString() && ((root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && newData.val() === auth.uid) || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificadoEm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000 && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "quantidade": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+        },
+        "inicio": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "fim": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000 && newData.val() > newData.parent().child('inicio').val()"
+        },
+        "turno": {
+          ".validate": "newData.val() === '1' || newData.val() === '2' || newData.val() === '3'"
+        },
+        "produto": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120"
+        },
+        "lote": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "leituras": {
+      ".indexOn": [
+        "maquinaId",
+        "setorId",
+        "data"
+      ],
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && query.orderByChild === 'setorId' && query.equalTo === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && query.orderByChild === 'maquinaId' && query.equalTo === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+      "$id": {
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && data.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && newData.exists() && newData.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val() && newData.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && newData.child('usuarioId').val() === auth.uid && newData.child('usuarioRe').val() === root.child('perfis').child(auth.uid).child('re').val() && newData.child('verificado').val() === false && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        ".validate": "newData.hasChildren([\"setorId\", \"maquinaId\", \"usuarioId\", \"usuarioRe\", \"createdAt\", \"updatedAt\", \"atualizadoPor\", \"verificado\", \"observacao\", \"data\", \"lote\"]) && (newData.child('verificado').val() === false || newData.hasChildren(['verificadoPor','verificadoEm'])) && newData.hasChild('valores') && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        "setorId": {
+          ".validate": "newData.val() === root.child('maquinas').child(newData.parent().child('maquinaId').val()).child('setorId').val()"
+        },
+        "maquinaId": {
+          ".validate": "newData.isString() && root.child('maquinas').child(newData.val()).exists()"
+        },
+        "usuarioId": {
+          ".validate": "newData.isString()"
+        },
+        "usuarioRe": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,10}$/)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "atualizadoPor": {
+          ".validate": "newData.val() === auth.uid",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificado": {
+          ".validate": "newData.isBoolean() && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === false || (data.val() === true && newData.val() === true))",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "observacao": {
+          ".validate": "newData.isString() && newData.val().length >= 0 && newData.val().length <= 1000"
+        },
+        "verificadoPor": {
+          ".validate": "newData.isString() && ((root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && newData.val() === auth.uid) || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificadoEm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000 && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "data": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "lote": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80"
+        },
+        "$other": {
+          ".validate": false
+        },
+        "valores": {
+          "$key": {
+            ".validate": "newData.isNumber() && root.child('maquinas').child(newData.parent().parent().child('maquinaId').val()).child('parametros').child($key).exists() && (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' || newData.val() === data.val())"
+          }
+        }
+      }
+    },
+    "paradas": {
+      ".indexOn": [
+        "maquinaId",
+        "setorId",
+        "inicio"
+      ],
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && query.orderByChild === 'setorId' && query.equalTo === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && query.orderByChild === 'maquinaId' && query.equalTo === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+      "$id": {
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && data.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && newData.exists() && newData.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val() && newData.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && newData.child('usuarioId').val() === auth.uid && newData.child('usuarioRe').val() === root.child('perfis').child(auth.uid).child('re').val() && newData.child('verificado').val() === false && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        ".validate": "newData.hasChildren([\"setorId\", \"maquinaId\", \"usuarioId\", \"usuarioRe\", \"createdAt\", \"updatedAt\", \"atualizadoPor\", \"verificado\", \"observacao\", \"inicio\", \"fim\", \"motivo\", \"causa\", \"encerradaPor\"]) && (newData.child('verificado').val() === false || newData.hasChildren(['verificadoPor','verificadoEm'])) && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        "setorId": {
+          ".validate": "newData.val() === root.child('maquinas').child(newData.parent().child('maquinaId').val()).child('setorId').val()"
+        },
+        "maquinaId": {
+          ".validate": "newData.isString() && root.child('maquinas').child(newData.val()).exists()"
+        },
+        "usuarioId": {
+          ".validate": "newData.isString()"
+        },
+        "usuarioRe": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,10}$/)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "atualizadoPor": {
+          ".validate": "newData.val() === auth.uid",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificado": {
+          ".validate": "newData.isBoolean() && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === false || (data.val() === true && newData.val() === true))",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "observacao": {
+          ".validate": "newData.isString() && newData.val().length >= 0 && newData.val().length <= 1000"
+        },
+        "verificadoPor": {
+          ".validate": "newData.isString() && ((root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && newData.val() === auth.uid) || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificadoEm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000 && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "inicio": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "fim": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000 && (newData.val() === 0 || newData.val() >= newData.parent().child('inicio').val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "motivo": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
+        },
+        "causa": {
+          ".validate": "newData.isString() && newData.val().length >= 0 && newData.val().length <= 300",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "encerradaPor": {
+          ".validate": "newData.isString() && (newData.val() === '' || newData.val() === auth.uid || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "perdas": {
+      ".indexOn": [
+        "maquinaId",
+        "setorId",
+        "data"
+      ],
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && query.orderByChild === 'setorId' && query.equalTo === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && query.orderByChild === 'maquinaId' && query.equalTo === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+      "$id": {
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && data.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && newData.exists() && newData.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val() && newData.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && newData.child('usuarioId').val() === auth.uid && newData.child('usuarioRe').val() === root.child('perfis').child(auth.uid).child('re').val() && newData.child('verificado').val() === false && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        ".validate": "newData.hasChildren([\"setorId\", \"maquinaId\", \"usuarioId\", \"usuarioRe\", \"createdAt\", \"updatedAt\", \"atualizadoPor\", \"verificado\", \"observacao\", \"tipo\", \"quantidade\", \"unidade\", \"data\", \"motivo\", \"produto\", \"lote\"]) && (newData.child('verificado').val() === false || newData.hasChildren(['verificadoPor','verificadoEm'])) && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        "setorId": {
+          ".validate": "newData.val() === root.child('maquinas').child(newData.parent().child('maquinaId').val()).child('setorId').val()"
+        },
+        "maquinaId": {
+          ".validate": "newData.isString() && root.child('maquinas').child(newData.val()).exists()"
+        },
+        "usuarioId": {
+          ".validate": "newData.isString()"
+        },
+        "usuarioRe": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,10}$/)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "atualizadoPor": {
+          ".validate": "newData.val() === auth.uid",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificado": {
+          ".validate": "newData.isBoolean() && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === false || (data.val() === true && newData.val() === true))",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "observacao": {
+          ".validate": "newData.isString() && newData.val().length >= 0 && newData.val().length <= 1000"
+        },
+        "verificadoPor": {
+          ".validate": "newData.isString() && ((root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && newData.val() === auth.uid) || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificadoEm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000 && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "tipo": {
+          ".validate": "newData.val() === 'refugo' || newData.val() === 'perda' || newData.val() === 'suspeito'"
+        },
+        "quantidade": {
+          ".validate": "newData.isNumber() && newData.val() > 0 && (newData.parent().child('tipo').val() === 'perda' || newData.val() % 1 === 0)"
+        },
+        "unidade": {
+          ".validate": "(newData.parent().child('tipo').val() === 'perda' && newData.val() === 'kg') || (newData.parent().child('tipo').val() !== 'perda' && newData.val() === 'pecas')"
+        },
+        "data": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "motivo": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
+        },
+        "produto": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 120"
+        },
+        "lote": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "ocorrencias": {
+      ".indexOn": [
+        "maquinaId",
+        "setorId",
+        "data"
+      ],
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && query.orderByChild === 'setorId' && query.equalTo === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && query.orderByChild === 'maquinaId' && query.equalTo === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+      "$id": {
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()) || (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && data.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val()))",
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' && newData.exists() && newData.child('maquinaId').val() === root.child('perfis').child(auth.uid).child('maquinaId').val() && newData.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && newData.child('usuarioId').val() === auth.uid && newData.child('usuarioRe').val() === root.child('perfis').child(auth.uid).child('re').val() && newData.child('verificado').val() === false && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        ".validate": "newData.hasChildren([\"setorId\", \"maquinaId\", \"usuarioId\", \"usuarioRe\", \"createdAt\", \"updatedAt\", \"atualizadoPor\", \"verificado\", \"observacao\", \"data\", \"descricao\", \"prioridade\", \"status\", \"resolucao\"]) && (newData.child('verificado').val() === false || newData.hasChildren(['verificadoPor','verificadoEm'])) && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || (newData.child('status').val() === (data.exists() ? data.child('status').val() : 'aberta') && newData.child('resolucao').val() === (data.exists() ? data.child('resolucao').val() : ''))) && (!data.exists() || (newData.child('usuarioId').val() === data.child('usuarioId').val() && newData.child('usuarioRe').val() === data.child('usuarioRe').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('maquinaId').val() === data.child('maquinaId').val() && newData.child('setorId').val() === data.child('setorId').val()))",
+        "setorId": {
+          ".validate": "newData.val() === root.child('maquinas').child(newData.parent().child('maquinaId').val()).child('setorId').val()"
+        },
+        "maquinaId": {
+          ".validate": "newData.isString() && root.child('maquinas').child(newData.val()).exists()"
+        },
+        "usuarioId": {
+          ".validate": "newData.isString()"
+        },
+        "usuarioRe": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{1,10}$/)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "atualizadoPor": {
+          ".validate": "newData.val() === auth.uid",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificado": {
+          ".validate": "newData.isBoolean() && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === false || (data.val() === true && newData.val() === true))",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "observacao": {
+          ".validate": "newData.isString() && newData.val().length >= 0 && newData.val().length <= 1000"
+        },
+        "verificadoPor": {
+          ".validate": "newData.isString() && ((root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && newData.val() === auth.uid) || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "verificadoEm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000 && (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' || newData.val() === data.val())",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "data": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "descricao": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 1000"
+        },
+        "prioridade": {
+          ".validate": "newData.val() === 'normal' || newData.val() === 'alta'"
+        },
+        "status": {
+          ".validate": "newData.val() === 'aberta' || newData.val() === 'resolvida'",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "resolucao": {
+          ".validate": "newData.isString() && newData.val().length >= 0 && newData.val().length <= 1000",
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().exists() && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "consolidacoes": {
+      ".indexOn": [
+        "setorId"
+      ],
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && query.orderByChild === 'setorId' && query.equalTo === root.child('perfis').child(auth.uid).child('setorId').val()))",
+      "$id": {
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()))",
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && !data.exists() && newData.exists() && newData.child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val() && newData.child('usuarioId').val() === auth.uid && newData.child('usuarioRe').val() === root.child('perfis').child(auth.uid).child('re').val()",
+        ".validate": "newData.hasChildren(['setorId','usuarioId','usuarioRe','inicio','fim','observacao','createdAt'])",
+        "setorId": {
+          ".validate": "newData.val() === 'selagem' || newData.val() === 'injecao' || newData.val() === 'montagem'"
+        },
+        "usuarioId": {
+          ".validate": "newData.val() === auth.uid"
+        },
+        "usuarioRe": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 10"
+        },
+        "inicio": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "fim": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000 && newData.val() > newData.parent().child('inicio').val()"
+        },
+        "observacao": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 2000"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "diretorio": {
+      ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo'",
+      "$uid": {
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && auth.uid === $uid && newData.exists()",
+        ".validate": "newData.hasChildren(['nome','re','cargo','setorId'])",
+        "nome": {
+          ".validate": "newData.val() === root.child('perfis').child(auth.uid).child('nome').val()"
+        },
+        "re": {
+          ".validate": "newData.val() === root.child('perfis').child(auth.uid).child('re').val()"
+        },
+        "cargo": {
+          ".validate": "newData.val() === root.child('perfis').child(auth.uid).child('cargo').val()"
+        },
+        "setorId": {
+          ".validate": "newData.val() === root.child('perfis').child(auth.uid).child('setorId').val()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "conversas": {
+      "$id": {
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (!data.exists() || data.child('participantes').child(auth.uid).val() === true)",
+        ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && !data.exists() && newData.exists() && newData.child('participantes').child(auth.uid).val() === true",
+        ".validate": "newData.hasChildren(['participantes'])",
+        "participantes": {
+          "$uid": {
+            ".validate": "newData.val() === true && root.child('diretorio').child($uid).exists()"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "mensagens": {
+      "$conversation": {
+        ".indexOn": [
+          "id",
+          "created_at"
+        ],
+        ".read": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && ($conversation === 'geral' || $conversation === 'passagem' || $conversation === 'setor-' + root.child('perfis').child(auth.uid).child('setorId').val() || (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' && ($conversation === 'setor-selagem' || $conversation === 'setor-injecao' || $conversation === 'setor-montagem')) || root.child('conversas').child($conversation).child('participantes').child(auth.uid).val() === true)",
+        "$message": {
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && ($conversation === 'geral' || $conversation === 'passagem' || $conversation === 'setor-' + root.child('perfis').child(auth.uid).child('setorId').val() || (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' && ($conversation === 'setor-selagem' || $conversation === 'setor-injecao' || $conversation === 'setor-montagem')) || root.child('conversas').child($conversation).child('participantes').child(auth.uid).val() === true) && newData.exists() && newData.child('sender_id').val() === auth.uid && $message === auth.uid + '_' + newData.child('client_key').val() && (!data.exists() || newData.child('body').val() === data.child('body').val())",
+          ".validate": "newData.hasChildren(['id','conversation','sender_id','sender_name','sender_re','body','created_at','client_key'])",
+          "id": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "conversation": {
+            ".validate": "newData.val() === $conversation"
+          },
+          "sender_id": {
+            ".validate": "newData.val() === auth.uid"
+          },
+          "sender_name": {
+            ".validate": "newData.val() === root.child('perfis').child(auth.uid).child('nome').val()"
+          },
+          "sender_re": {
+            ".validate": "newData.val() === root.child('perfis').child(auth.uid).child('re').val()"
+          },
+          "body": {
+            ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 2000"
+          },
+          "created_at": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+          },
+          "client_key": {
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{1,100}$/)"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     }

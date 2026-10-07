@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
-const valid = { nome: 'Funcionário de Teste', re: '001234', cargo: 'gestor', senha: 'SenhaFicticia9', confirmacao: 'SenhaFicticia9' };
+const valid = { nome: 'Funcionário de Teste', re: '001234', cargo: 'chefe', senha: '123456' };
 const error = code => Object.assign(new Error(code), { code });
 function storage() {
   const values = new Map();
@@ -45,6 +45,7 @@ function fixture() {
         if (state.denyWrite) throw error('PERMISSION_DENIED');
         profiles.set(target, { ...profile, createdAt: 1720000000000 });
       },
+      update: async (target, patch) => { if (state.denyWrite) throw error('PERMISSION_DENIED'); profiles.set(target, {...profiles.get(target),...patch}); },
       serverTimestamp: () => ({ '.sv': 'timestamp' }),
       onValue: (target, callback) => {
         const listeners = profileListeners.get(target) || new Set(); profileListeners.set(target, listeners); listeners.add(callback);
@@ -55,7 +56,7 @@ function fixture() {
   };
   const context = vm.createContext({ localStorage: storage(), sessionStorage: storage(), setTimeout, clearTimeout, TypeError });
   context.window = context;
-  for (const name of ['config.js', 'validation.js']) vm.runInContext(fs.readFileSync(path.join(root, 'dist/assets', name), 'utf8'), context);
+  for (const name of ['config.js', 'rbac.js', 'validation.js']) vm.runInContext(fs.readFileSync(path.join(root, 'dist/assets', name), 'utf8'), context);
   context.MSA.firebase = { ready: async () => client };
   vm.runInContext(fs.readFileSync(path.join(root, 'dist/assets/auth-service.js'), 'utf8'), context);
   return {
@@ -69,27 +70,23 @@ function fixture() {
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
-test('cadastro por RE mantém zeros, grava somente perfil pendente e encerra a sessão automática', async () => {
-  const f = fixture(), user = await f.service.register(valid);
-  assert.equal(user.re, '001234');
-  assert.equal(user.cargoSolicitado, 'gestor');
-  assert.equal(user.cargo, null);
-  assert.equal(user.status, 'pendente');
-  assert.equal(f.service.can('relatorios:ler', user), false);
-  assert.equal(f.accounts.keys().next().value, 're-001234@msa-safety-9f978.invalid');
-  assert.deepEqual(Object.keys(f.profiles.get(`perfis/${user.id}`)).sort(), ['cargoSolicitado','createdAt','nome','re','status']);
-  assert.equal(f.client.auth.currentUser, null);
-  assert.equal(f.service.session(), null);
-  assert.equal(f.service.consumeRegistrationRE(), '001234');
-  assert.equal(f.service.consumeRegistrationRE(), '');
+test('cadastro por RE preserva zeros e entra imediatamente pelo cargo escolhido', async () => {
+  const f=fixture(), user=await f.service.register(valid);
+  assert.equal(user.re,'001234');assert.equal(user.cargo,'chefe');assert.equal(user.status,'ativo');
+  assert.equal(f.service.home(user),'sistema.html#visao-geral');
+  assert.equal(f.service.can('relatorios:ler',user),true);
+  assert.equal(f.service.can('producao:registrar',user),false);
+  assert.equal(f.client.auth.currentUser.uid,user.id);
+  assert.equal(f.service.session().id,user.id);
+  assert.equal(f.profiles.get(`perfis/${user.id}`).setorId,'');
 });
 
 test('campos inválidos são rejeitados antes de criar conta ou consultar credenciais', async () => {
   const cases = [
-    [{ ...valid, nome: '' }, 'nome'], [{ ...valid, nome: 'Nome' }, 'nome'],
-    [{ ...valid, re: 'AB1234' }, 're'], [{ ...valid, re: '123' }, 're'],
+    [{ ...valid, nome: '' }, 'nome'],
+    [{ ...valid, re: 'AB1234' }, 're'], [{ ...valid, re: '12345678901' }, 're'],
     [{ ...valid, cargo: 'admin' }, 'cargo'], [{ ...valid, senha: 'fraca', confirmacao: 'fraca' }, 'senha'],
-    [{ ...valid, confirmacao: 'Diferente9' }, 'confirmacao']
+    [{ ...valid, nome: 'A'.repeat(121) }, 'nome']
   ];
   for (const [values, field] of cases) {
     const f = fixture();
@@ -138,35 +135,48 @@ test('cadastro incompleto pode ser retomado sem sobrescrever um perfil existente
   assert.equal(f.accounts.size, 1);
   assert.equal(f.profiles.size, 1);
   f.patchProfile(user.id, { status: 'ativo', cargo: 'operador' });
-  await assert.rejects(f.service.register({ ...valid, cargo: 'gestor' }), e => e.code === 'DUPLICATE_RE');
+  await assert.rejects(f.service.register({ ...valid, cargo: 'chefe' }), e => e.code === 'DUPLICATE_RE');
   assert.equal(f.profiles.get(`perfis/${user.id}`).cargo, 'operador');
 });
 
-test('os seis cargos só recebem áreas e permissões após aprovação', async () => {
-  const f = fixture();
-  for (const [index, role] of f.config.roles.entries()) {
-    const values = { ...valid, re: String(7000 + index), cargo: role.id };
-    const registered = await f.service.register(values);
-    assert.equal(f.service.role(registered), null);
-    f.patchProfile(registered.id, { status: 'ativo', cargo: role.id });
-    const user = await f.service.login(values);
-    assert.equal(f.service.role(user).id, role.id);
-    assert.equal(f.service.home(user), `sistema.html#${role.home}`);
-    for (const permission of role.permissions) assert.equal(f.service.can(permission, user), true);
-    f.patchProfile(user.id, { status: 'bloqueado' });
-    const blocked = await f.service.ready();
-    assert.equal(f.service.role(blocked), null);
-    assert.equal(f.service.can(role.permissions[0], blocked), false);
+test('três cargos se cadastram sem setor ou máquina e recebem acesso imediato', async () => {
+  const f=fixture();
+  for(const [index,role] of f.config.roles.entries()) {
+    const values={...valid,re:String(index+1),cargo:role.id};
+    const user=await f.service.register(values);
+    assert.equal(user.setorId,'');
+    assert.equal(user.maquinaId,'');
+    assert.equal(f.service.home(user),'sistema.html#visao-geral');
+    assert.equal(f.service.role(user).id,role.id);
+    assert.equal(f.service.home(user),`sistema.html#${role.home}`);
+    for(const permission of role.permissions)assert.equal(f.service.can(permission,user),true);
+    f.patchProfile(user.id,{status:'bloqueado'});
+    const blocked=await f.service.ready();assert.equal(f.service.role(blocked),null);
   }
 });
 
-test('aprovação, bloqueio e logout atualizam o perfil observado', async () => {
+test('campos de lotação enviados por um cadastro antigo não prendem o novo funcionário', async () => {
+  const f=fixture();
+  const user=await f.service.register({...valid,cargo:'operador',setorId:'selagem',maquinaId:'INJ-01'});
+  assert.equal(user.setorId,'');assert.equal(user.maquinaId,'');
+  const uid=user.id;
+  f.patchProfile(uid,{setorId:'montagem',maquinaId:'ABF-01'});
+  await f.service.logout();
+  assert.equal((await f.service.login(valid)).id,uid);
+  f.patchProfile(uid,{setorId:'selagem',maquinaId:'SEL-01'});
+  await f.service.logout();
+  const current=await f.service.login(valid);
+  assert.equal(current.id,uid);assert.equal(current.re,valid.re);
+  assert.equal(current.setorId,'selagem');assert.equal(current.maquinaId,'SEL-01');
+});
+
+test('mudanças no perfil, bloqueio e logout atualizam o acesso observado', async () => {
   const f = fixture(), registered = await f.service.register(valid);
   await f.service.login(valid);
   const changes = [], errors = [];
   const stop = await f.service.watch(user => changes.push(user), e => errors.push(e));
   await flush();
-  assert.equal(changes.at(-1).status, 'pendente');
+  assert.equal(changes.at(-1).status, 'ativo');
   f.patchProfile(registered.id, { status: 'ativo', cargo: 'supervisor' });
   assert.equal(changes.at(-1).cargo, 'supervisor');
   f.patchProfile(registered.id, { status: 'bloqueado' });
@@ -215,4 +225,10 @@ test('chat recebe o token da sessão Firebase e perde acesso após Sair', async 
   assert.equal(await f.service.token(), 'firebase-test-id-token');
   await f.service.logout();
   await assert.rejects(f.service.token(), e => e.code === 'SESSION_REQUIRED');
+});
+
+test('perfil legado gestor/pending vira chefe ativo sem alterar a identidade',async()=>{
+ const f=fixture();const u=await f.service.register(valid);const target=`perfis/${u.id}`;
+ f.profiles.set(target,{nome:valid.nome,re:valid.re,cargoSolicitado:'gestor',status:'pendente',createdAt:1720000000000});
+ const current=await f.service.login(valid);assert.equal(current.cargo,'chefe');assert.equal(current.setorId,'');
 });

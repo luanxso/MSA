@@ -1,78 +1,57 @@
 # MSA — Sistema integrado de gestão da produção
 
-Login por RE e senha, cadastro liberado imediatamente, menu responsivo por setor e chat em um único projeto HTML, CSS e JavaScript. A versão atual usa armazenamento no navegador e não exige aprovação no Firebase. Os demais módulos de produção continuam reservados para desenvolvimento, com integração IoT prevista para uma etapa futura.
+Versão 0.4.3. O projeto existente foi adaptado para **Operador, Supervisor e Chefe**, preservando a identidade MSA, login por RE, menu responsivo e interface do chat. Os módulos operacionais usam o **Firebase Authentication e o Realtime Database já configurados no projeto**.
 
-## Usar o sistema
+Login e Cadastro agora têm composição industrial com fotografia real da visita, cabeçalho MSA comum e campos mais legíveis. A análise das telas anteriores, as decisões visuais, os arquivos alterados e as capturas estão em [docs/Design-acesso.md](docs/Design-acesso.md). O cadastro mantém os campos e o acesso imediato; não há nova etapa de aprovação.
 
-1. Abra `dist/index.html` ou o site publicado e selecione **Criar cadastro**.
-2. Preencha nome, RE, cargo e senha. O nome pode ser simples, o RE aceita de 1 a 10 números e a senha não exige maiúsculas, números ou símbolos. Não há confirmação de senha ou aprovação manual.
-3. **Cadastrar e entrar** libera o perfil e abre o menu imediatamente. Depois de sair, use o mesmo **RE e senha** para entrar. O cargo já vem do cadastro, sem seleção adicional no login.
-4. Abra **Chat** para usar canais por setor, passagem de turno e conversas individuais entre usuários cadastrados. As conversas começam vazias; você pode digitar e enviar mensagens.
-5. Para testar dois participantes, crie dois cadastros com REs diferentes no mesmo navegador. Envie uma mensagem, saia e entre com o RE e senha do outro cadastro. As mensagens locais permanecem disponíveis.
+O cadastro solicita **Nome, RE, Cargo e Senha**, sem setor ou máquina. O RE identifica a pessoa mesmo quando ela muda de posto. Dentro do sistema, o Operador escolhe a máquina em uso e o setor é derivado desse equipamento; o Supervisor escolhe o setor em acompanhamento no cabeçalho. O Chefe consulta indicadores e consolidações dos setores. As páginas e componentes são compartilhados. Menus, rotas, comandos e regras do banco verificam o cargo e o contexto atual. A mudança está detalhada em [docs/Cadastro-por-RE.md](docs/Cadastro-por-RE.md).
 
-O acesso e o chat atuais funcionam sem chamadas ao Firebase ou à API do chat. Os cadastros e mensagens ficam no navegador utilizado; não são compartilhados entre computadores. A senha é verificada localmente e seu texto não é armazenado; o cadastro guarda um hash com salt. Use o site HTTPS publicado ou um servidor em `localhost` e mantenha o armazenamento do navegador disponível para conservar os cadastros entre páginas.
+## Começar
 
-Abrir `dist/sistema.html` sem uma sessão retorna ao login por RE e senha. **Lembrar de mim** preenche o RE no próximo acesso. As telas usam rótulos de funcionários, setores e cadastro, sem avisos de apresentação.
+1. Configure o Firebase conforme [docs/Firebase.md](docs/Firebase.md): habilite E-mail/senha e publique `database.rules.json`. A configuração pública original foi preservada; ela não concede acesso administrativo para publicar regras.
+2. Sirva `dist` em HTTP/HTTPS. Não abra os arquivos por `file://`.
 
-Para voltar ao acesso Firebase, altere `presentation.enabled` de `true` para `false` em `dist/assets/config.js` e publique novamente. O fluxo descrito abaixo passa a valer. Na apresentação, não é necessário executar as etapas de ativação do Firebase.
+```sh
+python3 -m http.server 8000 --directory dist
+```
 
-## Fluxo de acesso Firebase (modo apresentação desativado)
+3. Abra `http://localhost:8000`, crie seu cadastro e entre. RE aceita 1 a 10 dígitos, preservando zeros; senha tem mínimo de 6 caracteres e não exige confirmação. O cadastro já entra no sistema, sem aprovação adicional.
+4. Para demonstrar os três perfis simultaneamente, use três navegadores ou perfis independentes. Cadastre um Operador, um Supervisor e um Chefe. Nenhum deles precisa informar setor no cadastro.
+5. O Chefe pode preparar o catálogo dos três setores em **Configurações → Preparar máquinas de exemplo**. O Supervisor seleciona um setor no cabeçalho e prepara as máquinas desse setor, ou cadastra uma máquina em **Máquinas**. A preparação preserva máquinas existentes e não inventa dados de produção.
+6. Pelo Operador, selecione **Máquina em uso**. Registre produção, paradas, qualidade, ocorrências e leituras. O Supervisor seleciona o setor dessa máquina; o Chefe acompanha os totais. As telas atualizam pela mesma base Firebase.
+7. Troque a máquina em uso para trabalhar em outro setor com o mesmo RE. Os novos registros usam o novo equipamento; o histórico conserva sua origem.
 
-1. `dist/index.html` e `dist/login.html` abrem o login por RE e senha.
-2. **Criar cadastro** abre `dist/cadastro.html`. O cadastro grava um perfil pendente no Firebase e oferece o retorno ao login.
-3. Uma conta aprovada abre `dist/sistema.html` na área inicial do cargo. O header mostra o nome, RE e cargo da mesma conta.
-4. Contas pendentes ou bloqueadas seguem para `dist/acesso.html`. A aprovação do perfil é acompanhada automaticamente e abre o menu quando o acesso é liberado.
-5. **Sair** encerra a sessão Firebase, limpa os dados temporários do chat e volta ao login. Abrir `sistema.html` diretamente também exige uma sessão aprovada.
+Nomes, metas e limites do catálogo inicial são **exemplos**, não parâmetros aprovados da MSA. O Supervisor pode cadastrar os parâmetros reais em Máquinas. O seletor da operação usa o catálogo compartilhado no Firebase, incluindo máquinas adicionadas posteriormente.
 
-A configuração pública do projeto `msa-safety-9f978` está em `dist/assets/firebase-config.js`. O provedor E-mail/senha e as regras do Realtime Database precisam estar configurados pelo responsável. As instruções de ativação e aprovação estão em [docs/Firebase.md](docs/Firebase.md). A integração não criou contas no Firebase nem alterou suas regras remotamente.
+O painel usa navegação estrutural em carvão, setor no header e leitura da operação por equipamentos. **Visão geral** é a entrada para os três cargos. A análise visual e as decisões estão em [docs/Design-painel.md](docs/Design-painel.md).
 
-No modo Firebase, o RE é preservado como texto, inclusive os zeros iniciais. **Lembrar de mim** controla a persistência do Firebase; os perfis demonstrativos locais não liberam o acesso real. O menu permanece oculto enquanto o acesso é verificado, com opção de tentar novamente se a conexão falhar.
+## Telas e fluxo
 
-## Menu responsivo
+A matriz completa de objetivos, dados, ações e acessos está em [docs/Arquitetura.md](docs/Arquitetura.md).
 
-Sidebar recolhível no desktop e tablet; drawer no celular, com fechamento por Escape e controle de foco. O seletor usa **Setor**, com Produção, Injeção, Montagem, Costura, Manutenção e Qualidade. Este catálogo inicial pode ser ajustado à estrutura oficial da fábrica.
+| Cargo | Página inicial | Acesso exclusivo | Escopo |
+| --- | --- | --- | --- |
+| Operador | Visão geral | Apontamentos | Máquina em uso; cria e corrige registros próprios |
+| Supervisor | Visão geral | Conferência | Máquinas, operadores e registros do setor em acompanhamento |
+| Chefe | Visão geral | Indicadores | Visão de todos os setores; ajuste de metas |
 
-Logotipo original da MSA, Arial e paleta MSA, com verde como destaque. Login e cadastro usam a foto do letreiro sem textos sobrepostos, identificação do sistema abaixo da logo e formulários sem divisórias decorativas. O menu e o chat mantêm seus estilos separados. Não foram acrescentados indicadores fictícios nem telas de produção preenchidas.
+**Funcionários e Relatórios** são compartilhados por Supervisor e Chefe. **Visão geral, Produção, Máquinas, Paradas, Qualidade, Ocorrências, Chat, Notificações e Configurações** são acessíveis aos três cargos, com dados e ações limitados ao contexto de cada um.
 
-As áreas iniciais e permissões propostas por cargo estão em `dist/assets/config.js`. Os módulos de produção ainda estão vazios; futuras APIs devem verificar o cargo aprovado no servidor, além de organizar a interface.
+A conferência marca os registros e identifica o Supervisor. Não impede que os dados apareçam imediatamente nos indicadores. Uma correção do Operador mantém o mesmo registro, a origem e a data de criação, e o deixa novamente a conferir.
 
-## Chat integrado com Firebase (modo apresentação desativado)
+O Supervisor adiciona o resumo do setor e o período em Conferência. Relatórios e Indicadores calculam os totais a partir dos registros atuais; a consolidação não duplica a produção nem congela totais desatualizados.
 
-Canais por setor, passagem de turno e conversas individuais. As mensagens são persistidas no D1 da hospedagem e atualizadas a cada 5 segundos enquanto a página está visível. Rascunhos ficam na memória da página; recarregar ou sair descarta textos não enviados.
+## Persistência
 
-O chat usa o token da mesma sessão Firebase do login. O servidor consulta o Firebase Authentication e o perfil aprovado no Realtime Database antes de atender a cada solicitação. Nome e RE vêm desse cadastro; **Meu perfil** apenas exibe a identificação. Campos de autor enviados pelo navegador não substituem a identidade verificada. Mensagens conservam o nome e RE do momento do envio.
+Dados operacionais, perfis e chat utilizam o Firebase. A única preferência explícita em `localStorage` é o RE lembrado no login. Sessões são gerenciadas pelo Firebase Auth. Rascunhos de formulários/chat e estado do menu ficam na memória da página.
 
-Conversas individuais são acessíveis somente pelos dois participantes. Uma chave por envio evita mensagens duplicadas após falha de rede. Erros de envio mantêm o texto digitado. No celular, a lista de conversas e a conversa selecionada ocupam telas separadas.
+Contas e conversas antigas do modo local não são importadas automaticamente: não temos os dados dos navegadores dos usuários e os hashes locais de senha não são credenciais Firebase. Recrie os cadastros de demonstração uma vez. As chaves locais antigas não são apagadas nem utilizadas para autorizar o novo sistema. No ZIP original, as páginas operacionais estavam vazias; não havia registros operacionais locais a converter.
 
-Para aparecer em **Pessoas**, outro funcionário precisa ter acesso ao site, uma conta aprovada e abrir o chat. Não há importação de contatos ou mensagens do Teams. Os canais são compartilhados entre contas aprovadas; selecionar um setor muda o contexto de navegação, não limita o acesso aos canais.
+O chat conserva canais de produção, passagem de turno, setor e conversas privadas. Agora grava mensagens no Realtime Database. Seu histórico consulta atualizações a cada 5 segundos quando aberto; os módulos operacionais usam assinaturas em tempo real. Somente os participantes acessam conversas privadas. O Worker e as migrações D1 anteriores foram preservados para compatibilidade, mas a interface atual usa o adaptador Firebase.
 
-O público atual do site foi preservado. A liberação de uma conta no Firebase não adiciona acesso à hospedagem. Registros anteriores do D1 foram mantidos; identidades antigas da hospedagem não são vinculadas automaticamente às novas contas Firebase. O histórico dos canais permanece na mesma base.
+## Verificar e gerar o pacote de publicação
 
-## Organização
-
-| Arquivo | Função |
-| --- | --- |
-| `dist/index.html`, `dist/login.html` | Login |
-| `dist/cadastro.html` | Cadastro |
-| `dist/acesso.html` | Estado de liberação da conta |
-| `dist/sistema.html` | Menu responsivo e chat |
-| `dist/assets/` | Logo, fotografia, estilos e adaptadores de acesso |
-| `dist/assets/demo-service.js`, `dist/assets/demo-ui.js` | Entrada, cadastro e chat locais da apresentação |
-| `dist/css/style.css` | Estilos do menu e chat |
-| `dist/js/system-guard.js` | Verificação de sessão, identidade e saída |
-| `dist/js/script.js` | Navegação e responsividade |
-| `dist/js/chat.js` | Conversas e envio de mensagens |
-| `worker/auth.js` | Validação da conta Firebase no servidor |
-| `worker/chat.js` | API e persistência do chat |
-| `worker/index.js` | Rotas e recursos estáticos |
-| `db/schema.ts`, `drizzle/` | Esquema e migrações D1 |
-| `database.rules.json`, `firebase.json` | Regras e configuração do Firebase |
-| `scripts/build.mjs` | Build do Worker e arquivos de publicação |
-| `tests/` | Testes locais com Firebase simulado e SQLite |
-
-## Executar e publicar
-
-Requer Node.js 24 ou superior para os testes com SQLite.
+Node.js 24 ou superior.
 
 ```sh
 npm ci
@@ -80,23 +59,20 @@ npm test
 npm run build
 ```
 
-Para visualizar as telas e testar o acesso em um servidor local:
+O build original foi mantido: produz `dist/server/index.js`, manifesto e migrações para publicação no Sites. A aplicação também funciona com servidor estático, pois os novos registros e o chat usam diretamente o Firebase. Publicar o site não publica as regras do Firebase; elas precisam ser atualizadas conforme `docs/Firebase.md`.
+
+`npm test` inclui testes de autenticação, RBAC, métricas, sessão e compatibilidade do Worker. Para testar as regras no emulador real, informe o caminho do JAR oficial do Realtime Database:
 
 ```sh
-python3 -m http.server 8000 --directory dist
+MSA_DATABASE_EMULATOR_JAR=/caminho/firebase-database-emulator.jar npm test
 ```
 
-O servidor estático local permite demonstrar a entrada, o cadastro, o menu e o chat com o modo apresentação ativado. A comunicação real entre computadores requer o Worker com D1 e o modo Firebase configurado. Para compartilhar os perfis e mensagens demonstrativos entre telas locais, prefira servir todas as páginas pelo mesmo endereço HTTP.
+Teste opcional de navegador com Playwright e o mesmo emulador:
 
-O build produz `dist/server/index.js`, um Worker ESM com recursos incorporados, manifesto e migrações. Sua configuração Firebase é obtida do mesmo arquivo usado pelo navegador. A publicação aplica as migrações D1. Gere uma nova migração com `npm run db:generate` somente após alterar `db/schema.ts`; não modifique migrações já aplicadas.
+```sh
+MSA_DATABASE_EMULATOR_JAR=/caminho/firebase-database-emulator.jar npm run test:browser
+```
 
-Os testes verificam cadastro imediatamente ativo, login por RE e senha simples, credenciais incorretas, os seis cargos, sessão, saída e chat local da apresentação. Também preservam a verificação do acesso Firebase, aprovação, bloqueio, identidade do chat real, conversas individuais, repetição de envio e paginação. Usam respostas Firebase simuladas, sem contas ou senhas reais.
+Esse teste precisa de Playwright e seu Chromium instalados no ambiente de desenvolvimento. `MSA_PLAYWRIGHT_MODULE` e `MSA_CHROME_BINARY` permitem indicar instalações existentes. `MSA_FIREBASE_SDK_DIR` permite reutilizar cópias locais dos módulos públicos do SDK; sem essa opção o teste baixa os dois módulos oficiais. Os testes usam dados e identidades de teste, sem escrever no projeto Firebase real.
 
-Rotas do chat, todas com `Authorization: Bearer <token Firebase>`:
-
-- `GET /api/chat/bootstrap`: identidade, canais e diretório de pessoas.
-- `POST /api/chat/threads`: abre ou recupera uma conversa individual.
-- `GET /api/chat/messages?conversation=…`: histórico; aceita `before` ou `after`.
-- `POST /api/chat/messages`: envia uma mensagem.
-
-Referências técnicas: [Firebase Auth REST](https://firebase.google.com/docs/reference/rest/auth) e [autenticação do Realtime Database REST](https://firebase.google.com/docs/database/rest/auth). Fontes dos ativos em [ASSETS.md](ASSETS.md).
+O roteiro para sexta-feira está em [docs/Roteiro-demonstracao.md](docs/Roteiro-demonstracao.md). O inventário de persistência, limitações e arquivos alterados está em [docs/Alteracoes.md](docs/Alteracoes.md). Fontes dos ativos originais em [ASSETS.md](ASSETS.md).
