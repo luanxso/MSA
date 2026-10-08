@@ -42,6 +42,7 @@
  }
  MSA.scenarioLive.upgrade(state,baseline);
  MSA.scenarioParameters.upgrade(state);MSA.workflows?.upgrade(state);
+ MSA.capability?.seedDemo(state);
  const watchers=new Set();
  function emit(){watchers.forEach(fn=>fn({...state}));}
  function snapshot(){
@@ -92,7 +93,7 @@
   if(collection==='leituras'){
    const valores=Object.fromEntries(Object.entries(machine.parametros||{}).map(([k,p])=>[k,number(v.valores?.[k]??v['param_'+k],p.nome,-100000)]));
    if(!Object.keys(valores).length)throw new Error('Esta máquina ainda não possui parâmetros cadastrados.');
-   return {...base,valores,data:date(v.data,'data'),lote:required(v.lote,'lote ou ordem',80)};
+   return {...base,valores,data:date(v.data,'data'),lote:required(v.lote,'lote ou ordem',80),...(MSA.capability?.compatible(machine)?{estudoSelo:MSA.capability.clean(v.estudoSelo||v)}:{})};
   }
   return {...base,data:date(v.data,'data'),descricao:required(v.descricao,'descrição',1000),prioridade:['normal','alta'].includes(v.prioridade)?v.prioridade:'normal',status:existing?.status||'aberta',resolucao:existing?.resolucao||''};
  }

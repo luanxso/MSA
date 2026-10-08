@@ -7,7 +7,7 @@ MSA.createScenario=function(now=Date.now()){
  MSA.plantLayout.machines.forEach((m,i)=>{
   const hourTarget=m.id==='NHPL'?150:120+(i%4)*20;
   const params={...(MSA.scenarioParameters?.defaults(m)||{pressao:{nome:'Pressão de trabalho',unidade:'bar',min:5,max:7},ciclo:{nome:'Tempo de ciclo',unidade:'s',min:10,max:40}}),...(m.parametros||{})};
-  const machine={...m,nome:m.id==='NHPL'?'NHPL · Montagem de abafadores':m.nome,produto:m.id==='NHPL'?'VGARD HP':m.produto,metaDiaria:hourTarget*8,hourTarget,idealCycleSeconds:3600/hourTarget,parametros:params};state.maquinas.push(machine);
+  const machine={...m,nome:m.id==='NHPL'?'NHPL · Montagem de abafadores':m.nome,produto:m.id==='NHPL'?'VGARD HP':m.id==='SEL-01'?'Selo V-Gard HP':m.produto,metaDiaria:hourTarget*8,hourTarget,idealCycleSeconds:3600/hourTarget,parametros:params};state.maquinas.push(machine);
   const operator={id:'exemplo-op-'+i,nome:names[i%names.length],re:String(990201+i),cargo:'operador',setorId:m.setorId,maquinaId:m.id,presente:i%11!==0,escala:'1º turno · 07h–15h'};state.perfis.push(operator);
   for(let offset=6;offset>=0;offset--){
    const date=new Date(anchor);date.setDate(date.getDate()-offset);date.setHours(7,0,0,0);const base=+date,tag=date.toISOString().slice(0,10).replaceAll('-','');
@@ -48,5 +48,6 @@ MSA.createScenario=function(now=Date.now()){
    state[key].push(copy);
   }
  }
+ MSA.capability?.seedDemo(state);
  return state;
 };

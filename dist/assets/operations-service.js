@@ -77,7 +77,7 @@ window.MSA = window.MSA || {};
       const parametros = {};
       for (const [id, definition] of Object.entries(machine.parametros || {})) parametros[id] = number(values.valores?.[id] ?? values['param_' + id], definition.nome, -100000);
       if (!Object.keys(parametros).length) fail('Esta máquina ainda não possui parâmetros cadastrados.');
-      return { ...common, valores: parametros, lote: required(values.lote, 'lote ou ordem', 80), data: date(values.data, 'data') };
+      return { ...common, valores: parametros, lote: required(values.lote, 'lote ou ordem', 80), data: date(values.data, 'data'), ...(MSA.capability?.compatible(machine)?{estudoSelo:MSA.capability.clean(values.estudoSelo||values)}:{}) };
     }
   }
   async function write(action) {

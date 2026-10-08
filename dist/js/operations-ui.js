@@ -3,6 +3,9 @@
   'use strict';
   const content = document.querySelector('#page-content');
   const feedback = document.querySelector('#operation-feedback');
+  const feedbackMessage = document.querySelector('#operation-feedback-message');
+  const feedbackClose = document.querySelector('#operation-feedback-close');
+  let feedbackTimer = null;
   const dialog = document.querySelector('#operation-dialog');
   const form = document.querySelector('#operation-form');
   const fields = document.querySelector('#operation-fields');
@@ -72,7 +75,20 @@
   function machines() { return state.maquinas.filter(m=>MSA.rbac.inScope(user(),m) && (sector==='todos'||m.setorId===sector) && (!machineFilter||m.id===machineFilter)); }
   function records(collection) { const [a,b] = bounds(); const ids = new Set(machines().map(m=>m.id)); return (filteredState()[collection]||[]).filter(r=>ids.has(r.maquinaId) && (collection==='paradas' ? (r.diaProducao?MSA.shifts.within(r,a,b):r.inicio<b && (!r.fim||r.fim>=a)) : MSA.metrics.within(r,a,b))).sort((x,y)=>(y.data||y.inicio||y.createdAt)-(x.data||x.inicio||x.createdAt)); }
   const summary = () => MSA.metrics.summarize(filteredState(),machines(),...bounds());
-  function notify(message, error = false) { feedback.textContent=message; feedback.classList.toggle('is-error',error); feedback.hidden=false; }
+  function dismissFeedback() {
+    clearTimeout(feedbackTimer);
+    feedbackTimer = null;
+    feedback.hidden = true;
+    feedbackMessage.textContent = '';
+  }
+  feedbackClose.addEventListener('click', dismissFeedback);
+  function notify(message, error = false) {
+    clearTimeout(feedbackTimer);
+    feedbackMessage.textContent = message;
+    feedback.classList.toggle('is-error', error);
+    feedback.hidden = false;
+    feedbackTimer = setTimeout(dismissFeedback, 10000);
+  }
   function toolbar(actions = '', dates = true) {
     const all = state.maquinas.filter(m=>MSA.rbac.inScope(user(),m) && (sector==='todos'||m.setorId===sector));
     return `<div class="ops-toolbar">${dates ? `<label>De<input type="date" id="ops-from" value="${from}"></label><label>Até<input type="date" id="ops-to" value="${to}"></label>` : ''}${user().cargo!=='operador' && page!=='funcionarios' && page!=='configuracoes' ? `<label>Máquina<select id="ops-machine"><option value="">Todas as máquinas</option>${all.map(m=>`<option value="${esc(m.id)}" ${m.id===machineFilter?'selected':''}>${esc(m.nome)}</option>`).join('')}</select></label>` : ''}${page==='producao'?`<label>Turno<select id="ops-shift"><option value="todos" ${shiftFilter==='todos'?'selected':''}>Todos os turnos</option>${MSA.shifts.definitions.map(t=>`<option value="${t.id}" ${shiftFilter===t.id?'selected':''}>${t.label} · ${t.hours}</option>`).join('')}</select></label>`:''}<div class="toolbar-actions">${actions}</div></div>`;
@@ -294,7 +310,7 @@
       const comparisons=MSA.config.sectors.filter(sec=>sector==='todos'||sec.id===sector).map(sec=>{const x=MSA.metrics.summarize(state,machines().filter(m=>m.setorId===sec.id),...bounds());return[esc(sec.nome),num(x.aprovadas),num(x.meta),x.atendimento===null?'—':num(x.atendimento)+'%',num(x.refugos),num(x.kg)+' kg',num(x.minutos)+' min'];});
       html=toolbar()+performanceStats()+panel('Eficiência e confiabilidade por máquina',table(['Máquina','Produtividade','OEE','Disponibilidade','Desempenho','Qualidade','MTBF','MTTR'],efficiencyRows()))+panel('Desempenho por setor',table(['Setor','Aprovadas','Meta','Atendimento','Refugos','Material','Paradas'],comparisons))+panel('Atendimento das metas por máquina',comparison())+panel('Resumo dos supervisores',reports())+'<p class="ops-note">OEE usa tempo planejado, tempo em operação, ciclo ideal e peças aprovadas. MTBF e MTTR consideram falhas encerradas; setup não conta como falha. Metas, ciclos e parâmetros do cenário são ilustrativos.</p>';
     }
-    if (page==='relatorios') html=toolbar(button('Exportar registros CSV','export','','',true))+previousDay()+productionStats()+panel('Consolidações dos supervisores',reports())+panel('Resumo por máquina',table(['Máquina / setor','Meta do período','Aprovadas','Atendimento','Refugos','Material','Paradas'],performanceRows()));
+    if (page==='relatorios') html=toolbar(button('Exportar planilha Excel','export','','',true)+button('CSV da coleta para BI','export-capability-csv','','',false,true)+button('CSV geral do sistema','export-general','','',false,true))+capabilityPanel()+previousDay()+productionStats()+panel('Consolidações dos supervisores',reports())+panel('Resumo por máquina',table(['Máquina / setor','Meta do período','Aprovadas','Atendimento','Refugos','Material','Paradas'],performanceRows()));
     if (page==='notificacoes') html=state.atendimentosAlertas?toolbar('',false)+workflowPanel('alerts'):toolbar('',false)+panel('Pendências atuais',table(['Tipo','Máquina','Informação','Desde','Acesso'],alerts(),'Nenhuma pendência registrada nas máquinas do seu acesso.'));
     if (page==='configuracoes') html=(state.demo?panel('Cenário para apresentação',`<p>Sete dias fictícios; fotografia do dia às 15h. A mesma base abastece painéis e planta. Os dados locais são reiniciados em um novo dia.</p><div class="simulation-settings"><label class="ops-field">Chance de refugo por ciclo (simulação)<select id="demo-reject-rate">${[0,2,5,10,25,100].map(v=>`<option value="${v}" ${Math.round(MSA.demo.simulation.rejectRate*100)===v?'selected':''}>${v}%</option>`).join('')}</select></label><label class="ops-field">Chance de desvio a cada 30 s (simulação)<select id="demo-deviation-rate">${[0,5,10,25,100].map(v=>`<option value="${v}" ${Math.round(MSA.demo.simulation.deviationRate*100)===v?'selected':''}>${v}%</option>`).join('')}</select></label></div><div class="ops-actions simulation-settings-actions">${button('Restaurar dados fictícios','reset-demo','','',false,true)}<a class="secondary-button" href="sistema.html?dados=reais">Consultar dados do Firebase</a></div>${MSA.demo?.preview?'<p class="ops-note">Visualizar como: <a href="sistema.html?demonstracao=1&cargo=chefe#visao-geral">Chefe</a> · <a href="sistema.html?demonstracao=1&cargo=supervisor#visao-geral">Supervisor</a> · <a href="sistema.html?demonstracao=1&cargo=operador#visao-geral">Operador</a> · <a href="sistema.html?demonstracao=1&cargo=qualidade#qualidade">Qualidade</a></p>':''}`):'')+panel('Meu acesso',`<dl class="profile-details"><dt>Nome</dt><dd>${esc(user().nome)}</dd><dt>RE</dt><dd>${esc(user().re)}</dd><dt>Cargo</dt><dd>${esc(MSA.auth.role(user()).label)}</dd><dt>Setor atual</dt><dd>${esc(sectorName(user().setorId)||(user().cargo==='chefe'?'Todos os setores':'Ainda não selecionado'))}</dd><dt>Máquina em uso</dt><dd>${esc(machineName(user().maquinaId)||'Nenhuma selecionada')}</dd></dl>`)+(allowed('maquinas:gerenciar')||allowed('setores:gerenciar')?panel('Preparar apresentação',hasContext?`<p>Cadastre as máquinas de exemplo ${user().cargo==='chefe'?'dos três setores':'do setor em acompanhamento'}. A preparação não cria apontamentos de produção.</p><p class="ops-note">Nomes, metas e limites iniciais são exemplos. Cadastros existentes são preservados.</p><div class="ops-actions">${button('Preparar máquinas de exemplo','seed','','',true)}</div>`:'<p>Selecione um setor no topo para preparar suas máquinas de exemplo.</p>'):'');
     const hasDemo=state.demo||['registrosProducao','perdas','paradas','ocorrencias'].some(key=>(state[key]||[]).some(record=>record.id?.startsWith('demo-v1-')));
@@ -341,6 +357,10 @@
       if (!parameters.length) { notify('O Supervisor precisa configurar os parâmetros e limites desta máquina em Máquinas.',true); return; }
       html+=field('data','Data e horário',dateTimeInput(r.data||now),'datetime-local','required')+field('lote','Lote / ordem',r.lote||'','text','maxlength="80" required');
       html+=parameters.map(([key,p])=>field('valor_'+key,`${p.nome} (${p.unidade}) · ${num(p.min)} a ${num(p.max)}`,r.valores?.[key]??'','number','step="any" required')).join('');
+      if(MSA.capability.compatible(machine)){
+        const sample=r.estudoSelo||{};
+        html+=`<details class="full capability-fields"><summary>Coleta do Selo V-Gard · estudo de capacidade MSA</summary><p class="ops-note">Campos opcionais. Preencha somente as medições disponíveis. Leituras automáticas podem enviar estes mesmos campos.</p><div class="ops-form-grid">`+field('material','Material',sample.material||'','text','maxlength="80"')+field('espessura','Espessura (mm)',sample.espessura??'','number','min="0.001" step="any"')+MSA.capability.fields.map(f=>field('selo_'+f.key,f.label+' ('+f.unit+')',sample.valores?.[f.key]??'','number','step="any"')).join('')+'</div></details>';
+      }
     }
     html+=field('observacao','Observações',r.observacao||'','textarea','maxlength="1000"');
     open((id?'Editar ':'Registrar ')+labels[collection].toLowerCase(),html,async values=>{values.maquinaId=values.maquinaId||machine.id;if(collection==='paradas')Object.assign(values,MSA.workflows.reason(values));if(collection==='leituras')values.valores=Object.fromEntries(Object.keys(machine.parametros).map(key=>[key,values['valor_'+key]]));const result=await MSA.data.save(collection,values,id||undefined);if(!id){if(page==='paradas')activeTabs.paradas=values.fim?'historico':'abertas';if(page==='qualidade')activeTabs.qualidade='perdas';render();}return result;});
@@ -379,7 +399,35 @@
     if (name==='consolidate') { MSA.rbac.require('consolidacoes:registrar',user()); const [a,b]=bounds(); return open('Consolidar informações do setor',field('inicio','Início',dateTimeInput(a),'datetime-local','required')+field('fim','Fim',dateTimeInput(Math.min(b-60000,state.scenarioAt||Date.now())),'datetime-local','required')+field('observacao','Resumo, causas e pendências','','textarea','maxlength="2000" required'),values=>MSA.data.consolidate(values)); }
     if (name==='seed') { await MSA.data.initializeExamples(); notify('Catálogo preparado. Máquinas existentes foram preservadas.');return; }
     if (name==='retry') { await MSA.data.start(user());return; }
-    if (name==='export') { MSA.rbac.require('relatorios:ler',user());exportCSV();return; }
+    if (name==='export') { MSA.rbac.require('relatorios:ler',user());await exportCapability();return; }
+    if (name==='export-capability-csv') { MSA.rbac.require('relatorios:ler',user());exportCapabilityCSV();return; }
+    if (name==='export-general') { MSA.rbac.require('relatorios:ler',user());exportCSV();return; }
+  }
+  function capabilityData(){return MSA.capability.build(state,machines(),records('leituras'),records('registrosProducao'),records('perdas'));}
+  function capabilityPanel(){
+    const data=capabilityData();
+    const columns=['Data / hora','Máquina / lote','Material / espessura','% Scrap','Aquecimento Z2','Pressão Ar','Vácuo'];
+    const value=(v,u='')=>v===null?'—':num(v)+(u?' '+u:'');
+    const rows=data.items.slice(-5).reverse().map(x=>[time(x.record.data),esc(x.machine.id)+'<small>'+esc(x.record.lote)+'</small>',esc(x.material||'—')+'<small>'+value(x.thickness,'mm')+'</small>',value(x.scrap,'%'),value(x.values[2],'°C'),value(x.values[39],'bar'),value(x.values[40],'mmHg')]);
+    return panel('Estudo de capacidade · Selo V-Gard',`<p class="ops-note capability-note">${data.rows.length} leituras no período. O Excel usa o modelo de estudo de capacidade da MSA: mesmas abas, cabeçalhos, cores e colunas, já preenchidas com os 41 parâmetros. ${state.demo?'Dados fictícios do cenário de apresentação, exportados das leituras registradas no sistema. ':''}Campos sem leitura ficam vazios.</p>`+table(columns,rows,'Selecione Selagem e um período com leituras do Selo V-Gard. A exportação geral continua disponível para os demais setores.')+`<p class="ops-note capability-note">Prévia das cinco últimas leituras. O Excel contém todas as leituras filtradas, amplia as linhas quando necessário e calcula os resultados com os dados exportados. Um arquivo por máquina. Na aba Normality test, escolha a característica a analisar. % Scrap = peças refugadas / (aprovadas + refugadas), por máquina, lote, dia produtivo e turno. Para importar no BI, use o CSV da coleta.</p>`);
+  }
+  function download(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  async function exportCapability(){
+    const data=capabilityData();
+    if(!data.items.length){notify('Não há leituras do Selo V-Gard nos filtros atuais. Selecione Selagem ou use CSV geral do sistema.',true);return;}
+    busy=true;
+    try{
+      notify('Preparando o estudo de capacidade da MSA…');
+      const files=await MSA.capabilityExcel.files(data,{from,to});
+      files.forEach(file=>download(file.blob,file.filename));
+      notify(`Estudo de capacidade exportado com ${data.items.length} leituras${files.length>1?' em '+files.length+' arquivos, um por máquina':''}.${data.missing?' Há parâmetros sem leitura, mantidos vazios.':''}`);
+    }finally{busy=false;}
+  }
+  function exportCapabilityCSV(){
+    const data=capabilityData();
+    if(!data.rows.length){notify('Não há leituras do Selo V-Gard nos filtros atuais. Selecione Selagem ou use CSV geral do sistema.',true);return;}
+    download(new Blob([MSA.capability.csv(data)],{type:'text/csv;charset=utf-8'}),`MSA-coleta-Selo-VGard-BI-${from}-${to}.csv`);
+    notify(`CSV da coleta exportado com ${data.rows.length} leituras.${data.missing?' Há parâmetros sem leitura, mantidos vazios no arquivo.':''}`);
   }
   function exportCSV() {
     const cell=value=>{let text=String(value??'');if(/^[=+@-]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};

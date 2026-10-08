@@ -49,9 +49,14 @@ window.MSA=window.MSA||{};
      state.parameterEvents.push(event);runtime.lastEvent=event;channel.active=out;channel.since=out?now:null;
     }
    }
+   const context=MSA.shifts.context(now);
+   const production=state.registrosProducao.filter(r=>r.maquinaId===m.id&&r.inicio<=now&&String(r.turno||MSA.shifts.context(r.inicio).turno)===context.turno&&(r.diaProducao||MSA.shifts.context(r.inicio).diaProducao)===context.diaProducao).sort((a,b)=>b.inicio-a.inicio)[0];
+   row.turno=context.turno;row.diaProducao=context.diaProducao;row.lote=production?.lote||'';
+   if(production?.ordem)row.ordem=production.ordem;else delete row.ordem;
    row.data=now;row.updatedAt=now;
+   if(MSA.capability?.compatible(m))row.estudoSelo=MSA.capability.demoSample(m,now,index,row.valores);
    // Guarda uma amostra a cada 30 s e limita o histórico ao período da apresentação.
-   if(runtime.sampleBucket!==bucket){runtime.sampleBucket=bucket;state.leituras.push({...row,id:'exemplo-amostra-'+m.id+'-'+bucket,valores:{...row.valores},data:now-1});}
+   if(runtime.sampleBucket!==bucket){runtime.sampleBucket=bucket;state.leituras.push({...row,id:'exemplo-amostra-'+m.id+'-'+bucket,valores:{...row.valores},...(row.estudoSelo?{estudoSelo:JSON.parse(JSON.stringify(row.estudoSelo))}:{}),data:now});}
   });
   state.parameterEvents=state.parameterEvents.slice(-200);
   const samples=state.leituras.filter(r=>r.id?.startsWith('exemplo-amostra-'));
