@@ -15,6 +15,12 @@
     root.dataset.theme = current;
     document.querySelectorAll('.app-shell').forEach(shell => shell.dataset.plantTheme = current);
     root.style.colorScheme = current;
+    document.querySelectorAll('img').forEach(logo => {
+      const source = logo.getAttribute('src') || '';
+      if (!/(^|\/)msa-logo(?:-dark)?\.(?:png|svg)$/.test(source)) return;
+      const nextSource = source.replace(/msa-logo(?:-dark)?\.(?:png|svg)$/, current === 'dark' ? 'msa-logo-dark.svg' : 'msa-logo.png');
+      if (source !== nextSource) logo.setAttribute('src', nextSource);
+    });
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', current === 'dark' ? '#171f1b' : '#f1f5f3');
     document.querySelectorAll('[data-theme-toggle]').forEach(button => {
       const next = current === 'dark' ? 'claro' : 'escuro';

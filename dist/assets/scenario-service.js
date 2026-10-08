@@ -23,7 +23,7 @@
  const collections=Object.keys(baseline).filter(k=>Array.isArray(baseline[k]));
  const originals=Object.fromEntries(collections.map(k=>[k,new Map(baseline[k].map(r=>[r.id,JSON.stringify(r)]))]));
  let state=JSON.parse(JSON.stringify(baseline)),user=null;
- const key='msa-cenario-v3-turnos-'+new Date(state.scenarioAt).toLocaleDateString('sv');
+ const key='msa-cenario-v4-atual-'+new Date(state.scenarioAt).toLocaleDateString('sv');
  try{
   let saved=JSON.parse(sessionStorage.getItem(key));
   if(saved?.format==='msa-scenario-delta-v1'){
