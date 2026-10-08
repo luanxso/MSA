@@ -38,7 +38,7 @@ try{
  await page.locator('#ops-from').fill('2020-01-01');await page.locator('#ops-to').fill('2020-01-01');
  assert.equal(await page.locator('#notification-count').innerText(),notificationCount,'Alertas atuais não dependem da consulta histórica.');
  await page.locator('#ops-from').fill(from);await page.locator('#ops-to').fill(to);
- await route('relatorios');const downloadPromise=page.waitForEvent('download');await page.locator('[data-action="export"]').click();const download=await downloadPromise;await download.saveAs('.qa-output/auditoria-registros.csv');const csv=await readFile('.qa-output/auditoria-registros.csv','utf8');assert(csv.includes('EXP-01'));assert(!csv.includes('INJ-01'));
+ await route('relatorios');const downloadPromise=page.waitForEvent('download');await page.locator('[data-action="export-general"]').click();const download=await downloadPromise;await download.saveAs('.qa-output/auditoria-registros.csv');const csv=await readFile('.qa-output/auditoria-registros.csv','utf8');assert(csv.includes('EXP-01'));assert(!csv.includes('INJ-01'));
 
  await page.goto(base+'&cargo=operador#apontamentos');await page.waitForSelector('#ops-work-machine');
  const before=await page.evaluate(()=>MSA.data.state.registrosProducao.filter(r=>r.maquinaId==='NHPL').reduce((n,r)=>n+r.quantidade,0));

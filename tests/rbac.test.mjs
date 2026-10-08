@@ -35,9 +35,10 @@ test('indicadores não somam kg com peças nem contam paradas sobrepostas duas v
 test('entradas carregam dependências existentes e nenhum modo local substitui o Firebase',()=>{
  for(const page of ['index','login','cadastro','acesso','sistema']){
   const html=readFileSync(new URL(`../dist/${page}.html`,import.meta.url),'utf8');
-  const scripts=[...html.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map(m=>m[1]);
+  const scripts=[...html.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map(m=>m[1].split('?')[0]);
   assert(!scripts.some(s=>s.includes('demo-')));
   for(const src of scripts)assert(existsSync(new URL(`../dist/${src}`,import.meta.url)),src);
   assert(scripts.indexOf('assets/rbac.js')>scripts.indexOf('assets/config.js'));
+  if(page==='sistema')assert(scripts.indexOf('assets/capability-export.js')<scripts.indexOf('assets/scenario-data.js'));
  }
 });

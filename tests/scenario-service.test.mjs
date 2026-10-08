@@ -10,7 +10,7 @@ async function fixture(cargo='supervisor',storage=new Map()){
   sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},
   addEventListener(){},dispatchEvent(){},CustomEvent:class{},setTimeout,clearTimeout});
  scope.window=scope;
- for(const name of ['config','plant-layout','rbac','shifts','metrics','performance','scenario-parameters','scenario-data','scenario-live','operations-service'])vm.runInContext(readFileSync('dist/assets/'+name+'.js','utf8'),scope);
+ for(const name of ['config','plant-layout','rbac','shifts','metrics','performance','capability-export','scenario-parameters','scenario-data','scenario-live','operations-service'])vm.runInContext(readFileSync('dist/assets/'+name+'.js','utf8'),scope);
  scope.MSA.telemetry={setMode(){}};
  vm.runInContext(readFileSync('dist/assets/scenario-service.js','utf8'),scope);
  await scope.MSA.data.start(scope.MSA.auth.session());
@@ -18,6 +18,17 @@ async function fixture(cargo='supervisor',storage=new Map()){
 }
 const machine=(extra={})=>({codigo:'TEST-01',nome:'Equipamento de teste',setorId:'montagem',processo:'Montagem',produto:'Abafador',metaDiaria:'800',paramCount:'1',nome_0:'Pressão',unidade_0:'bar',min_0:'5',max_0:'7',...extra});
 const local=at=>{const d=new Date(at);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+
+test('coleta do Selo guarda material, espessura e medições, restaura e exporta sem completar campos ausentes',async()=>{
+ const {a,storage}=await fixture('operador');await a.data.changeContext({maquinaId:'SEL-01'});await a.data.start(a.auth.session());
+ const now=a.data.state.scenarioAt;
+ const id=await a.data.save('leituras',{maquinaId:'SEL-01',data:local(now),lote:'LT-FABIANA',valores:{temperatura:255,pressao:6.6,vacuo:-550,ciclo:25},material:'ABS',espessura:'0.5',selo_aquecimento_z2:'258',selo_tempo_destacar:'0.85'});
+ const restored=(await fixture('operador',storage)).a,r=restored.data.state.leituras.find(r=>r.id===id);
+ assert.equal(r.estudoSelo.material,'ABS');assert.equal(r.estudoSelo.espessura,.5);assert.equal(r.estudoSelo.valores.aquecimento_z2,258);
+ const data=restored.capability.build(restored.data.state,restored.data.state.maquinas,[r],[],[]);
+ assert.equal(data.items[0].values[2],258);assert.equal(data.items[0].values[3],null);assert.equal(data.items[0].values[39],6.6);
+ assert(restored.capability.csv(data).includes('"ABS";"0,5"'));
+});
 
 test('cadastro de máquina persiste após recarregar e não aceita código duplicado ou limites invertidos',async()=>{
  const {a,storage}=await fixture();
