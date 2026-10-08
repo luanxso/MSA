@@ -33,6 +33,14 @@
   }
   if(saved?.demo&&Number.isFinite(saved.scenarioAt)&&collections.filter(k=>!MSA.workflows?.collections.includes(k)).every(k=>Array.isArray(saved[k]))&&saved.maquinas.every(m=>m.id&&m.setorId)&&new Set(saved.maquinas.map(m=>m.id)).size===saved.maquinas.length)state=saved;
  }catch{}
+ // Reduz em 60% apenas a geração automática, uma vez por sessão salva.
+ if(state.demoEventRatesVersion!==1){
+  state.demoDeviationRate=(state.demoDeviationRate??.05)*.4;
+  state.demoRejectRate=(state.demoRejectRate??.02)*.4;
+  state.demoMicroRate=(state.demoMicroRate??.3)*.4;
+  state.demoEventRatesVersion=1;
+ }
+ MSA.scenarioLive.upgrade(state,baseline);
  MSA.scenarioParameters.upgrade(state);MSA.workflows?.upgrade(state);
  const watchers=new Set();
  function emit(){watchers.forEach(fn=>fn({...state}));}
@@ -101,6 +109,7 @@
    const machine=item('maquinas',values.maquinaId||existing?.maquinaId);requirePermission(permissions[collection],existing||machine);
    const record={...existing,...cleanRecord(collection,values,existing,machine),id:id||'exemplo-local-'+crypto.randomUUID(),maquinaId:machine.id,setorId:machine.setorId,usuarioId:existing?.usuarioId||user.id,usuarioRe:existing?.usuarioRe||user.re,createdAt:existing?.createdAt||now(),updatedAt:now(),verificado:false};
    delete record.verificadoPor;delete record.verificadoEm;delete record.diaProducao;
+   MSA.recordValidation.uniqueRecord(state,collection,record,id);
    if(id){delete existing.verificadoPor;delete existing.verificadoEm;delete existing.diaProducao;Object.assign(existing,record);}else state[collection].push(record);persist();return record.id;
   },
   async review(collection,id){if(!['registrosProducao','leituras','paradas','perdas','ocorrencias'].includes(collection))throw new Error('Registro inválido.');const r=item(collection,id);requirePermission('registros:verificar',r);Object.assign(r,{verificado:true,verificadoPor:user.id,verificadoEm:now()});persist();},
@@ -138,7 +147,7 @@
  MSA.demo.simulation={
  globalClock:true,
  microStop(id,seconds=15,code='travamento-pallet'){if(!user||!MSA.rbac.can('paradas:gerenciar',user,state.maquinas.find(m=>m.id===id)))throw new Error('A demonstração de microparada está disponível à liderança.');const result=MSA.workflows.beginMicro(state,id,seconds,code);persist();return result;},
- get deviationRate(){return state.demoDeviationRate??.05;},
+ get deviationRate(){return state.demoDeviationRate??.02;},
  setDeviationRate(percent){const n=Number(percent);if(!Number.isFinite(n)||n<0||n>100)throw new Error('Escolha uma porcentagem entre 0 e 100.');state.demoDeviationRate=n/100;persist();},
  get rejectRate(){return MSA.scenarioLive.rejectRate(state);},
  setRejectRate(percent){const n=Number(percent);if(!Number.isFinite(n)||n<0||n>100)throw new Error('Escolha uma porcentagem entre 0 e 100.');state.demoRejectRate=n/100;persist();},

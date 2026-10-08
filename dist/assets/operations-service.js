@@ -21,7 +21,17 @@ window.MSA = window.MSA || {};
   };
   const date = (value, label, now = Date.now()) => { const n = typeof value === 'number' ? value : Date.parse(value); if (!Number.isFinite(n) || n > now + 60000) fail('Informe ' + label + ' válido.'); return n; };
   const required = (value, label, max = 500) => { const text = String(value || '').trim(); if (!text || text.length > max) fail('Informe ' + label + ' (até ' + max + ' caracteres).'); return text; };
-  MSA.recordValidation = Object.freeze({number, date, required});
+  const productionSignature=r=>JSON.stringify([r.maquinaId,Number(r.inicio),Number(r.fim),String(r.turno),String(r.produto),String(r.lote),Number(r.quantidade)]);
+  async function recordKey(prefix,value) {
+    const bytes=Uint8Array.from(unescape(encodeURIComponent(value)),c=>c.charCodeAt(0));
+    const digest=await crypto.subtle.digest('SHA-256',bytes);
+    return prefix+'-'+Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  function uniqueRecord(state,collection,payload,id) {
+    if(collection==='registrosProducao'&&(state.registrosProducao||[]).some(r=>r.id!==id&&productionSignature(r)===productionSignature(payload)))fail('Este apontamento de produção já está registrado. Consulte o histórico.');
+    if(collection==='paradas'&&!payload.fim&&(state.paradas||[]).some(r=>r.id!==id&&r.maquinaId===payload.maquinaId&&!r.fim))fail('Esta máquina já possui uma parada em andamento. Encerre a parada atual antes de abrir outra.');
+  }
+  MSA.recordValidation = Object.freeze({number, date, required, productionSignature, recordKey, uniqueRecord});
   function emit() { if(ready&&MSA.workflows)MSA.workflows.sync(state);observers.forEach(observer => observer({ ...state, ready, error, connected })); }
   function scopedQuery(key) {
     const sdk = client.databaseSDK;
@@ -77,6 +87,31 @@ window.MSA = window.MSA || {};
     catch (e) { if (/permission/i.test(e.code || e.message)) fail('O Firebase recusou esta ação. Confira seu acesso e as regras publicadas do projeto.'); throw e; }
     finally { clearTimeout(timeout); }
   }
+  async function createOnce(target,payload,message) {
+    let result;
+    await write(async()=>{result=await client.databaseSDK.runTransaction(target,current=>current==null?payload:undefined,{applyLocally:false});});
+    if(!result.committed)fail(message);
+    return target.key;
+  }
+  async function reserveStop(payload,id) {
+    const sdk=client.databaseSDK;
+    // Confere também paradas legadas, criadas antes do índice de exclusividade.
+    const snapshot=await sdk.get(scopedQuery('paradas'));
+    const currentRows=Object.entries(snapshot.val()||{}).map(([key,row])=>({...row,id:key}));
+    uniqueRecord({paradas:currentRows},'paradas',payload,id);
+    const ref=sdk.ref(client.database,'paradasAbertas/'+payload.maquinaId);
+    const observed=(await sdk.get(ref)).val();
+    if(observed&&observed.paradaId!==id){
+      const prior=(await sdk.get(sdk.ref(client.database,'paradas/'+observed.paradaId))).val();
+      if((prior&&!prior.fim)||(!prior&&Date.now()-observed.claimedAt<30000))fail('Esta máquina já possui uma parada em andamento ou sendo registrada. Aguarde a confirmação.');
+    }
+    let result;
+    await write(async()=>{result=await sdk.runTransaction(ref,current=>{
+      if(current&&(current.paradaId!==observed?.paradaId||current.usuarioId!==observed?.usuarioId||current.claimedAt!==observed?.claimedAt))return;
+      return {paradaId:id,usuarioId:user.id,claimedAt:Date.now()};
+    },{applyLocally:false});});
+    if(!result.committed)fail('Outra pessoa já iniciou uma parada nesta máquina. Atualize o histórico.');
+  }
   MSA.data = {
     get state() { return { ...state, ready, error, connected }; },
     get user() { return user; },
@@ -130,9 +165,16 @@ window.MSA = window.MSA || {};
       if (id && !existing) fail('Registro não encontrado no seu acesso.');
       if (existing && values.maquinaId && values.maquinaId !== existing.maquinaId) fail('A máquina de origem não pode ser alterada.');
       const payload = cleanRecord(collection, values, existing);
-      const target = id ? client.databaseSDK.ref(client.database, collection + '/' + id) : client.databaseSDK.push(client.databaseSDK.ref(client.database, collection));
+      uniqueRecord(state,collection,payload,id);
       if (!connected) fail('Aguarde a conexão com o Firebase antes de salvar.');
-      await write(() => client.databaseSDK.set(target, payload));
+      const sdk=client.databaseSDK;
+      let recordId=id;
+      if(!id&&collection==='registrosProducao')recordId=await recordKey('producao',productionSignature(payload));
+      if(!id&&collection==='paradas'&&!payload.fim)recordId=await recordKey('parada',JSON.stringify([payload.maquinaId,payload.inicio]));
+      const target=recordId?sdk.ref(client.database,collection+'/'+recordId):sdk.push(sdk.ref(client.database,collection));
+      if(collection==='paradas'&&!payload.fim)await reserveStop(payload,target.key);
+      if(!id&&['registrosProducao','paradas'].includes(collection))return createOnce(target,payload,'Este registro já foi recebido. Consulte o histórico antes de reenviar.');
+      await write(() => sdk.set(target, payload));
       return target.key;
     },
     async review(collection, id) {
@@ -195,6 +237,10 @@ window.MSA = window.MSA || {};
       if(!connected)fail('Aguarde a conexão com o Firebase antes de salvar.');
       const draft=JSON.parse(JSON.stringify(state));MSA.workflows.upgrade(draft);
       const result=MSA.workflows.command(draft,action,values,id,user),updates={};
+      if(action==='handover-create'){
+        const {id:rowId,...payload}=draft.passagensTurno.find(r=>r.id===result);
+        return createOnce(client.databaseSDK.ref(client.database,'passagensTurno/'+rowId),{...payload,atualizadoPor:user.id},'Esta máquina já possui passagem registrada nesse turno. Atualize o histórico.');
+      }
       for(const key of [...MSA.workflows.collections,'paradas','perdas']){
         const before=new Map((state[key]||[]).map(r=>[r.id,JSON.stringify(r)]));
         for(const row of draft[key]||[])if(before.get(row.id)!==JSON.stringify(row)){

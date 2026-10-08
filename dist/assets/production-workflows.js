@@ -24,6 +24,7 @@ window.MSA = window.MSA || {};
   const now = s => s.scenarioAt || Date.now();
   const hash=value=>{let n=2166136261;for(const c of value){n^=c.charCodeAt(0);n=Math.imul(n,16777619);}return (n>>>0).toString(36);};
   const uid = prefix => prefix+'-'+crypto.randomUUID();
+  const handoverId=(machineId,day,shift)=>'passagem-'+machineId+'-'+day+'-'+String(shift);
   const text = (v,label,max=1000) => MSA.recordValidation.required(v,label,max);
   const machine = (s,id) => { const m=s.maquinas.find(m=>m.id===id);if(!m)throw new Error('Selecione uma máquina disponível.');return m; };
   const item = (s,key,id) => {const r=s[key].find(r=>r.id===id);if(!r)throw new Error('Registro não encontrado.');return r;};
@@ -48,7 +49,7 @@ window.MSA = window.MSA || {};
     const production=s.registrosProducao.filter(r=>r.maquinaId===id&&MSA.shifts.id(r)===String(shift)&&MSA.shifts.within(r,start,start+86400000));
     const rejected=s.perdas.filter(r=>r.maquinaId===id&&r.tipo==='refugo'&&MSA.shifts.id(r)===String(shift)&&MSA.shifts.within(r,start,start+86400000)).reduce((n,r)=>n+r.quantidade,0);
     const stopEnd=s.demo&&day===new Date(now(s)).toLocaleDateString('sv')&&String(shift)==='1'?now(s):end;
-    return {inicio:a,fim:stopEnd,planejado:Math.round(production.reduce((n,r)=>n+(r.fim-r.inicio)/3600000*Number(m.hourTarget||m.metaDiaria/8||0),0)),aprovadas:production.reduce((n,r)=>n+r.quantidade,0),refugos:rejected,paradaSegundos:MSA.metrics.minutes(s.paradas.filter(r=>r.maquinaId===id),a,stopEnd,now(s))*60,
+    return {inicio:a,fim:stopEnd,planejado:Math.round(production.reduce((n,r)=>n+(r.fim-r.inicio)/3600000*MSA.shifts.hourTarget(m),0)),aprovadas:production.reduce((n,r)=>n+r.quantidade,0),refugos:rejected,paradaSegundos:MSA.metrics.minutes(s.paradas.filter(r=>r.maquinaId===id),a,stopEnd,now(s))*60,
       lotes:[...new Set(production.map(r=>r.lote).filter(Boolean))],ordens:[...new Set(production.map(r=>r.ordem).filter(Boolean))],
       problemas:s.ocorrencias.filter(r=>r.maquinaId===id&&r.status!=='resolvida').map(r=>r.descricao),
       alarmes:(s.atendimentosAlertas||[]).filter(r=>r.maquinaId===id&&r.status!=='resolvido').map(r=>r.descricao)};
@@ -61,7 +62,7 @@ window.MSA = window.MSA || {};
     return {quantidade:Math.max(approved+losses.filter(r=>r.tipo==='refugo'&&!r.decisaoQualidade).reduce((n,r)=>n+r.quantidade,0),held),refugosIdentificados:rejected};
   }
   function syncLots(s) {
-    const start=new Date(now(s)).setHours(0,0,0,0),groups=new Map();
+    const start=+new Date(MSA.shifts.context(now(s)).diaProducao+'T00:00:00'),groups=new Map();
     for(const r of s.perdas){if(!r.lote||!['refugo','suspeito'].includes(r.tipo))continue;
       // O histórico anterior permanece nos apontamentos; o fluxo começa com os lotes do dia.
       if(!MSA.shifts.within(r,start,start+86400000)&&!s.lotesQualidade.some(b=>b.maquinaId===r.maquinaId&&b.lote===r.lote))continue;
@@ -76,14 +77,16 @@ window.MSA = window.MSA || {};
         status:'suspeito',motivo:last.motivo,createdAt:last.data,updatedAt:now(s),historico:[],revision};s.lotesQualidade.push(b);
         b.historico.push({status:'suspeito',at:now(s),responsavel:'Coleta automática',observacao:'Lote inteiro sinalizado a partir de refugo / suspeita.'});
       }else if(b.revision!==revision){
-        if(['liberado','descartado'].includes(b.status)){b.status='suspeito';b.historico.push({status:'suspeito',at:now(s),responsavel:'Coleta automática',observacao:'Novo registro de defeito: lote requer nova avaliação.'});}
+        if(['liberado','descartado'].includes(b.status)){b.status='suspeito';for(const key of ['inspecionadas','descartadas','liberadas','destino'])delete b[key];b.historico.push({status:'suspeito',at:now(s),responsavel:'Coleta automática',observacao:'Novo registro de defeito: lote requer nova avaliação.'});}
         b.revision=revision;b.updatedAt=now(s);
       }
-      Object.assign(b,totals);
+      // Uma decisão concluída mantém a quantidade efetivamente reinspecionada.
+      if(!['liberado','descartado'].includes(b.status))Object.assign(b,totals);
+      else if(Number.isSafeInteger(b.inspecionadas)&&b.inspecionadas===b.liberadas+b.descartadas)b.quantidade=b.inspecionadas;
     }
   }
   function alertSources(s) {
-    const at=now(s),a=new Date(at).setHours(0,0,0,0),sources=[];
+    const at=now(s),a=+new Date(MSA.shifts.context(at).diaProducao+'T00:00:00'),sources=[];
     for(const m of s.maquinas){
       const hourly=MSA.performance.hourly(s,[m],a,at).at(-1),value=hourly?.target?hourly.goodCount/hourly.target*100:null;
       const recipient=MSA.performance.recipient(value);
@@ -113,11 +116,11 @@ window.MSA = window.MSA || {};
     }
     if(action==='handover-create'){
       const m=machine(s,v.maquinaId);require('passagem:gerenciar',m);
-      if(s.passagensTurno.some(r=>r.maquinaId===m.id&&r.dia===v.dia&&r.turno===v.turno))throw new Error('Esta máquina já possui passagem registrada nesse turno.');
+      if(s.passagensTurno.some(r=>r.maquinaId===m.id&&r.dia===v.dia&&String(r.turno)===String(v.turno)))throw new Error('Esta máquina já possui passagem registrada nesse turno.');
       const resumo=handoverSummary(s,m.id,v.dia,v.turno);
       const pending=new Map();for(const r of s.passagensTurno.filter(r=>r.maquinaId===m.id&&r.resumo.inicio<resumo.inicio))for(const task of r.pendencias||[])if(!task.done)pending.set(task.id,{...task});
       String(v.pendencias||'').split('\n').map(t=>t.trim()).filter(Boolean).forEach(t=>{const key=uid('tarefa');pending.set(key,{id:key,texto:text(t,'pendência',300),done:false});});
-      const r={id:uid('passagem'),maquinaId:m.id,setorId:m.setorId,dia:v.dia,turno:String(v.turno),resumo,observacao:String(v.observacao||'').trim().slice(0,1000),acoesRealizadas:String(v.acoesRealizadas||'').trim().slice(0,1000),pendencias:[...pending.values()],status:'entregue',usuarioId:u.id,usuarioRe:u.re,entreguePor:u.nome,createdAt:at,updatedAt:at};
+      const r={id:handoverId(m.id,v.dia,v.turno),maquinaId:m.id,setorId:m.setorId,dia:v.dia,turno:String(v.turno),resumo,observacao:String(v.observacao||'').trim().slice(0,1000),acoesRealizadas:String(v.acoesRealizadas||'').trim().slice(0,1000),pendencias:[...pending.values()],status:'entregue',usuarioId:u.id,usuarioRe:u.re,entreguePor:u.nome,createdAt:at,updatedAt:at};
       s.passagensTurno.push(r);return r.id;
     }
     if(action==='handover-receive'){
@@ -186,8 +189,8 @@ window.MSA = window.MSA || {};
       for(const r of s.paradas)if(!r.fim&&r.autoEnd&&r.autoEnd<=now(s)){r.fim=r.autoEnd;r.updatedAt=r.fim;r.encerradaPor='coleta-automatica';}
     }
     // Uma interrupção curta ocasional; controles permitem demonstrá-la sem esperar o acaso.
-    if(s.demoAutoMicro!==false){s.nextMicroAt ||= now(s)+45000;if(now(s)>=s.nextMicroAt){s.nextMicroAt=now(s)+45000;const candidates=s.maquinas.filter(m=>!s.paradas.some(r=>r.maquinaId===m.id&&!r.fim));if(candidates.length&&Math.random()<.3)beginMicro(s,candidates[Math.floor(Math.random()*candidates.length)].id,8+Math.floor(Math.random()*20));}}
+    if(s.demoAutoMicro!==false){s.nextMicroAt ||= now(s)+45000;if(now(s)>=s.nextMicroAt){s.nextMicroAt=now(s)+45000;const candidates=s.maquinas.filter(m=>!s.paradas.some(r=>r.maquinaId===m.id&&!r.fim));if(candidates.length&&Math.random()<(s.demoMicroRate??.12))beginMicro(s,candidates[Math.floor(Math.random()*candidates.length)].id,8+Math.floor(Math.random()*20));}}
     return completed;
   }
-  MSA.workflows={collections,reasons,batchStatus,alertStatus,upgrade,reason,period,shiftAt,handoverSummary,lotQuantity,sync,syncLots,syncAlerts,alertSources,allocation,command,beginMicro,advance};
+  MSA.workflows={collections,reasons,batchStatus,alertStatus,upgrade,reason,period,shiftAt,handoverId,handoverSummary,lotQuantity,sync,syncLots,syncAlerts,alertSources,allocation,command,beginMicro,advance};
 })();

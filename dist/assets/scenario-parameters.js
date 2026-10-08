@@ -35,7 +35,7 @@ window.MSA=window.MSA||{};
    const stopped=state.paradas.some(r=>r.maquinaId===m.id&&!r.fim),bucket=Math.floor(now/30000);
    const eligible=Object.keys(m.parametros).filter(k=>['°C','bar'].includes(m.parametros[k].unidade));
    let trigger=runtime.pending;
-   if(runtime.bucket!==bucket){if(runtime.bucket!==undefined&&!stopped&&random()<(state.demoDeviationRate??.05)&&eligible.length)trigger=eligible[Math.floor(random()*eligible.length)];runtime.bucket=bucket;}
+   if(runtime.bucket!==bucket){if(runtime.bucket!==undefined&&!stopped&&random()<(state.demoDeviationRate??.02)&&eligible.length)trigger=eligible[Math.floor(random()*eligible.length)];runtime.bucket=bucket;}
    if(trigger){runtime.channels[trigger]||={};runtime.channels[trigger].until=now+10000;runtime.pending=null;}
    for(const[key,p]of Object.entries(m.parametros)){
     if(!Number.isFinite(p.min)||!Number.isFinite(p.max)||p.max<=p.min)continue;

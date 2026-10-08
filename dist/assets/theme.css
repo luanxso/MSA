@@ -114,14 +114,8 @@ html[data-theme] .auth-page .msa-logo, html[data-theme] .gateway .msa-logo { bac
 html[data-theme] .secondary { background:var(--theme-surface); color:var(--theme-text); border-color:var(--theme-border); }
 html[data-theme] .banner { background:var(--theme-good-bg); color:var(--theme-good); border-color:var(--theme-good); }
 html[data-theme] .banner.error-banner { background:var(--theme-danger-bg); color:var(--theme-danger); border-color:var(--theme-danger); }
-/* A planta v0.7.1 usa sua própria paleta neutra, sincronizada pelo tema global. */
-html[data-theme] .app-shell:has(.is-plant-page) .app-header { background:var(--plant-surface); color:var(--plant-text); border-color:var(--plant-border); }
-html[data-theme] .app-shell:has(.is-plant-page) .app-header :is(.user-name,#current-section,.icon-button,.logout-button) { color:var(--plant-text); }
-html[data-theme] .app-shell:has(.is-plant-page) .app-header :is(.user-role,.header-section) { color:var(--plant-muted); }
 html[data-theme] .app-shell:has(.is-plant-page) .sidebar-nav { background:transparent; scrollbar-color:var(--theme-border) var(--theme-surface); }
 html[data-theme] .app-shell:has(.is-plant-page) :is(.nav-group-label,.brand-caption) { color:var(--theme-muted); }
-html[data-theme] .app-shell:has(.is-plant-page) .theme-toggle { color:var(--plant-text); border-color:var(--plant-border); background:transparent; }
-html[data-theme] .app-shell:has(.is-plant-page) .theme-toggle:hover { background:var(--plant-hover); }
 html[data-theme] .app-shell:has(.is-plant-page) .simulation-label { color:var(--plant-muted); }
 html[data-theme] .plant-machine-dialog { background:var(--plant-surface); color:var(--plant-text); border-color:var(--plant-border); }
 html[data-theme] .plant-machine-dialog p { color:var(--plant-muted); }

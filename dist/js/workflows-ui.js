@@ -36,7 +36,7 @@
     }
     if(area==='alerts'){
       const all=scoped(c,'atendimentosAlertas'),rows=all.filter(r=>alertFilter==='todos'||r.status!=='resolvido');
-      return panel('Acompanhamento dos alertas',`<div class="workflow-filter"><label>Situação<select id="wf-alerts"><option value="abertos" ${alertFilter==='abertos'?'selected':''}>Aguardando conclusão</option><option value="todos" ${alertFilter==='todos'?'selected':''}>Todos, inclusive resolvidos</option></select></label>${action(MSA.alertSound?.enabled?'Desativar som':'Ativar som','sound')}</div>${table(['Alerta / máquina','Destinatário / canal','Situação','Ação / histórico'],rows.sort((a,b)=>b.createdAt-a.createdAt).map(r=>[`${esc(r.tipo)} · ${machineLink(r.maquinaId)}<small>${esc(r.descricao)}</small><small>${stamp(r.createdAt)} · ${r.active?'Condição ativa':'Condição normalizada em '+stamp(r.normalizadoEm||r.updatedAt)}</small><a class="ops-link" href="#${r.route}/${encodeURIComponent(r.maquinaId)}">Abrir origem</a>`,`${esc(r.destinatario)}<small>${esc(r.canal||'Tela do sistema')}</small>`,badge(W.alertStatus[r.status],r.status==='resolvido'?'good':'warning'),`${c.allowed('alertas:gerenciar',r)&&r.status!=='resolvido'?action(r.status==='novo'?'Reconhecer':r.status==='reconhecido'?'Iniciar atendimento':'Concluir atendimento','alert',r.id):''}${log(r)}`]),'Sem alertas pendentes.')}`);
+      return panel('Acompanhamento dos alertas',`<div class="workflow-filter"><label>Situação<select id="wf-alerts"><option value="abertos" ${alertFilter==='abertos'?'selected':''}>Aguardando conclusão</option><option value="todos" ${alertFilter==='todos'?'selected':''}>Todos, inclusive resolvidos</option></select></label></div>${table(['Alerta / máquina','Destinatário / canal','Situação','Ação / histórico'],rows.sort((a,b)=>b.createdAt-a.createdAt).map(r=>[`${esc(r.tipo)} · ${machineLink(r.maquinaId)}<small>${esc(r.descricao)}</small><small>${stamp(r.createdAt)} · ${r.active?'Condição ativa':'Condição normalizada em '+stamp(r.normalizadoEm||r.updatedAt)}</small><a class="ops-link" href="#${r.route}/${encodeURIComponent(r.maquinaId)}">Abrir origem</a>`,`${esc(r.destinatario)}<small>${esc(r.canal||'Tela do sistema')}</small>`,badge(W.alertStatus[r.status],r.status==='resolvido'?'good':'warning'),`${c.allowed('alertas:gerenciar',r)&&r.status!=='resolvido'?action(r.status==='novo'?'Reconhecer':r.status==='reconhecido'?'Iniciar atendimento':'Concluir atendimento','alert',r.id):''}${log(r)}`]),'Sem alertas pendentes.')}`);
     }
     if(area==='staff'){
       const controls=context(c),profiles=people(c),allocations=profiles.map(p=>({p,a:W.allocation(s,p,day,shift)}));
@@ -71,10 +71,7 @@
       context(c);const p=s.perfis.find(p=>p.id===id),a=W.allocation(s,p,day,shift);
       return c.open('Confirmar presença / redistribuir',`<p class="ops-form-note">${esc(p.nome)} · RE ${esc(p.re)} · ${esc(day)} · ${shift}º turno</p>`+c.select('presenca','Presença',[['pendente','A confirmar'],['presente','Presente'],['ausente','Ausente']],a.presenca)+c.select('maquinaId','Posto de trabalho',[['','Sem posto'],...choose],a.maquinaId,false)+c.field('observacao','Motivo da redistribuição / observação','','textarea'),v=>run('staff-save',{...v,funcionarioId:id,dia:day,turno:shift}));
     }
-    if(name==='wf-sound'){
-      if(!s.demo){MSA.alertSound.toggle();c.notify('Preferência de som atualizada.');return;}
-      MSA.alertSound.toggle();return;
-    }
+
   }
   function change(event,c){const v=event.target.value;if(event.target.id==='wf-day')day=v;if(event.target.id==='wf-shift')shift=v;if(event.target.id==='wf-alerts')alertFilter=v;}
   function formChange(event,c){if(event.target.name==='motivoCodigo'){const host=document.querySelector('[data-other-reason]'),other=event.target.value==='outro';if(host){host.hidden=!other;host.querySelector('input').required=other;}}
@@ -82,7 +79,4 @@
     if(['maquinaId','dia','turno'].includes(event.target.name))summaryPreview(c);
   }
   MSA.workflowUI={render,handle,change,formChange,reasonFields};
-  // Som requer um gesto do usuário. Não anuncia a carga inicial nem repete o mesmo alerta.
-  let audio=null,enabled=false,seen=new Set(),initialized=false;
-  MSA.alertSound={toggle(){enabled=!enabled;if(enabled){const AC=window.AudioContext||window.webkitAudioContext;if(AC){audio ||= new AC();void audio.resume();}this.beep();}MSA.operations?.notify(enabled?'Som dos novos alertas ativado.':'Som dos alertas desativado.');},beep(){if(!audio||!enabled)return;const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.connect(gain);gain.connect(audio.destination);oscillator.frequency.value=720;gain.gain.value=.06;oscillator.start();oscillator.stop(audio.currentTime+.15);},update(rows){const current=new Set(rows.map(r=>r.id));if(initialized&&enabled&&rows.some(r=>!seen.has(r.id)))this.beep();seen=current;initialized=true;},get enabled(){return enabled;}};
 })();

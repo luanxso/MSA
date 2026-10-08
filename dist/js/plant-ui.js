@@ -79,14 +79,16 @@
     });
   }
   function renderHeader() {
-    const header=root.closest('.app-shell')?.querySelector('.app-header');if(!header)return;
+    const host=root.querySelector('.plant-page');if(!host)return;
     const moreOpen=headerControls?.querySelector('.plant-more')?.open;
     headerControls?.remove();
-    headerControls=document.createElement('div');headerControls.className='plant-header-controls';
+    if(selected){headerControls=null;return;}
+    headerControls=document.createElement('div');headerControls.className='plant-header-controls plant-local-controls';
+    headerControls.setAttribute('role','group');headerControls.setAttribute('aria-label','Filtros do mapa da planta');
     const sectors=telemetry.mode==='simulation'?layout.areas.map(a=>({id:a.id,nome:a.short||a.name})):MSA.config.sectors;
-    headerControls.innerHTML=`${selected?'':`<label for="plant-sector"><span>Setor</span><select id="plant-sector"><option value="todos">Todos os setores</option>${sectors.map(s=>`<option value="${esc(s.id)}" ${sector===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}</select></label><label for="plant-status"><span>Estado</span><select id="plant-status"><option value="todos">Todos os estados</option>${Object.entries(telemetry.states).map(([key,value])=>`<option value="${key}" ${status===key?'selected':''}>${value}</option>`).join('')}<option value="alerta" ${status==='alerta'?'selected':''}>Com alerta</option></select></label><details class="plant-more"><summary>Filtros</summary><div class="plant-more-panel">${sourceControls()}<label class="plant-problem-filter"><input id="plant-problems" type="checkbox" ${problems?'checked':''}>Só problemas</label></div></details>`}`;
-    header.insertBefore(headerControls,header.querySelector('.header-right')||header.querySelector(':scope > .simulation-label'));
-    headerControls.addEventListener('click',handleClick);headerControls.addEventListener('change',handleChange);
+    headerControls.innerHTML=`${selected?'':`<label for="plant-sector"><span>Área da planta</span><select id="plant-sector"><option value="todos">Todos os setores</option>${sectors.map(s=>`<option value="${esc(s.id)}" ${sector===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}</select></label><label for="plant-status"><span>Estado</span><select id="plant-status"><option value="todos">Todos os estados</option>${Object.entries(telemetry.states).map(([key,value])=>`<option value="${key}" ${status===key?'selected':''}>${value}</option>`).join('')}<option value="alerta" ${status==='alerta'?'selected':''}>Com alerta</option></select></label><details class="plant-more"><summary>Filtros</summary><div class="plant-more-panel">${sourceControls()}<label class="plant-problem-filter"><input id="plant-problems" type="checkbox" ${problems?'checked':''}>Só problemas</label></div></details>`}`;
+    host.prepend(headerControls);
+    // Os controles locais usam os eventos já delegados no conteúdo da planta.
     if(moreOpen&&headerControls.querySelector('.plant-more'))headerControls.querySelector('.plant-more').open=true;
     applyTheme();
   }

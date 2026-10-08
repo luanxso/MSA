@@ -141,7 +141,13 @@ window.MSA = window.MSA || {};
   let catalog=clone(MSA.plantLayout?.machines||MSA.config.machines),simulator=createSimulator(catalog),timer=null,paused=false,mode='simulation',adapter=null,stopAdapter=null,error='';
   let simulationTime=Date.now(),lastTickAt=simulationTime;
   const live=new Map(),observers=new Set();
-  const emit=()=>observers.forEach(callback=>callback({mode,paused,error}));
+  const emit=()=>{
+    if(mode!=='records'&&MSA.alertSound?.updateTelemetry)MSA.alertSound.updateTelemetry(catalog.map(machine=>{
+      const sample=mode==='simulation'?simulator.get(machine.id):live.has(machine.id)?normalizeSample(live.get(machine.id),Date.now()):null;
+      return sample?{...sample,setorId:machine.setorId,maquinaId:machine.id}:null;
+    }));
+    observers.forEach(callback=>callback({mode,paused,error}));
+  };
   function advanceClock() {
     const now=Date.now();
     if(mode==='simulation'&&!paused){simulationTime+=Math.max(0,now-lastTickAt);simulator.advance(simulationTime);}

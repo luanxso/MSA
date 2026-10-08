@@ -25,6 +25,7 @@ window.MSA = window.MSA || {};
     }
     return total / 60000;
   }
+  const third=r=>(MSA.shifts?.id(r)||String(r.turno))==='3';
   function summarize(state, machines, start, end) {
     const ids = new Set(machines.map(machine => machine.id));
     const slice = collection => (state[collection] || []).filter(record => ids.has(record.maquinaId) && within(record, start, end));
@@ -35,9 +36,9 @@ window.MSA = window.MSA || {};
     const suspeitas = state.lotesQualidade ? (state.lotesQualidade||[]).filter(b=>ids.has(b.maquinaId)&&!['liberado','descartado'].includes(b.status)).reduce((n,b)=>n+(b.quantidade||0),0) : count(perdas.filter(record => record.tipo === 'suspeito')); 
     const kg = count(perdas.filter(record => record.tipo === 'perda'));
     const days = Math.max(1, Math.round((end - start) / 86400000));
-    const meta = state.demo ? producao.reduce((n,r)=>n+(r.fim-r.inicio)/3600000*Number(machines.find(m=>m.id===r.maquinaId)?.hourTarget||0),0) : machines.reduce((total, machine) => total + Number(machine.metaDiaria || 0), 0) * days;
-    const stops=(state.paradas||[]).filter(r=>ids.has(r.maquinaId)&&(!(r.diaProducao||String(r.turno)==='3')||within(r,start,end)));
-    const stopEnd=(state.demo||producao.some(r=>String(r.turno)==='3'))?new Date(end).setHours(7,0,0,0):end;
+    const meta = state.demo ? producao.reduce((n,r)=>n+(r.fim-r.inicio)/3600000*MSA.shifts.hourTarget(machines.find(m=>m.id===r.maquinaId)),0) : machines.reduce((total, machine) => total + Number(machine.metaDiaria || 0), 0) * days;
+    const stops=(state.paradas||[]).filter(r=>ids.has(r.maquinaId)&&(!(r.diaProducao||third(r))||within(r,start,end)));
+    const stopEnd=(state.demo||producao.some(r=>third(r)))?new Date(end).setHours(7,0,0,0):end;
     const abertas = (state.paradas || []).filter(record => ids.has(record.maquinaId) && !record.fim);
     return { aprovadas, refugos, suspeitas, kg, meta, atendimento: meta > 0 ? aprovadas / meta * 100 : null, taxaRefugo: aprovadas + refugos > 0 ? refugos / (aprovadas + refugos) * 100 : null, minutos: minutes(stops,start,stopEnd,state.scenarioAt||Date.now()), abertas, producao, perdas, leituras: slice('leituras'), ocorrencias: slice('ocorrencias') };
   }
