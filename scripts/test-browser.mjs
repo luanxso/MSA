@@ -61,6 +61,10 @@ try {
  for(let index=1;index<4;index++){await sup.getByRole('button',{name:'Adicionar parâmetro'}).click();await sup.locator(`[name="nome_${index}"]`).fill(index===1?'Vácuo':'Zona '+index);await sup.locator(`[name="unidade_${index}"]`).fill(index===1?'mmHg':'°C');await sup.locator(`[name="min_${index}"]`).fill(index===1?'-600':'240');await sup.locator(`[name="max_${index}"]`).fill(index===1?'-300':'260');}
  await sup.getByRole('button',{name:'Salvar',exact:true}).click();await sup.waitForFunction(()=>Object.keys(MSA.data.state.maquinas.find(m=>m.id==='ABF-01').parametros).length===4);
  const op=await open('op','apontamentos'),chief=await open('chief','indicadores');
+ // A análise de turno usa a fonte real sem preencher histórico fictício.
+ await chief.evaluate(()=>location.hash='producao');await chief.locator('#ops-tab-turnos').click();assert.equal(await chief.locator('[data-shift-card]').count(),3);assert.equal(await chief.locator('.shift-output strong').evaluateAll(e=>e.every(x=>x.textContent==='—')),true);
+ await chief.locator('[data-action="shift-detail"][data-id="1"]').click();await chief.locator('[data-action="shift-detail-tab"][data-id="hours"]').click();assert.equal(await chief.locator('#shift-detail-content tbody tr').count(),0);assert(await chief.locator('#operation-save').isHidden());await chief.locator('#operation-cancel').click();
+
  for(const page of [op,sup,chief]) {await page.evaluate(()=>location.hash='');await page.waitForFunction(()=>location.hash==='#visao-geral');assert.equal(await page.locator('#page-title').innerText(),'Visão geral');}
  await op.evaluate(()=>location.hash='apontamentos');
 

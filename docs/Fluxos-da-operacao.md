@@ -53,3 +53,17 @@ Em Pessoas, cada funcionário tem uma conversa individual com a liderança, usan
 O botão **Simular nova mensagem**, disponível no cenário fictício, acrescenta uma atualização do setor ou do funcionário selecionado. A nova mensagem é marcada como simulada, permitindo demonstrar a chegada de informação sem escrever uma resposta em outra conta. Essa ação não registra produção, não decide lotes e não envia mensagens reais. Recarregar a página restaura os históricos fictícios iniciais.
 
 A fonte real `?dados=reais` continua usando o adaptador Firebase, sem históricos fictícios e sem o botão de simulação. Validação específica: `npm run test:chat-demo`.
+
+## Comparação detalhada de turnos
+
+Em **Produção → Por turno**, os três cartões mostram aprovadas, meta acumulada, cumprimento da meta, OEE, tempo de parada, microparadas, refugos, taxa de refugo e material perdido em kg. Datas, setor e máquina valem para os três cartões. O filtro Turno destaca a seleção e continua filtrando as outras abas, mas não oculta os outros turnos da comparação. Comparar dia anterior seleciona o último dia completo do cenário, mantendo o contexto de máquinas.
+
+As janelas ilustrativas são 07h–15h, 15h–23h e 23h–07h. O dia de produção do terceiro turno é o dia de início, inclusive nos registros após meia-noite. Uma parada que atravessa a troca é repartida entre os turnos; sobreposições são eliminadas por máquina no total. Microparadas encerradas com duração maior que zero e menor que 60 segundos são contadas no turno em que começaram. A duração entra também no tempo de parada, sem somar dois totais.
+
+A meta acumulada usa a meta horária de cada máquina multiplicada pelo tempo transcorrido da janela; a meta integral usa oito horas por dia selecionado. A base considera as máquinas selecionadas como programadas nesse horário. A escala efetiva, os horários e as metas por turno precisam ser validados com a empresa antes de usar indicadores reais. OEE = peças aprovadas × ciclo ideal / tempo planejado, equivalente ao produto disponibilidade × desempenho × qualidade. OEE do conjunto é ponderado pelo tempo planejado e fica sem valor se alguma máquina não possui base válida. Desempenho impossível acima de 100% também deixa OEE sem valor. Não se preenche ausência de dados com desempenho fictício.
+
+A demonstração mantém ciclos do primeiro turno depois das 15h para apresentação; o cartão informa a extensão simulada e a meta acompanha o tempo extra. Turnos ainda não iniciados aparecem como tal. Diferenças de volume e variações percentuais de aprovadas só aparecem quando os tempos observados nas mesmas máquinas são iguais. Cumprimento da meta, OEE e taxa de refugo são comparados em pontos percentuais. Somar produção de etapas diferentes não representa a quantidade de produtos finais únicos.
+
+**Ver detalhes** abre quatro abas com até oito linhas por página: Máquinas, Hora a hora, Equipe e Paradas e problemas. Hora a hora mostra as janelas apontadas, cuja meta pode diferir da meta acumulada do turno quando faltam apontamentos. A equipe usa alocações do dia/turno para confirmar presença; RE encontrado no histórico aparece como participação sem presença confirmada. Ocorrências e alertas exibem sua situação atual. Os dados ficam fixos enquanto o detalhe está aberto; Atualizar detalhes renova o retrato. Links de máquinas abrem o mapa correspondente.
+
+Validação: `node --test tests/shift-analysis.test.mjs tests/scenario.test.mjs` e `npm run test:shifts` (Playwright/Chrome).

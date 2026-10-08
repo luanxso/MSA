@@ -79,3 +79,15 @@ test('resolução e consolidação exigem conteúdo e período válido antes de 
  await a.data.consolidate({inicio:local(now-3600000),fim:local(now),observacao:'Teste'});
  assert.equal(a.data.state.consolidacoes.length,reports+1);
 });
+
+test('demonstração recusa produção duplicada e segunda parada aberta sem alterar os totais',async()=>{
+ const {a}=await fixture('operador'),now=a.data.state.scenarioAt;
+ const production={maquinaId:'NHPL',inicio:local(now-3600000),fim:local(now),turno:'1',quantidade:'5',produto:'Abafador',lote:'LT-REGRESSION'};
+ const id=await a.data.save('registrosProducao',production),count=a.data.state.registrosProducao.length;
+ await assert.rejects(a.data.save('registrosProducao',production),/já.*registrado/);assert.equal(a.data.state.registrosProducao.length,count);
+ await a.data.save('registrosProducao',{...production,quantidade:'6'},id);
+ const values={maquinaId:'NHPL',inicio:local(now),motivoCodigo:'ajuste',motivo:'Ajuste'};
+ const stop=await a.data.save('paradas',values),stops=a.data.state.paradas.length;
+ await assert.rejects(a.data.save('paradas',values),/parada.*andamento/);assert.equal(a.data.state.paradas.length,stops);
+ await a.data.finishStop(stop,'Retomada');await a.data.save('paradas',values);assert.equal(a.data.state.paradas.length,stops+1);
+});

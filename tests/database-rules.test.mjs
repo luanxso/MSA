@@ -48,8 +48,12 @@ test('regras reais: cadastro por RE, contexto móvel, escrita e consultas por ca
  await ok('leituras/l1','sup','PATCH',{verificado:true,verificadoPor:'sup',verificadoEm:Date.now(),updatedAt:Date.now(),atualizadoPor:'sup'});
  await deny('leituras/l1','sup','PATCH',{'valores/temperatura':999});
  await deny('leituras/l1','sup','PATCH',{valores:null});
+ await deny('paradas/unreserved','op','PUT',{...common,inicio:Date.now()-600000,fim:0,motivo:'Falha',causa:'',encerradaPor:''});
+ await ok('paradasAbertas/ABF-01','op','PUT',{paradaId:'p1',usuarioId:'op',claimedAt:Date.now()});
  await ok('paradas/p1','op','PUT',{...common,inicio:Date.now()-600000,fim:0,motivo:'Falha',causa:'',encerradaPor:''});
+ await deny('paradasAbertas/ABF-01','op','PUT',{paradaId:'p2',usuarioId:'op',claimedAt:Date.now()});
  await ok('paradas/p1','sup','PATCH',{fim:Date.now(),causa:'Ajuste',encerradaPor:'sup',updatedAt:Date.now(),atualizadoPor:'sup'});
+ await ok('paradasAbertas/ABF-01','op','PUT',{paradaId:'p2',usuarioId:'op',claimedAt:Date.now()});
  await ok('ocorrencias/o1','op','PUT',{...common,data:Date.now(),descricao:'Teste',prioridade:'alta',status:'aberta',resolucao:''});
  await deny('ocorrencias/o1','op','PATCH',{status:'resolvida',resolucao:'Teste'});
  await ok('ocorrencias/o1','sup','PATCH',{status:'resolvida',resolucao:'Ajuste concluído',updatedAt:Date.now(),atualizadoPor:'sup'});
