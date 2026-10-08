@@ -248,6 +248,23 @@
           "$key": {
             ".validate": "newData.isNumber() && root.child('maquinas').child(newData.parent().parent().child('maquinaId').val()).child('parametros').child($key).exists() && (root.child('perfis').child(auth.uid).child('cargo').val() === 'operador' || newData.val() === data.val())"
           }
+        },
+        "estudoSelo": {
+          ".validate": "root.child(\"maquinas\").child(newData.parent().child(\"maquinaId\").val()).child(\"setorId\").val() === \"selagem\"",
+          "material": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "espessura": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "valores": {
+            "$key": {
+              ".validate": "newData.isNumber() && ($key === \"temp_ambiente\" || $key === \"aquecimento_z1\" || $key === \"aquecimento_z2\" || $key === \"aquecimento_z3\" || $key === \"aquecimento_z4\" || $key === \"aquecimento_z5\" || $key === \"aquecimento_z6\" || $key === \"aquecimento_z7\" || $key === \"aquecimento_z8\" || $key === \"aquecimento_z9\" || $key === \"aquecimento_z10\" || $key === \"aquecimento_z11\" || $key === \"aquecimento_z12\" || $key === \"aquecimento_z13\" || $key === \"aquecimento_z14\" || $key === \"aquecimento_z15\" || $key === \"aquecimento_z16\" || $key === \"aquecimento_z17\" || $key === \"aquecimento_z18\" || $key === \"aquecimento_z19\" || $key === \"aquecimento_z20\" || $key === \"aquecimento_z21\" || $key === \"medida_passo\" || $key === \"velocidade_passo\" || $key === \"tempo_vacuo\" || $key === \"tempo_resfriamento\" || $key === \"tempo_destacar\" || $key === \"tempo_contra_molde\" || $key === \"tempo_prensa_corte\" || $key === \"tempo_esteira_saida\" || $key === \"retardo_passo\" || $key === \"retardo_mesa\" || $key === \"retardo_vacuo\" || $key === \"retardo_resfriamento\" || $key === \"retardo_destacar\" || $key === \"retardo_contra_molde\" || $key === \"retardo_prensa_corte\" || $key === \"retardo_disco_corte\" || $key === \"retardo_esteira_saida\" || $key === \"pressao_ar\" || $key === \"vacuo\")"
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     },

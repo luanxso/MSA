@@ -1,5 +1,11 @@
 # MSA — Sistema integrado de gestão da produção
 
+## Estudo de capacidade MSA — entrega atual
+
+Em **Relatórios → Exportar planilha Excel**, os registros filtrados preenchem o `.xlsx` original do estudo Selo V-Gard da MSA, com as mesmas abas, cores e colunas espaçadas. O arquivo conserva fórmulas editáveis, inclui todas as leituras e amplia o modelo quando necessário. **CSV da coleta para BI** e **CSV geral do sistema** continuam disponíveis. Os campos sem coleta ficam vazios; o cenário identifica os dados fictícios. Veja [Exportação do estudo de capacidade](docs/Exportacao-estudo-capacidade.md) para o mapeamento, cálculos e integração dos sinais reais.
+
+As mensagens de confirmação e erro das operações desaparecem após **10 segundos** ou podem ser fechadas imediatamente pelo **X** à direita. Cada nova mensagem reinicia o prazo de exibição.
+
 ## Correções de lógica — 08/10/2026
 
 A meta horária usa a taxa cadastrada ou a meta de oito horas dividida por oito. Produção, refugos, leituras e ocorrências entre 23h e 07h pertencem à mesma data de produção. Lotes concluídos preservam quantidade e decisão; um novo defeito exige nova avaliação. A operação impede produção repetida e duas paradas abertas na mesma máquina. Passagens de turno usam uma chave única por máquina, data e turno e uma transação no Firebase. O áudio da NHPL segue o controle e os filtros do cabeçalho.
