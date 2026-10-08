@@ -2,7 +2,7 @@
 window.MSA = window.MSA || {};
 (() => {
   'use strict';
-  const collections = ['maquinas', 'registrosProducao', 'leituras', 'paradas', 'perdas', 'ocorrencias', 'consolidacoes', 'perfis', 'setores'];
+  const collections = ['maquinas', 'registrosProducao', 'leituras', 'paradas', 'perdas', 'ocorrencias', 'consolidacoes', 'perfis', 'setores', 'passagensTurno', 'lotesQualidade', 'atendimentosAlertas', 'alocacoes'];
   const permissions = { registrosProducao: 'producao:registrar', leituras: 'leituras:registrar', paradas: 'paradas:registrar', perdas: 'perdas:registrar', ocorrencias: 'ocorrencias:registrar' };
   const observers = new Set();
   let state = Object.fromEntries(collections.map(key => [key, []]));
@@ -19,13 +19,14 @@ window.MSA = window.MSA || {};
     if (value === '' || value == null || !Number.isFinite(n) || n < minimum) fail('Informe ' + label + ' válido.');
     return n;
   };
-  const date = (value, label) => { const n = typeof value === 'number' ? value : Date.parse(value); if (!Number.isFinite(n) || n > Date.now() + 60000) fail('Informe ' + label + ' válido.'); return n; };
+  const date = (value, label, now = Date.now()) => { const n = typeof value === 'number' ? value : Date.parse(value); if (!Number.isFinite(n) || n > now + 60000) fail('Informe ' + label + ' válido.'); return n; };
   const required = (value, label, max = 500) => { const text = String(value || '').trim(); if (!text || text.length > max) fail('Informe ' + label + ' (até ' + max + ' caracteres).'); return text; };
-  function emit() { observers.forEach(observer => observer({ ...state, ready, error, connected })); }
+  MSA.recordValidation = Object.freeze({number, date, required});
+  function emit() { if(ready&&MSA.workflows)MSA.workflows.sync(state);observers.forEach(observer => observer({ ...state, ready, error, connected })); }
   function scopedQuery(key) {
     const sdk = client.databaseSDK;
     const target = sdk.ref(client.database, key);
-    if (key === 'setores' || key === 'maquinas' || user.cargo === 'chefe') return target;
+    if (key === 'setores' || key === 'maquinas' || ['chefe','qualidade'].includes(user.cargo)) return target;
     if (key === 'perfis') return user.cargo === 'operador' ? sdk.ref(client.database, key + '/' + user.id) : sdk.query(target, sdk.orderByChild('setorId'), sdk.equalTo(user.setorId));
     if (key === 'consolidacoes') return sdk.query(target, sdk.orderByChild('setorId'), sdk.equalTo(user.setorId));
     const field = user.cargo === 'operador' ? 'maquinaId' : 'setorId';
@@ -52,7 +53,7 @@ window.MSA = window.MSA || {};
       const inicio = date(values.inicio, 'início da parada');
       const fim = values.fim ? date(values.fim, 'fim da parada') : 0;
       if (fim && fim < inicio) fail('O fim deve ser posterior ao início.');
-      return { ...common, inicio, fim, motivo: required(values.motivo, 'motivo', 300), causa: existing?.causa || '', encerradaPor: fim ? user.id : '' };
+      return { ...common, inicio, fim, ...MSA.workflows.reason(values), motivoConfirmado:true, causa: existing?.causa || '', encerradaPor: fim ? user.id : '' };
     }
     if (collection === 'perdas') {
       const tipo = values.tipo;
@@ -88,9 +89,9 @@ window.MSA = window.MSA || {};
       try {
         client = await MSA.firebase.ready();
         if (version !== generation) return;
-        const hasContext = user.cargo === 'chefe' || (user.cargo === 'operador' ? !!user.maquinaId : !!user.setorId);
+        const hasContext = ['chefe','qualidade'].includes(user.cargo) || (user.cargo === 'operador' ? !!user.maquinaId : !!user.setorId);
         const waiting = new Set(collections.filter(key => {
-          if (key === 'consolidacoes' && user.cargo === 'operador') return false;
+          if (['consolidacoes','passagensTurno','alocacoes'].includes(key) && user.cargo === 'operador') return false;
           return hasContext || ['maquinas', 'setores'].includes(key) || (key === 'perfis' && user.cargo === 'operador');
         }));
         for (const key of waiting) {
@@ -99,7 +100,8 @@ window.MSA = window.MSA || {};
           stops.push(client.databaseSDK.onValue(target, snapshot => {
             if (version !== generation) return;
             const value = snapshot.val();
-            state[key] = single ? (value ? [{ ...value, id: user.id }] : []) : Object.entries(value || {}).map(([id, item]) => ({ ...item, id }));
+            const incoming=single ? (value ? [{ ...value, id: user.id }] : []) : Object.entries(value || {}).map(([id, item]) => ({ ...item, id }));
+            if(MSA.workflows?.collections.includes(key)){const merged=new Map(state[key].map(r=>[r.id,r]));for(const row of incoming)merged.set(row.id,row);state[key]=[...merged.values()];}else state[key]=incoming;
             waiting.delete(key); ready = waiting.size === 0; emit();
           }, e => { if (version === generation) { waiting.delete(key); error = /permission/i.test(e.code || e.message) ? 'Publique database.rules.json no Realtime Database para permitir este acesso.' : 'Não foi possível consultar os dados. Verifique a conexão.'; emit(); } }));
         }
@@ -189,6 +191,21 @@ window.MSA = window.MSA || {};
       if (!Number.isSafeInteger(metaDiaria)) fail('Informe uma meta inteira em peças.');
       await write(() => client.databaseSDK.update(client.databaseSDK.ref(client.database, 'maquinas/' + id), { metaDiaria, updatedAt: client.databaseSDK.serverTimestamp(), atualizadoPor: user.id }));
     },
+    async workflow(action,values={},id) {
+      if(!connected)fail('Aguarde a conexão com o Firebase antes de salvar.');
+      const draft=JSON.parse(JSON.stringify(state));MSA.workflows.upgrade(draft);
+      const result=MSA.workflows.command(draft,action,values,id,user),updates={};
+      for(const key of [...MSA.workflows.collections,'paradas','perdas']){
+        const before=new Map((state[key]||[]).map(r=>[r.id,JSON.stringify(r)]));
+        for(const row of draft[key]||[])if(before.get(row.id)!==JSON.stringify(row)){
+          const {id:rowId,...payload}=row;
+          // A comparação local evita regravar o histórico de outros registros.
+          updates[key+'/'+rowId]={...payload,atualizadoPor:user.id};
+        }
+      }
+      if(Object.keys(updates).length)await write(()=>client.databaseSDK.update(client.databaseSDK.ref(client.database),updates));
+      return result;
+    },
     async assignMachine(uid, machineId) {
       MSA.rbac.require('funcionarios:atribuir', user);
       const profile = recordById('perfis', uid);
@@ -215,8 +232,8 @@ window.MSA = window.MSA || {};
           // Lê o item antes de preparar exemplos; nunca substitui um cadastro existente.
           const target = client.databaseSDK.ref(client.database, 'maquinas/' + machine.id);
           if (!(await client.databaseSDK.get(target)).exists()) {
-            const { id, ...data } = machine;
-            updates['maquinas/' + id] = { ...data, createdAt: client.databaseSDK.serverTimestamp(), updatedAt: client.databaseSDK.serverTimestamp(), atualizadoPor: user.id };
+            // A geometria da planta (productKind etc.) não pertence ao cadastro do banco.
+            updates['maquinas/' + machine.id] = { nome: machine.nome, setorId: machine.setorId, processo: machine.processo, produto: machine.produto, metaDiaria: Number(machine.metaDiaria || 0), parametros: machine.parametros || {}, createdAt: client.databaseSDK.serverTimestamp(), updatedAt: client.databaseSDK.serverTimestamp(), atualizadoPor: user.id };
           }
         }
       }

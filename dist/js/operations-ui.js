@@ -14,20 +14,48 @@
   const day = value => new Date(value).toLocaleDateString('pt-BR');
   const time = value => new Date(value).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
   const dateInput = value => { const d = new Date(value); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+  const secondsTimeInput=value=>dateTimeInput(value)+':'+String(new Date(value).getSeconds()).padStart(2,'0');
   const dateTimeInput = value => { const d = new Date(value); return `${dateInput(value)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
   const badge = (text, style = '') => `<span class="ops-badge ${style}">${esc(text)}</span>`;
   const button = (text, action, collection = '', id = '', primary = false) => `<button type="button" class="${primary ? 'primary-button' : 'text-button'}" data-action="${action}" data-collection="${collection}" data-id="${esc(id)}">${esc(text)}</button>`;
   const panel = (title, body, actions = '') => `<section class="ops-panel"><div class="ops-panel-heading"><h2>${esc(title)}</h2>${actions}</div>${body}</section>`;
   const empty = text => `<div class="ops-empty"><strong>Nenhum registro encontrado</strong>${esc(text)}</div>`;
+  const tabDefinitions={
+    producao:[['resumo','Resumo'],['turnos','Por turno'],['horas','Hora a hora'],['apontamentos','Apontamentos'],['parametros','Parâmetros']],
+    qualidade:[['resumo','Resumo'],['lotes','Lotes em avaliação'],['perdas','Refugos e perdas'],['historico','Histórico']],
+    paradas:[['resumo','Resumo'],['abertas','Em andamento'],['micro','Microparadas'],['historico','Histórico']]
+  };
+  const activeTabs={producao:'resumo',qualidade:'resumo',paradas:'resumo'},listPages=new Map(),listQueries={producao:'',qualidade:'',paradas:''};
+  const pageSize=8;
+  const resetListPages=()=>listPages.clear();
+  function tabbed(body){
+    const tabs=tabDefinitions[page],active=activeTabs[page];
+    return `<div class="ops-tabs" role="tablist" aria-label="Seções de ${esc(MSA.config.areas[page])}">${tabs.map(([key,label])=>`<button type="button" id="ops-tab-${key}" role="tab" aria-controls="ops-tab-content" aria-selected="${active===key}" tabindex="${active===key?'0':'-1'}" data-action="ops-tab" data-id="${key}">${label}</button>`).join('')}</div><div id="ops-tab-content" role="tabpanel" aria-labelledby="ops-tab-${active}">${body}</div>`;
+  }
+  function listSearch(){return `<div class="ops-toolbar ops-list-search"><label>Buscar nas listas<input type="search" id="ops-list-search" value="${esc(listQueries[page])}" placeholder="Máquina, lote ou motivo" autocomplete="off" aria-controls="ops-tab-content"></label>${button('Limpar busca','list-search-reset')}<p class="ops-note">Indicadores seguem os filtros do topo. A busca filtra as listas da aba selecionada.</p></div>`;}
   function table(headers, rows, text = 'Os apontamentos aparecerão aqui após o registro.') {
+    const keep=tabDefinitions[page]&&headers.includes('Responsável')?headers.map((h,i)=>['Responsável','Conferência'].includes(h)?-1:i).filter(i=>i>=0):null;
+    if(keep)headers=keep.map(i=>headers[i]);
     const numeric = headers.map(h=>/^(Meta do período|Aprovadas|Atendimento|Refugos|Material|Paradas|Quantidade|Duração)$/.test(h));
-    return rows.length ? `<div class="ops-table-wrap" tabindex="0" role="region" aria-label="${esc(headers.join(', '))}"><table class="ops-table"><thead><tr>${headers.map((h,i)=>`<th scope="col" class="${numeric[i]?'numeric':''}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map((cell,i)=>`<td class="wrap ${numeric[i]?'numeric':''}">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : empty(text);
+    const paged=!!tabDefinitions[page],key=[page,activeTabs[page],...headers].join('|');
+    if(paged&&listQueries[page]){const query=normalize(listQueries[page]);rows=rows.filter(row=>{if(row.search!=null)return normalize(row.search).includes(query);const template=document.createElement('template');template.innerHTML=row.join(' ');return normalize(template.content.textContent+' '+[...template.content.querySelectorAll('a[href]')].map(a=>decodeURIComponent(a.getAttribute('href'))).join(' ')).includes(query);});}
+    const count=rows.length,pages=Math.max(1,Math.ceil(count/pageSize)),current=Math.min(listPages.get(key)||1,pages),start=(current-1)*pageSize;
+    if(paged){listPages.set(key,current);rows=rows.slice(start,start+pageSize);}
+    rows=rows.map(row=>{const cells=row.cells?row.cells():row;return keep?keep.map(i=>cells[i]):cells;});
+    const navigation=paged&&count?`<nav class="equipment-pagination ops-pagination" aria-label="Páginas de ${esc(headers[0])}" data-list-key="${esc(key)}"><span role="status">${start+1}–${Math.min(start+pageSize,count)} de ${count} registros</span><div><button type="button" class="secondary-button" data-action="list-page" data-table-key="${esc(key)}" data-id="${current-1}" ${current===1?'disabled':''}>Anterior</button><span>Página ${current} de ${pages}</span><button type="button" class="secondary-button" data-action="list-page" data-table-key="${esc(key)}" data-id="${current+1}" ${current===pages?'disabled':''}>Próxima</button></div></nav>`:'';
+    return (rows.length ? `<div class="ops-table-wrap ${paged?'ops-paged-table':''}" tabindex="0" role="region" aria-label="${esc(headers.join(', '))}"><table class="ops-table"><thead><tr>${headers.map((h,i)=>`<th scope="col" class="${numeric[i]?'numeric':''}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map((cell,i)=>`<td data-label="${esc(headers[i])}" class="wrap ${numeric[i]?'numeric':''} ${/Responsável|Conferência/.test(headers[i])?'ops-secondary-cell':''}">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : empty(paged&&listQueries[page]?'Altere a busca ou limpe os filtros para ver outros registros.':text))+navigation;
   }
   let page = '';
   let sector = 'todos';
   let from = dateInput(Date.now());
   let to = from;
   let machineFilter = '';
+  let shiftFilter='todos';
+  let catalogueSearch='',catalogueStatus='todos',catalogueOrder='priority',cataloguePage=1;
+  const catalogueSize=8;
+  const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  let productionVisited=false;
+  const filteredState=()=>page==='producao'?MSA.shifts.filter(state,shiftFilter):state;
   let state = MSA.data.state;
   let submitAction = null;
   let identity = '';
@@ -37,15 +65,17 @@
   const sectorName = id => MSA.config.sectors.find(s=>s.id===id)?.nome || id;
   const machineName = id => state.maquinas.find(m=>m.id===id)?.nome || id;
   const personName = id => state.perfis.find(p=>p.id===id)?.nome || (id===user()?.id ? user().nome : 'RE de origem no registro');
-  const responsible = record => `${esc(personName(record.usuarioId))}${record.usuarioRe ? `<small>RE ${esc(record.usuarioRe)}</small>` : ''}`;
+  const responsible = record => record.automatica?'Coleta automática<small>Classificação pela liderança</small>':`${esc(personName(record.usuarioId))}${record.usuarioRe ? `<small>RE ${esc(record.usuarioRe)}</small>` : ''}`;
+  const workflowContext=()=>({state,user:user(),sector,machines,records,bounds,allowed,table,panel,badge,kpis,machineLink,machineName,sectorName,open,field,select,form,notify});
+  const workflowPanel=area=>MSA.workflowUI?.render(area,workflowContext())||'';
   function bounds() { const start = new Date(from+'T00:00:00').getTime(); const endDate = new Date(to+'T00:00:00'); endDate.setDate(endDate.getDate()+1); return [start,endDate.getTime()]; }
   function machines() { return state.maquinas.filter(m=>MSA.rbac.inScope(user(),m) && (sector==='todos'||m.setorId===sector) && (!machineFilter||m.id===machineFilter)); }
-  function records(collection) { const [a,b] = bounds(); const ids = new Set(machines().map(m=>m.id)); return (state[collection]||[]).filter(r=>ids.has(r.maquinaId) && (collection==='paradas' ? r.inicio<b && (!r.fim||r.fim>=a) : MSA.metrics.within(r,a,b))).sort((x,y)=>(y.data||y.inicio||y.createdAt)-(x.data||x.inicio||x.createdAt)); }
-  const summary = () => MSA.metrics.summarize(state,machines(),...bounds());
+  function records(collection) { const [a,b] = bounds(); const ids = new Set(machines().map(m=>m.id)); return (filteredState()[collection]||[]).filter(r=>ids.has(r.maquinaId) && (collection==='paradas' ? (r.diaProducao?MSA.shifts.within(r,a,b):r.inicio<b && (!r.fim||r.fim>=a)) : MSA.metrics.within(r,a,b))).sort((x,y)=>(y.data||y.inicio||y.createdAt)-(x.data||x.inicio||x.createdAt)); }
+  const summary = () => MSA.metrics.summarize(filteredState(),machines(),...bounds());
   function notify(message, error = false) { feedback.textContent=message; feedback.classList.toggle('is-error',error); feedback.hidden=false; }
   function toolbar(actions = '', dates = true) {
     const all = state.maquinas.filter(m=>MSA.rbac.inScope(user(),m) && (sector==='todos'||m.setorId===sector));
-    return `<div class="ops-toolbar">${dates ? `<label>De<input type="date" id="ops-from" value="${from}"></label><label>Até<input type="date" id="ops-to" value="${to}"></label>` : ''}${user().cargo!=='operador' && page!=='funcionarios' && page!=='configuracoes' ? `<label>Máquina<select id="ops-machine"><option value="">Todas as máquinas</option>${all.map(m=>`<option value="${esc(m.id)}" ${m.id===machineFilter?'selected':''}>${esc(m.nome)}</option>`).join('')}</select></label>` : ''}<div class="toolbar-actions">${actions}</div></div>`;
+    return `<div class="ops-toolbar">${dates ? `<label>De<input type="date" id="ops-from" value="${from}"></label><label>Até<input type="date" id="ops-to" value="${to}"></label>` : ''}${user().cargo!=='operador' && page!=='funcionarios' && page!=='configuracoes' ? `<label>Máquina<select id="ops-machine"><option value="">Todas as máquinas</option>${all.map(m=>`<option value="${esc(m.id)}" ${m.id===machineFilter?'selected':''}>${esc(m.nome)}</option>`).join('')}</select></label>` : ''}${page==='producao'?`<label>Turno<select id="ops-shift"><option value="todos" ${shiftFilter==='todos'?'selected':''}>Todos os turnos</option>${MSA.shifts.definitions.map(t=>`<option value="${t.id}" ${shiftFilter===t.id?'selected':''}>${t.label} · ${t.hours}</option>`).join('')}</select></label>`:''}<div class="toolbar-actions">${actions}</div></div>`;
   }
   function workContext() {
     if (user().cargo !== 'operador') return '';
@@ -58,31 +88,51 @@
     ['Perda de material',num(s.kg),'kg','Perdas registradas no período'],
     ['Tempo de parada',num(s.minutos),'min',`${s.abertas.length} ${s.abertas.length===1?'parada aberta':'paradas abertas'}`]
   ].map(([label,value,unit,hint])=>`<article class="ops-stat"><span>${label}</span><strong>${value} <small class="ops-unit">${unit}</small></strong><small>${hint}</small></article>`).join('')}</div>`; }
+  const perf = (equipment=machines()) => MSA.performance.calculate(filteredState(),equipment,...bounds());
+  const duration = seconds => seconds==null?'—':num(seconds/60)+' min';
+  const machineLink = id => `<a class="ops-link" href="#mapa-planta/@${encodeURIComponent(id)}">${esc(machineName(id))}</a>`;
+  const pageLink = (area,id,label) => `<a class="ops-link" href="#${area}/${encodeURIComponent(id)}">${label}</a>`;
+  function kpis(items){return `<div class="ops-grid ops-summary">${items.map(([label,value,unit,hint])=>`<article class="ops-stat"><span>${label}</span><strong>${value} <small class="ops-unit">${unit}</small></strong><small>${hint||''}</small></article>`).join('')}</div>`;}
+  function performanceStats(){const x=perf();return kpis([['Produtividade',x.productivity==null?'—':num(x.productivity),'%','Aprovadas / meta acumulada do período'],['OEE',x.efficiency?num(x.efficiency.oee):'—','%','Disponibilidade × desempenho × qualidade'],['MTBF',duration(x.mtbf),'','Operação / falhas encerradas'],['MTTR',duration(x.mttr),'','Tempo de reparo / falhas encerradas']]);}
+  function productionStats(){const x=perf(),s=summary();return kpis([['Peças aprovadas',num(x.good),'peças','Volume apontado nos equipamentos'],['Planejado no período',num(x.target),'peças','Metas das janelas apontadas'],['Produtividade',x.productivity==null?'—':num(x.productivity),'%','Aprovadas / planejado'],['Ordens em produção',new Set(s.producao.map(r=>r.ordem||r.lote)).size,'','Rastreabilidade por máquina e lote']]);}
+  function shiftComparison(){return table(['Turno','Horário ilustrativo','Aprovadas','Planejado','Produtividade','Refugos'],MSA.shifts.definitions.map(t=>{const scoped=MSA.shifts.filter(state,t.id),x=MSA.performance.calculate(scoped,machines(),...bounds());return[`${t.label}${shiftFilter===t.id?' · selecionado':''}`,t.hours,num(x.good),x.target?num(x.target):'—',x.productivity==null?'—':num(x.productivity)+'%',num(x.rejected)];}));}
+  function qualityStats(){const x=summary();return kpis([['Refugos',num(x.refugos),'peças','Peças rejeitadas'],['Taxa de refugo',x.taxaRefugo==null?'—':num(x.taxaRefugo),'%','Refugos / (aprovadas + refugos)'],['Peças segregadas',num(x.suspeitas),'peças','Aguardando decisão da Qualidade'],['Perda de material',num(x.kg),'kg','Material de ajuste e descarte']]);}
+  function stopStats(){const x=perf();return kpis([['Tempo de parada',num(x.downtime/60),'min','Intervalos sem sobreposição'],['Paradas abertas',summary().abertas.length,'','Situação atual da operação'],['MTBF',duration(x.mtbf),'','Operação / falhas encerradas'],['MTTR',duration(x.mttr),'','Reparos concluídos no período']]);}
+  function groupedReasons(collection){const groups=new Map();for(const r of records(collection)){if(collection==='perdas'&&r.tipo!=='refugo')continue;const n=collection==='paradas'?Math.max(0,(r.fim||state.scenarioAt||Date.now())-r.inicio)/60000:r.quantidade;groups.set(r.motivo,(groups.get(r.motivo)||0)+n);}const rows=[...groups].sort((a,b)=>b[1]-a[1]);return table(['Motivo',collection==='paradas'?'Duração':'Quantidade'],rows.map(([m,n])=>[esc(m),num(n)+(collection==='paradas'?' min':' peças')]));}
+  function hourlyPanel(){const hours=MSA.performance.hourly(filteredState(),machines(),...bounds());return table(['Hora / período','Aprovadas','Planejado','Produtividade'],hours.sort((a,b)=>b.time-a.time).map(h=>{const value=h.target?h.goodCount/h.target*100:null;return[time(h.time)+'<small>Janela de 1 hora</small>',num(h.goodCount),num(h.target),`<div class="hour-progress"><div class="ops-bar-track"><div class="ops-bar-fill" style="width:${Math.min(100,value||0)}%"></div></div><strong>${value==null?'—':num(value)+'%'}</strong></div>`];}));}
+  function efficiencyRows(){return machines().map(m=>{const x=perf([m]);return[machineLink(m.id),x.productivity==null?'—':num(x.productivity)+'%',x.efficiency?num(x.efficiency.oee)+'%':'—',x.efficiency?num(x.efficiency.availability)+'%':'—',x.efficiency?num(x.efficiency.performance)+'%':'—',x.efficiency?num(x.efficiency.quality)+'%':'—',duration(x.mtbf),duration(x.mttr)];});}
+  function criticalMachine(){const m=machines().find(m=>m.id==='NHPL');if(!m)return '';const x=perf([m]),sample=state.demo?MSA.performance.sample(m,state):{order:x.production.at(-1)?.ordem,batch:x.production.at(-1)?.lote,alarms:[]};return panel('NHPL · Equipamento principal',`<div class="critical-machine"><div><strong>${machineLink(m.id)}</strong><p>Montagem de abafadores VGARD HP / MARK V</p><p>${esc(sample.order||'—')} · ${esc(sample.batch||'—')} · 1º turno</p></div><div><strong>${num(x.good)} peças</strong><p>Produtividade ${num(x.productivity)}% · OEE ${x.efficiency?num(x.efficiency.oee)+'%':'—'}</p><p>${esc(sample.alarms[0]?.description||'Sem alerta ativo')}</p></div></div>`,pageLink('producao',m.id,'Ver hora a hora'));}
+  function previousDay(){const start=new Date(state.scenarioAt||Date.now());start.setDate(start.getDate()-1);start.setHours(0,0,0,0);const end=+start+86400000,x=MSA.performance.calculate(state,machines(),+start,end);return panel('Dia anterior · preparação da reunião',`<div class="previous-day"><span>${day(+start)}</span><strong>${num(x.good)} peças aprovadas</strong><span>${num(x.downtime/60)} min de parada · ${num(x.rejected)} refugos</span><p>Prioridade do dia: verificar abastecimento, conferir desvios de processo e acompanhar reincidência na NHPL.</p></div>`);}
   function verification(record) { return record.verificado ? `${badge('Conferido','good')}<small>${esc(personName(record.verificadoPor))}</small>` : badge('A conferir'); }
   function rowActions(collection, record) {
-    let actions='';
+    let actions=tabDefinitions[page]?button('Detalhes','record-detail',collection,record.id):'';
     const perms={registrosProducao:'producao:registrar',leituras:'leituras:registrar',paradas:'paradas:registrar',perdas:'perdas:registrar',ocorrencias:'ocorrencias:registrar'};
     if (allowed(perms[collection],record) && !(collection==='ocorrencias' && record.status==='resolvida') && !(collection==='paradas' && record.fim)) actions+=button('Editar','edit',collection,record.id);
     if (!record.verificado && allowed('registros:verificar',record)) actions+=button('Conferir','review',collection,record.id);
+    if(collection==='paradas'&&record.automatica&&allowed('paradas:gerenciar',record))actions+=button('Selecionar motivo','wf-classify','',record.id);
     if (collection==='paradas' && !record.fim && (allowed('paradas:registrar',record)||allowed('paradas:gerenciar',record))) actions+=button('Encerrar','finish',collection,record.id);
     if (collection==='ocorrencias' && record.status!=='resolvida' && allowed('ocorrencias:gerenciar',record)) actions+=button('Resolver','resolve',collection,record.id);
     return actions ? `<div class="row-actions">${actions}</div>` : '—';
   }
-  function productionTable(list = records('registrosProducao')) { return table(['Período / turno','Máquina / lote','Aprovadas','Responsável','Conferência','Ações'],list.map(r=>[`${time(r.inicio)}<small>até ${time(r.fim)} · ${esc(r.turno)}º turno</small>`,`${esc(machineName(r.maquinaId))}<small>${esc(r.produto)} · ${esc(r.lote)}</small>`,num(r.quantidade),responsible(r),verification(r),rowActions('registrosProducao',r)])); }
-  function readingTable() { return table(['Data / lote','Máquina','Valores registrados','Responsável','Conferência','Ações'],records('leituras').map(r=>[`${time(r.data)}<small>${esc(r.lote)}</small>`,esc(machineName(r.maquinaId)),Object.entries(r.valores||{}).map(([key,value])=>{const p=state.maquinas.find(m=>m.id===r.maquinaId)?.parametros?.[key];return `${esc(p?.nome||key)}: ${num(value)} ${esc(p?.unidade||'')}`;}).join('<br>'),responsible(r),verification(r),rowActions('leituras',r)])); }
-  function stopTable() { return table(['Início / fim','Máquina','Motivo / causa','Duração','Responsável','Conferência','Ações'],records('paradas').map(r=>[`${time(r.inicio)}<small>${r.fim?time(r.fim):'Em andamento'}</small>`,esc(machineName(r.maquinaId)),`${esc(r.motivo)}<small>${esc(r.causa||'')}</small>`,num(Math.max(0,(r.fim||Date.now())-r.inicio)/60000)+' min',responsible(r),verification(r),rowActions('paradas',r)])); }
-  function lossTable() { return table(['Data / lote','Máquina','Tipo','Quantidade','Motivo','Responsável','Conferência','Ações'],records('perdas').map(r=>[`${time(r.data)}<small>${esc(r.produto)} · ${esc(r.lote)}</small>`,esc(machineName(r.maquinaId)),badge({refugo:'Refugo',perda:'Perda de material',suspeito:'Peças suspeitas'}[r.tipo],r.tipo==='suspeito'?'warning':''),`${num(r.quantidade)} ${esc(r.unidade)}`,esc(r.motivo),responsible(r),verification(r),rowActions('perdas',r)])); }
-  function occurrenceTable() { return table(['Data','Máquina','Ocorrência / ação','Prioridade','Situação','Responsável','Ações'],records('ocorrencias').map(r=>[time(r.data),esc(machineName(r.maquinaId)),`${esc(r.descricao)}<small>${esc(r.resolucao||'')}</small>`,badge(r.prioridade,r.prioridade==='alta'?'danger':''),badge(r.status,r.status==='resolvida'?'good':'warning'),responsible(r),rowActions('ocorrencias',r)])); }
+  function lazyRows(list,build){return list.map(r=>({search:[r.maquinaId,machineName(r.maquinaId),r.lote,r.ordem,r.produto,r.motivo,r.causa,r.observacao,MSA.shifts.definitions.find(t=>t.id===r.turno)?.label,r.valores?Object.keys(r.valores).map(k=>state.maquinas.find(m=>m.id===r.maquinaId)?.parametros?.[k]?.nome||k).join(' '):''].join(' '),cells:()=>build(r)}));}
+  function productionTable(list = records('registrosProducao')) { return table(['Período / turno','Máquina / lote','Aprovadas','Responsável','Conferência','Ações'],lazyRows(list,r=>[`${time(r.inicio)}<small>até ${time(r.fim)} · ${esc(r.turno)}º turno</small>`,`${machineLink(r.maquinaId)}<small>${esc(r.produto)} · ${esc(r.lote)} · ${esc(r.ordem||"Ordem não informada")}</small>`,num(r.quantidade),(tabDefinitions[page]?'':responsible(r)),(tabDefinitions[page]?'':verification(r)),rowActions('registrosProducao',r)])); }
+  function readingTable() { return table(['Data / lote','Máquina','Valores registrados','Responsável','Conferência','Ações'],lazyRows(records('leituras'),r=>[`${time(r.data)}<small>${esc(r.lote)}</small>`,machineLink(r.maquinaId),Object.entries(r.valores||{}).map(([key,value])=>{const p=state.maquinas.find(m=>m.id===r.maquinaId)?.parametros?.[key];return `${esc(p?.nome||key)}: ${num(value)} ${esc(p?.unidade||'')}`;}).join('<br>'),(tabDefinitions[page]?'':responsible(r)),(tabDefinitions[page]?'':verification(r)),rowActions('leituras',r)])); }
+  function stopTable(list=records('paradas')) { return table(['Início / fim','Máquina','Motivo / causa','Duração','Responsável','Conferência','Ações'],lazyRows(list,r=>[`${new Date(r.inicio).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'medium'})}<small>${r.fim?new Date(r.fim).toLocaleTimeString('pt-BR'):'Em andamento'}</small>`,machineLink(r.maquinaId),`${esc(r.motivo)}<small>${esc(r.causa||'')}</small>`,num(Math.max(0,(r.fim||state.scenarioAt||Date.now())-r.inicio)/1000)+' s',(tabDefinitions[page]?'':responsible(r)),(tabDefinitions[page]?'':verification(r)),rowActions('paradas',r)])); }
+  function lossTable(list=records('perdas')) { return table(['Data / lote','Máquina','Tipo','Quantidade','Motivo','Responsável','Conferência','Ações'],lazyRows(list,r=>[`${time(r.data)}<small>${esc(r.produto)} · ${esc(r.lote)} · ${esc(r.ordem||"Ordem não informada")}</small>`,machineLink(r.maquinaId),badge({refugo:'Refugo',perda:'Perda de material',suspeito:'Peças suspeitas'}[r.tipo],r.tipo==='suspeito'?'warning':''),`${num(r.quantidade)} ${r.unidade==='pecas'?'peças':esc(r.unidade)}`,esc(r.motivo),(tabDefinitions[page]?'':responsible(r)),(tabDefinitions[page]?'':verification(r)),rowActions('perdas',r)])); }
+  function occurrenceTable() { return table(['Data','Máquina','Ocorrência / ação','Prioridade','Situação','Responsável','Ações'],records('ocorrencias').map(r=>[time(r.data),machineLink(r.maquinaId),`${esc(r.descricao)}<small>${esc(r.resolucao||'')}</small>`,badge(r.prioridade,r.prioridade==='alta'?'danger':''),badge(r.status,r.status==='resolvida'?'good':'warning'),responsible(r),rowActions('ocorrencias',r)])); }
   function alerts(equipment = machines()) {
     const ids=new Set(equipment.map(m=>m.id));
+    const now=state.scenarioAt||Date.now(),start=new Date(now).setHours(0,0,0,0),end=new Date(start);end.setDate(end.getDate()+1);
+    if(state.atendimentosAlertas)return state.atendimentosAlertas.filter(r=>ids.has(r.maquinaId)&&r.status!=='resolvido').map(r=>[badge(r.tipo,'warning'),machineLink(r.maquinaId),esc(r.descricao)+'<small>'+esc(MSA.workflows.alertStatus[r.status])+' · '+esc(r.destinatario)+'</small>',time(r.createdAt),pageLink('notificacoes',r.maquinaId,'Acompanhar ação')]);
     return [
-      ...state.paradas.filter(r=>ids.has(r.maquinaId)&&!r.fim).map(r=>[badge('Parada aberta','danger'),esc(machineName(r.maquinaId)),esc(r.motivo),time(r.inicio),'<a class="ops-link" href="#paradas">Ver paradas</a>']),
-      ...state.ocorrencias.filter(r=>ids.has(r.maquinaId)&&r.status==='aberta').map(r=>[badge('Ocorrência',r.prioridade==='alta'?'danger':'warning'),esc(machineName(r.maquinaId)),esc(r.descricao),time(r.data),'<a class="ops-link" href="#ocorrencias">Ver ocorrência</a>']),
-      ...MSA.metrics.deviations(state,equipment).map(d=>[badge('Fora do limite','warning'),esc(d.machine.nome),`${esc(d.parameter.nome)}: ${num(d.value)} ${esc(d.parameter.unidade)} (limites ${num(d.parameter.min)} a ${num(d.parameter.max)})`,time(d.record.data),'<a class="ops-link" href="#producao">Ver leituras</a>'])
+      ...equipment.flatMap(m=>{const x=MSA.performance.hourly(state,[m],start,+end).at(-1);const value=x?.target?x.goodCount/x.target*100:null;const recipient=MSA.performance.recipient(value);return recipient?[[badge('Produtividade',value<60?'danger':'warning'),machineLink(m.id),`${num(value)}% · ${esc(recipient)} · ${time(x.time)}. Destinatário previsto.`,time(x.time),pageLink('producao',m.id,'Ver hora a hora')]]:[];}),
+      ...state.paradas.filter(r=>ids.has(r.maquinaId)&&!r.fim).map(r=>[badge('Parada aberta','danger'),machineLink(r.maquinaId),esc(r.motivo),time(r.inicio),pageLink('paradas',r.maquinaId,'Ver paradas')]),
+      ...state.ocorrencias.filter(r=>ids.has(r.maquinaId)&&r.status==='aberta').map(r=>[badge('Ocorrência',r.prioridade==='alta'?'danger':'warning'),machineLink(r.maquinaId),esc(r.descricao),time(r.data),pageLink('ocorrencias',r.maquinaId,'Ver ocorrência')]),
+      ...MSA.metrics.deviations(state,equipment).map(d=>[badge('Fora do limite','warning'),esc(d.machine.nome),`${esc(d.parameter.nome)}: ${num(d.value)} ${esc(d.parameter.unidade)} (limites ${num(d.parameter.min)} a ${num(d.parameter.max)})`,time(d.record.data),pageLink('producao',d.machine.id,'Ver leituras')])
     ];
   }
-  function byMachine() { return machines().map(m=>({machine:m,s:MSA.metrics.summarize(state,[m],...bounds())})); }
-  function performanceRows() { return byMachine().map(({machine:m,s})=>[`${esc(m.nome)}<small>${esc(sectorName(m.setorId))}</small>`,num(s.meta),num(s.aprovadas),s.atendimento===null?'—':num(s.atendimento)+'%',num(s.refugos),num(s.kg)+' kg',num(s.minutos)+' min']); }
+  function byMachine() { return machines().map(m=>({machine:m,s:MSA.metrics.summarize(filteredState(),[m],...bounds())})); }
+  function performanceRows() { return byMachine().map(({machine:m,s})=>[`${machineLink(m.id)}<small>${esc(sectorName(m.setorId))}</small>`,num(s.meta),num(s.aprovadas),s.atendimento===null?'—':num(s.atendimento)+'%',num(s.refugos),num(s.kg)+' kg',num(s.minutos)+' min']); }
   function comparison() {
     const data=byMachine();
     return data.length ? `<div class="ops-bars">${data.map(({machine:m,s})=>`<div class="ops-bar"><span>${esc(m.nome)}</span><div class="ops-bar-track" role="meter" aria-label="Atendimento da meta ${esc(m.nome)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100,s.atendimento||0)}"><div class="ops-bar-fill" style="width:${Math.min(100,s.atendimento||0)}%"></div></div><span>${num(s.aprovadas)} / ${num(s.meta)} peças</span></div>`).join('')}</div>` : empty('Cadastre as máquinas e registre a produção.');
@@ -94,7 +144,7 @@
   function machineRegister() {
     const rows=byMachine();
     if(!rows.length)return empty('Cadastre uma máquina em Máquinas ou prepare o catálogo em Configurações.');
-    return `<div class="machine-register"><div class="machine-register-heading" aria-hidden="true"><span>Equipamento / processo</span><span>Registro de parada</span><span>Aprovadas</span><span>Meta do período</span></div>${rows.map(({machine:m,s})=>`<article class="machine-register-row"><div class="machine-identity"><strong>${esc(m.id)}</strong><span>${esc(m.nome)}</span><small>${esc(m.processo)}${m.processo===sectorName(m.setorId)?'':' / '+esc(sectorName(m.setorId))}</small></div><div class="machine-condition">${s.abertas.length?badge('Parada aberta','danger'):badge('Sem parada aberta','good')}</div><div class="machine-output"><span class="mobile-label">Aprovadas</span><strong>${num(s.aprovadas)}</strong><small>peças</small></div>${machineProgress(m,s)}</article>`).join('')}</div>`;
+    return `<div class="machine-register"><div class="machine-register-heading" aria-hidden="true"><span>Equipamento / processo</span><span>Registro de parada</span><span>Aprovadas</span><span>Meta do período</span></div>${rows.map(({machine:m,s})=>`<article class="machine-register-row"><div class="machine-identity"><strong>${machineLink(m.id)}</strong><span>${esc(m.nome)}</span><small>${esc(m.processo)}${m.processo===sectorName(m.setorId)?'':' / '+esc(sectorName(m.setorId))}</small></div><div class="machine-condition">${s.abertas.length?badge('Parada aberta','danger'):badge('Sem parada aberta','good')}</div><div class="machine-output"><span class="mobile-label">Aprovadas</span><strong>${num(s.aprovadas)}</strong><small>peças</small></div>${machineProgress(m,s)}</article>`).join('')}</div>`;
   }
   function attention() {
     const list=alerts(),stopped=new Set(summary().abertas.map(r=>r.maquinaId)).size;
@@ -107,7 +157,7 @@
   }
   function overview() {
     const actions=allowed('producao:registrar')?button('Registrar produção','new','registrosProducao','',true):allowed('registros:verificar')?'<a class="secondary-button" href="#conferencia">Conferir registros</a>':'<a class="secondary-button" href="#indicadores">Ver indicadores</a>';
-    return toolbar(actions)+attention()+stats()+`<div class="overview-layout"><section class="overview-machines"><div class="ops-panel-heading"><h2>Máquinas em acompanhamento</h2><a class="ops-link" href="#maquinas">Ver equipamentos</a></div>${machineRegister()}<p class="ops-note equipment-note">Estados baseados nas paradas registradas. Sem leitura automática dos equipamentos.</p></section><aside class="overview-pending"><h2>Pendências da operação</h2>${pendingList()}</aside></div>`;
+    return toolbar(actions)+attention()+performanceStats()+criticalMachine()+previousDay()+`<div class="overview-layout"><section class="overview-machines"><div class="ops-panel-heading"><h2>Máquinas em acompanhamento</h2><a class="ops-link" href="#maquinas">Ver equipamentos</a></div>${machineRegister()}<p class="ops-note equipment-note">Condições e contagens compartilham a mesma fonte do Mapa da Planta.</p></section><aside class="overview-pending"><h2>Pendências da operação</h2>${pendingList()}</aside></div>`;
   }
   function parameterRegister(machine) {
     const parameters=Object.entries(machine.parametros||{});
@@ -115,16 +165,47 @@
     if(!parameters.length)return '<p class="ops-note">Parâmetros ainda não configurados.</p>';
     return `<details class="machine-parameters"><summary>Parâmetros de processo <span>${parameters.length}</span></summary><p class="ops-note">${latest?'Último apontamento: '+time(latest.data):'Sem leituras registradas.'}</p>${table(['Parâmetro','Última leitura','Limites configurados'],parameters.map(([key,p])=>{const value=latest?.valores?.[key],hasValue=value!==undefined;const deviates=hasValue&&(value<p.min||value>p.max);return[esc(p.nome),`${hasValue?num(value)+' '+esc(p.unidade):'Sem registro'}${deviates?'<small class="parameter-deviation">Fora do limite</small>':''}`,`${num(p.min)} a ${num(p.max)} ${esc(p.unidade)}`];}))}</details>`;
   }
-  function machineCards() {
-    return `<div class="machine-grid">${machines().map(m=>`<article class="machine-card"><header><div><span class="equipment-code">${esc(m.id)}</span><h2>${esc(m.nome)}</h2><p class="ops-muted">${esc(sectorName(m.setorId))}</p></div>${state.paradas.some(r=>r.maquinaId===m.id&&!r.fim)?badge('Parada registrada','danger'):badge('Sem parada aberta','good')}</header><dl><dt>Processo</dt><dd>${esc(m.processo)}</dd><dt>Produto</dt><dd>${esc(m.produto)}</dd><dt>Meta diária</dt><dd>${num(m.metaDiaria)} peças</dd></dl>${parameterRegister(m)}<div class="ops-actions">${allowed('maquinas:gerenciar',m)?button('Editar máquina','machine','',''+m.id):''}${allowed('metas:gerenciar',m)?button('Alterar meta','target','',m.id):''}</div></article>`).join('')}</div>`;
+  function catalogueInfo(m){
+    const at=state.scenarioAt||Date.now(),start=new Date(at).setHours(0,0,0,0),end=new Date(start);end.setDate(end.getDate()+1);
+    const sum=MSA.metrics.summarize(state,[m],start,+end),open=state.paradas.find(r=>r.maquinaId===m.id&&!r.fim);
+    if(state.demo){const sample=MSA.performance.sample(m,state);return{machine:m,status:sample.state,statusLabel:MSA.telemetry.states[sample.state],alarms:sample.alarms.length,good:sample.goodCount,rejected:sample.rejectedCount,oee:sample.efficiency?.oee??null,summary:sum};}
+    const alarms=MSA.metrics.deviations(state,[m]).length+state.ocorrencias.filter(r=>r.maquinaId===m.id&&r.status==='aberta').length;
+    return{machine:m,status:open?(open.kind||'parada'):'normal',statusLabel:open?MSA.telemetry.states[open.kind||'parada']:'Sem parada aberta',alarms,good:sum.aprovadas,rejected:sum.refugos,oee:MSA.performance.calculate(state,[m],start,+end).efficiency?.oee??null,summary:sum};
+  }
+  function catalogueBadge(entry){return badge(entry.statusLabel,['parada','manutencao'].includes(entry.status)?'danger':entry.status==='setup'?'warning':'good');}
+  function catalogueToolbar(){
+    const available=MSA.config.sectors.filter(s=>user().cargo!=='operador'||s.id===user().setorId);
+    return `<div class="ops-toolbar equipment-toolbar"><label class="equipment-search">Buscar máquina<input id="catalogue-search" type="search" value="${esc(catalogueSearch)}" placeholder="Código, nome ou produto" autocomplete="off" aria-controls="equipment-results"></label><label>Setor<select id="catalogue-sector" ${user().cargo==='operador'?'disabled':''}>${user().cargo==='chefe'?'<option value="todos">Todos os setores</option>':''}${available.map(s=>`<option value="${esc(s.id)}" ${sector===s.id?'selected':''}>${esc(s.nome)}</option>`).join('')}</select></label><label>Situação<select id="catalogue-status">${[['todos','Todas'],['normal','Em operação / sem parada'],['parada','Parada'],['setup','Setup'],['manutencao','Manutenção'],['alerta','Com alertas']].map(([v,label])=>`<option value="${v}" ${catalogueStatus===v?'selected':''}>${label}</option>`).join('')}</select></label><label>Ordenar por<select id="catalogue-order">${[['priority','Prioridade operacional'],['code','Código da máquina'],['output','Produção de hoje']].map(([v,label])=>`<option value="${v}" ${catalogueOrder===v?'selected':''}>${label}</option>`).join('')}</select></label></div>`;
+  }
+  function catalogueTable(entries){
+    return `<div class="ops-table-wrap equipment-table" role="region" tabindex="0" aria-label="Máquinas encontradas"><table class="ops-table"><thead><tr>${['Equipamento','Setor / processo','Situação','Aprovadas hoje','Meta diária','OEE hoje','Acesso'].map((h,i)=>`<th scope="col" ${[3,4,5].includes(i)?'class="numeric"':''}>${h}</th>`).join('')}</tr></thead><tbody>${entries.map(e=>{const m=e.machine;return `<tr class="equipment-row" data-equipment-id="${esc(m.id)}"><td class="equipment-identity"><span class="equipment-code">${esc(m.id)}</span><strong>${machineLink(m.id)}</strong><small>${esc(m.produto||'Produto não informado')}</small></td><td class="equipment-process"><span class="equipment-mobile-label" aria-hidden="true">Setor / processo</span>${esc(sectorName(m.setorId))}<small>${m.processo===sectorName(m.setorId)?'':esc(m.processo)}</small></td><td class="equipment-condition"><span class="equipment-mobile-label" aria-hidden="true">Situação</span>${catalogueBadge(e)}${e.alarms?`<small class="equipment-alert-count">${e.alarms} ${e.alarms===1?'alerta':'alertas'}</small>`:''}</td><td class="numeric"><span class="equipment-mobile-label" aria-hidden="true">Aprovadas hoje</span><strong>${num(e.good)}</strong><small>peças</small></td><td class="numeric"><span class="equipment-mobile-label" aria-hidden="true">Meta diária</span>${num(m.metaDiaria)}<small>peças</small></td><td class="numeric"><span class="equipment-mobile-label" aria-hidden="true">OEE hoje</span>${e.oee===null?'—':num(e.oee)+'%'}</td><td class="equipment-actions"><div class="row-actions">${button('Detalhes','machine-detail','',m.id)}<a class="ops-link" href="#mapa-planta/@${encodeURIComponent(m.id)}">Ver no mapa</a></div></td></tr>`;}).join('')}</tbody></table></div>`;
+  }
+  function machinesPage(){
+    const base=machines().map(catalogueInfo),query=normalize(catalogueSearch);
+    const entries=base.filter(e=>(!query||normalize([e.machine.id,e.machine.nome,e.machine.produto,sectorName(e.machine.setorId)].join(' ')).includes(query))&&(catalogueStatus==='todos'||catalogueStatus==='alerta'&&e.alarms>0||catalogueStatus==='normal'&&['operando','normal'].includes(e.status)||e.status===catalogueStatus));
+    const priority=e=>['parada','manutencao','setup'].includes(e.status)?3:e.alarms?2:e.machine.id==='NHPL'?1:0;
+    entries.sort((a,b)=>catalogueOrder==='output'?b.good-a.good||a.machine.id.localeCompare(b.machine.id):catalogueOrder==='priority'?priority(b)-priority(a)||a.machine.id.localeCompare(b.machine.id):a.machine.id.localeCompare(b.machine.id));
+    const totalPages=Math.max(1,Math.ceil(entries.length/catalogueSize));cataloguePage=Math.min(cataloguePage,totalPages);
+    const start=(cataloguePage-1)*catalogueSize,list=entries.slice(start,start+catalogueSize);
+    const counters=kpis([['Equipamentos encontrados',entries.length,'',`${base.length} no contexto selecionado`],['Em operação',entries.filter(e=>['operando','normal'].includes(e.status)).length,'',state.demo?'Cenário atual da planta':'Sem parada aberta registrada'],['Em intervenção',entries.filter(e=>['parada','manutencao','setup'].includes(e.status)).length,'','Parada, setup ou manutenção'],['Com alertas',entries.filter(e=>e.alarms>0).length,'','Produtividade, processo ou ocorrência']]);
+    const reset=button('Limpar filtros','catalogue-reset');
+    const navigation=entries.length?`<nav class="equipment-pagination" aria-label="Páginas das máquinas"><span id="equipment-results-count" role="status">${start+1}–${Math.min(start+catalogueSize,entries.length)} de ${entries.length} equipamentos</span><div><button type="button" class="secondary-button" data-action="catalogue-page" data-id="${cataloguePage-1}" ${cataloguePage===1?'disabled':''}>Anterior</button><span>Página ${cataloguePage} de ${totalPages}</span><button type="button" class="secondary-button" data-action="catalogue-page" data-id="${cataloguePage+1}" ${cataloguePage===totalPages?'disabled':''}>Próxima</button></div></nav>`:'';
+    const results=list.length?catalogueTable(list):`<div class="ops-empty"><strong>Nenhuma máquina encontrada</strong>Altere a busca ou a situação selecionada.<div class="ops-actions">${reset}</div></div>`;
+    return catalogueToolbar()+counters.replace('class="ops-summary"','class="ops-summary equipment-summary"')+`<section class="ops-panel equipment-catalogue" id="equipment-results"><div class="ops-panel-heading"><h2>Equipamentos ${sector==='todos'?'da planta':'· '+esc(sectorName(sector))}</h2><div class="ops-actions">${reset}${allowed('maquinas:gerenciar')?button('Cadastrar máquina','machine','','',true):''}<a class="ops-link" href="#mapa-planta">Abrir mapa da planta</a></div></div>${results}${navigation}</section><p class="ops-note">Produção e OEE mostram o dia atual. Abra Detalhes para consultar parâmetros e acessar os painéis do equipamento.</p>`;
+  }
+  function machineDetails(id){
+    const m=state.maquinas.find(m=>m.id===id);if(!m||!MSA.rbac.inScope(user(),m))throw new Error('Máquina indisponível neste acesso.');
+    const e=catalogueInfo(m);
+    const details=`<section class="equipment-detail full"><div class="equipment-detail-heading"><div><span class="equipment-code">${esc(m.id)}</span><p>${esc(sectorName(m.setorId))}</p></div>${catalogueBadge(e)}</div>${kpis([['Aprovadas hoje',num(e.good),'peças','Contagem do equipamento'],['Meta diária',num(m.metaDiaria),'peças','Meta cadastrada'],['OEE hoje',e.oee===null?'—':num(e.oee),'%',e.oee===null?'Sem base completa para cálculo':'Disponibilidade × desempenho × qualidade'],['Alertas ativos',e.alarms,'','Pendências atuais']])}<dl class="profile-details"><dt>Processo</dt><dd>${esc(m.processo)}</dd><dt>Produto</dt><dd>${esc(m.produto)}</dd><dt>Refugos hoje</dt><dd>${num(e.rejected)} peças</dd><dt>Tempo de parada</dt><dd>${num(e.summary.minutos)} min</dd></dl>${parameterRegister(m).replace('class="machine-parameters"','class="machine-parameters" open')}<nav class="equipment-detail-links" aria-label="Painéis do equipamento"><a class="ops-link" href="#mapa-planta/@${encodeURIComponent(id)}">Ver no mapa</a>${pageLink('producao',id,'Produção')}${pageLink('paradas',id,'Paradas')}${pageLink('qualidade',id,'Qualidade')}</nav><div class="ops-actions">${allowed('maquinas:gerenciar',m)?button('Editar máquina','machine','',id):''}${allowed('metas:gerenciar',m)?button('Alterar meta','target','',id):''}</div></section>`;
+    open(m.nome,details,null);
   }
   function reviewTable() {
-    const rows=Object.keys(labels).flatMap(key=>records(key).filter(r=>!r.verificado).map(r=>[esc(labels[key]),time(r.data||r.inicio),esc(machineName(r.maquinaId)),responsible(r),esc(r.descricao||r.motivo||r.lote||''),rowActions(key,r)]));
+    const rows=Object.keys(labels).flatMap(key=>records(key).filter(r=>!r.verificado).map(r=>[esc(labels[key]),time(r.data||r.inicio),machineLink(r.maquinaId),responsible(r),esc(r.descricao||r.motivo||r.lote||''),rowActions(key,r)]));
     return table(['Registro','Data','Máquina','Responsável','Referência','Ações'],rows,'Todos os registros deste período foram conferidos ou ainda não há apontamentos.');
   }
   function staffTable() {
     const profiles=state.perfis.filter(p=>user().cargo==='chefe' ? (sector==='todos'||p.setorId===sector) : p.setorId===user().setorId);
-    return table(['Funcionário / RE','Cargo','Setor atual','Máquina em uso','Ações'],profiles.map(p=>[`<strong class="staff-name">${esc(p.nome)}</strong><span class="staff-re">RE ${esc(p.re)}</span>`,esc(MSA.config.roles.find(r=>r.id===p.cargo)?.label||p.cargo),esc(sectorName(p.setorId)||(p.cargo==='chefe'?'Todos os setores':'Ainda não escolhido')),p.maquinaId?`<strong>${esc(p.maquinaId)}</strong><small>${esc(machineName(p.maquinaId))}</small>`:'<span class="ops-muted">Nenhuma selecionada</span>',p.cargo==='operador'&&allowed('funcionarios:atribuir')?button('Vincular máquina','assign','',p.id):'—']));
+    return table(['Funcionário / RE','Cargo','Setor atual','Máquina em uso','Presença / escala','Ações'],profiles.map(p=>[`<strong class="staff-name">${esc(p.nome)}</strong><span class="staff-re">RE ${esc(p.re)}</span>`,esc(MSA.config.roles.find(r=>r.id===p.cargo)?.label||p.cargo),esc(sectorName(p.setorId)||(p.cargo==='chefe'?'Todos os setores':'Ainda não escolhido')),p.maquinaId?`<strong>${esc(p.maquinaId)}</strong><small>${esc(machineName(p.maquinaId))}</small>`:'<span class="ops-muted">Nenhuma selecionada</span>',`${badge(p.presente===false?'Ausente':'Presente',p.presente===false?'warning':'good')}<small>${esc(p.escala||'Turno a informar')}</small>`,p.cargo==='operador'&&allowed('funcionarios:atribuir')?button('Vincular máquina','assign','',p.id):'—']));
   }
   function reports() {
     const [a,b]=bounds();
@@ -139,6 +220,7 @@
       counter.textContent=count>99?'99+':String(count);counter.hidden=!count;
       counter.closest('a').setAttribute('aria-label',count?`Abrir notificações, ${count} pendências`:'Abrir notificações');
     }
+    if(user()&&MSA.alertSound)MSA.alertSound.update((state.atendimentosAlertas||[]).filter(r=>MSA.rbac.inScope(user(),r)&&r.status!=='resolvido'));
     if (!page || !user() || !MSA.rbac.route(page,user())) { content.replaceChildren(); return; }
     if (page==='chat') return;
     if (page==='mapa-planta') { MSA.plant.open(content,{user:user(),sector,state}); return; }
@@ -146,30 +228,49 @@
     if (!state.ready) { content.innerHTML='<div class="ops-empty">Carregando os dados compartilhados…</div>'; return; }
     const s=summary();
     const context=workContext();
-    const hasContext=user().cargo==='chefe'||(user().cargo==='operador'?state.maquinas.some(m=>m.id===user().maquinaId):!!user().setorId);
+    const hasContext=['chefe','qualidade'].includes(user().cargo)||(user().cargo==='operador'?state.maquinas.some(m=>m.id===user().maquinaId):!!user().setorId);
     if (!hasContext && page!=='configuracoes') {
-      content.innerHTML=context+`<div class="ops-empty"><strong>${user().cargo==='operador'?'Escolha a máquina em uso':'Escolha o setor em acompanhamento'}</strong>${user().cargo==='operador'?(state.maquinas.length?'Selecione a máquina em que você está trabalhando. O setor será identificado automaticamente.':'O catálogo está vazio. O Supervisor ou o Chefe pode preparar as máquinas em Configurações.'):'Selecione um setor no topo para acompanhar a operação. Você pode trocar de setor durante o trabalho.'}</div>`;
+      const focused=content.contains(document.activeElement)?document.activeElement:null,focusData=focused?.dataset;
+    content.innerHTML=context+`<div class="ops-empty"><strong>${user().cargo==='operador'?'Escolha a máquina em uso':'Escolha o setor em acompanhamento'}</strong>${user().cargo==='operador'?(state.maquinas.length?'Selecione a máquina em que você está trabalhando. O setor será identificado automaticamente.':'O catálogo está vazio. O Supervisor ou o Chefe pode preparar as máquinas em Configurações.'):'Selecione um setor no topo para acompanhar a operação. Você pode trocar de setor durante o trabalho.'}</div>`;
       return;
     }
     let html='';
     if (page==='visao-geral') html=overview();
-    if (page==='producao') html=toolbar()+stats(s)+panel('Planejado e realizado',table(['Máquina / setor','Meta do período','Aprovadas','Atendimento','Refugos','Material','Paradas'],performanceRows()))+panel('Apontamentos de produção',productionTable())+panel('Histórico de parâmetros',readingTable());
-    if (page==='apontamentos') html=toolbar(button('Registrar produção','new','registrosProducao','',true)+button('Registrar parâmetros','new','leituras'))+panel('Minha máquina',`<p>${esc(machineName(user().maquinaId))} · ${esc(sectorName(user().setorId))}</p><p class="ops-note">Informe as peças aprovadas de cada período. Registre refugos e material perdido em Qualidade. Os dados ficam disponíveis para o Supervisor e o Chefe assim que o Firebase confirma o envio.</p>`)+panel('Produção registrada',productionTable())+panel('Parâmetros registrados',readingTable());
-    if (page==='paradas') html=toolbar(allowed('paradas:registrar')?button('Registrar parada','new','paradas','',true):'')+stats(s)+panel('Histórico de paradas',stopTable());
-    if (page==='qualidade') html=toolbar(allowed('perdas:registrar')?button('Registrar refugo / perda','new','perdas','',true):'')+stats(s)+panel('Refugos, material e peças suspeitas',`<p class="ops-note">Peças suspeitas: ${num(s.suspeitas)}. Refugos em peças e perdas em kg permanecem separados.</p>${lossTable()}`);
-    if (page==='ocorrencias') html=toolbar(allowed('ocorrencias:registrar')?button('Registrar ocorrência','new','ocorrencias','',true):'')+panel('Ocorrências da operação',occurrenceTable());
-    if (page==='maquinas') html=toolbar(allowed('maquinas:gerenciar')?button('Cadastrar máquina','machine','','',true):'',false)+(machines().length?machineCards():panel('Máquinas',empty('Prepare o catálogo de exemplo em Configurações ou cadastre uma máquina do setor.')))+`<p class="ops-note">A situação usa as paradas registradas pelos operadores. As metas são diárias. </p>`;
-    if (page==='conferencia') html=toolbar(button('Consolidar setor','consolidate','','',true))+stats(s)+panel('Registros a conferir',reviewTable())+panel('Consolidações do setor',reports());
-    if (page==='funcionarios') html=`<div class="staff-context"><strong>${state.perfis.filter(p=>user().cargo==='chefe'?(sector==='todos'||p.setorId===sector):p.setorId===user().setorId).length} funcionários no contexto selecionado</strong><span>A máquina indica o posto atual, sem vínculo permanente com o setor.</span></div>`+panel('Equipe e máquina em uso',staffTable())+'<p class="ops-note">O RE identifica a pessoa. Trocas de máquina ou setor preservam a origem dos apontamentos anteriores.</p>';
+    if (page==='producao') {
+      const sections={
+        resumo:()=>panel('Planejado e realizado',table(['Máquina / setor','Meta do período','Aprovadas','Atendimento','Refugos','Material','Paradas'],performanceRows())),
+        turnos:()=>panel('Comparativo de produção por turno',shiftComparison()+'<p class="ops-note">Compara os três turnos nas datas e máquinas selecionadas. O 3º turno pertence à data em que começa.</p>'),
+        horas:()=>panel('Produção hora a hora',hourlyPanel()+'<p class="ops-note">Mais recentes primeiro. Peças que passam por várias etapas podem ser contabilizadas em mais de uma máquina.</p>'),
+        apontamentos:()=>panel('Apontamentos de produção',productionTable()),
+        parametros:()=>panel('Histórico de parâmetros',readingTable())
+      };
+      html=toolbar()+productionStats()+listSearch()+tabbed(sections[activeTabs[page]]());
+    }
+    if (page==='apontamentos') html=toolbar(button('Registrar produção','new','registrosProducao','',true)+button('Registrar parâmetros','new','leituras'))+productionStats()+panel('Minha máquina',`<p>${esc(machineName(user().maquinaId))} · ${esc(sectorName(user().setorId))}</p><p class="ops-note">Informe as peças aprovadas de cada período. Registre refugos e material perdido em Qualidade. ${state.demo?'Os dados são atualizados nos painéis e no mapa desta apresentação.':'Os dados ficam disponíveis após confirmação do Firebase.'}</p>`)+panel('Produção registrada',productionTable())+panel('Parâmetros registrados',readingTable());
+    if (page==='paradas') {
+      const sections={resumo:()=>panel('Paradas por motivo',groupedReasons('paradas'),button('Ver paradas em andamento','ops-tab','','abertas')),abertas:()=>panel('Paradas em andamento',stopTable(records('paradas').filter(r=>!r.fim))),micro:()=>workflowPanel('micro'),historico:()=>panel('Histórico de paradas',stopTable(records('paradas').filter(r=>r.fim)))};
+      html=toolbar(allowed('paradas:registrar')?button('Registrar parada','new','paradas','',true):'')+stopStats()+listSearch()+tabbed(sections[activeTabs[page]]());
+    }
+    if (page==='qualidade') {
+      const sections={resumo:()=>panel('Refugos por motivo',groupedReasons('perdas'),button('Ver lotes em avaliação','ops-tab','','lotes')),lotes:()=>workflowPanel('lots'),perdas:()=>panel('Refugos, material e peças suspeitas',`<p class="ops-note">Refugos em peças e perdas em kg permanecem separados. Os mais recentes aparecem primeiro; abra Detalhes para consultar responsável e observações.</p>${lossTable()}`),historico:()=>workflowPanel('lot-history')};
+      html=toolbar(allowed('perdas:registrar')?button('Registrar refugo / perda','new','perdas','',true):'')+qualityStats()+listSearch()+tabbed(sections[activeTabs[page]]());
+    }
+    if (page==='ocorrencias') html=toolbar(allowed('ocorrencias:registrar')?button('Registrar ocorrência','new','ocorrencias','',true):'')+kpis([['Ocorrências abertas',records('ocorrencias').filter(r=>r.status==='aberta').length,'','Aguardando ação'],['Prioridade alta',records('ocorrencias').filter(r=>r.prioridade==='alta'&&r.status==='aberta').length,'','Apoio da liderança'],['Resolvidas',records('ocorrencias').filter(r=>r.status==='resolvida').length,'','Ação registrada'],['Máquinas envolvidas',new Set(records('ocorrencias').map(r=>r.maquinaId)).size,'','Localizar pelo mapa']])+panel('Ocorrências da operação',occurrenceTable());
+    if (page==='maquinas') html=machinesPage();
+    if (page==='conferencia') html=toolbar(button('Consolidar setor','consolidate','','',true))+kpis([['Registros pendentes',Object.keys(labels).reduce((n,k)=>n+records(k).filter(r=>!r.verificado).length,0),'','Produção, parâmetros e perdas'],['Produção a conferir',records('registrosProducao').filter(r=>!r.verificado).length,'','Conferência por período'],['Paradas a conferir',records('paradas').filter(r=>!r.verificado).length,'','Motivo e duração'],['Consolidações',state.consolidacoes.length,'','Resumo da liderança']])+panel('Registros a conferir',reviewTable())+panel('Consolidações do setor',reports());
+    if(page==='funcionarios')html=workflowPanel('staff');
+    if(page==='passagem')html=workflowPanel('handover');
     if (page==='indicadores') {
       const comparisons=MSA.config.sectors.filter(sec=>sector==='todos'||sec.id===sector).map(sec=>{const x=MSA.metrics.summarize(state,machines().filter(m=>m.setorId===sec.id),...bounds());return[esc(sec.nome),num(x.aprovadas),num(x.meta),x.atendimento===null?'—':num(x.atendimento)+'%',num(x.refugos),num(x.kg)+' kg',num(x.minutos)+' min'];});
-      html=toolbar()+stats(s)+panel('Desempenho por setor',table(['Setor','Aprovadas','Meta','Atendimento','Refugos','Material','Paradas'],comparisons))+panel('Atendimento das metas por máquina',comparison())+panel('Resumo dos supervisores',reports())+'<p class="ops-note">Indicadores calculados a partir dos registros do período. Metas consideram os dias selecionados; não representam OEE. Consolidações usam os dados atuais, inclusive correções posteriores.</p>';
+      html=toolbar()+performanceStats()+panel('Eficiência e confiabilidade por máquina',table(['Máquina','Produtividade','OEE','Disponibilidade','Desempenho','Qualidade','MTBF','MTTR'],efficiencyRows()))+panel('Desempenho por setor',table(['Setor','Aprovadas','Meta','Atendimento','Refugos','Material','Paradas'],comparisons))+panel('Atendimento das metas por máquina',comparison())+panel('Resumo dos supervisores',reports())+'<p class="ops-note">OEE usa tempo planejado, tempo em operação, ciclo ideal e peças aprovadas. MTBF e MTTR consideram falhas encerradas; setup não conta como falha. Metas, ciclos e parâmetros do cenário são ilustrativos.</p>';
     }
-    if (page==='relatorios') html=toolbar(button('Exportar registros CSV','export','','',true))+stats(s)+panel('Consolidações dos supervisores',reports())+panel('Resumo por máquina',table(['Máquina / setor','Meta do período','Aprovadas','Atendimento','Refugos','Material','Paradas'],performanceRows()));
-    if (page==='notificacoes') html=toolbar('',false)+panel('Pendências atuais',table(['Tipo','Máquina','Informação','Desde','Acesso'],alerts(),'Nenhuma pendência registrada nas máquinas do seu acesso.'));
-    if (page==='configuracoes') html=panel('Meu acesso',`<dl class="profile-details"><dt>Nome</dt><dd>${esc(user().nome)}</dd><dt>RE</dt><dd>${esc(user().re)}</dd><dt>Cargo</dt><dd>${esc(MSA.auth.role(user()).label)}</dd><dt>Setor atual</dt><dd>${esc(sectorName(user().setorId)||(user().cargo==='chefe'?'Todos os setores':'Ainda não selecionado'))}</dd><dt>Máquina em uso</dt><dd>${esc(machineName(user().maquinaId)||'Nenhuma selecionada')}</dd></dl>`)+(allowed('maquinas:gerenciar')||allowed('setores:gerenciar')?panel('Preparar apresentação',hasContext?`<p>Cadastre as máquinas de exemplo ${user().cargo==='chefe'?'dos três setores':'do setor em acompanhamento'}. A preparação não cria apontamentos de produção.</p><p class="ops-note">Nomes, metas e limites iniciais são exemplos. Cadastros existentes são preservados.</p><div class="ops-actions">${button('Preparar máquinas de exemplo','seed','','',true)}</div>`:'<p>Selecione um setor no topo para preparar suas máquinas de exemplo.</p>'):'');
-    const hasDemo=['registrosProducao','perdas','paradas','ocorrencias'].some(key=>(state[key]||[]).some(record=>record.id?.startsWith('demo-v1-')));
-    content.innerHTML=context+(hasDemo?'<p class="demo-data-label">Dados de demonstração</p>':'')+html;
+    if (page==='relatorios') html=toolbar(button('Exportar registros CSV','export','','',true))+previousDay()+productionStats()+panel('Consolidações dos supervisores',reports())+panel('Resumo por máquina',table(['Máquina / setor','Meta do período','Aprovadas','Atendimento','Refugos','Material','Paradas'],performanceRows()));
+    if (page==='notificacoes') html=state.atendimentosAlertas?toolbar('',false)+workflowPanel('alerts'):toolbar('',false)+panel('Pendências atuais',table(['Tipo','Máquina','Informação','Desde','Acesso'],alerts(),'Nenhuma pendência registrada nas máquinas do seu acesso.'));
+    if (page==='configuracoes') html=(state.demo?panel('Cenário para apresentação',`<p>Sete dias fictícios; fotografia do dia às 15h. A mesma base abastece painéis e planta. Os dados locais são reiniciados em um novo dia.</p><div class="ops-actions">${button('Restaurar dados fictícios','reset-demo')}<label class="simulation-quality-controls">Chance de refugo por ciclo (simulação)<select id="demo-reject-rate">${[0,2,5,10,25,100].map(v=>`<option value="${v}" ${Math.round(MSA.demo.simulation.rejectRate*100)===v?'selected':''}>${v}%</option>`).join('')}</select></label><label class="simulation-quality-controls">Chance de desvio a cada 30 s (simulação)<select id="demo-deviation-rate">${[0,5,10,25,100].map(v=>`<option value="${v}" ${Math.round(MSA.demo.simulation.deviationRate*100)===v?'selected':''}>${v}%</option>`).join('')}</select></label><a class="ops-link" href="sistema.html?dados=reais">Consultar dados do Firebase</a></div>${MSA.demo?.preview?'<p class="ops-note">Visualizar como: <a href="sistema.html?demonstracao=1&cargo=chefe#visao-geral">Chefe</a> · <a href="sistema.html?demonstracao=1&cargo=supervisor#visao-geral">Supervisor</a> · <a href="sistema.html?demonstracao=1&cargo=operador#visao-geral">Operador</a> · <a href="sistema.html?demonstracao=1&cargo=qualidade#qualidade">Qualidade</a></p>':''}`):'')+panel('Meu acesso',`<dl class="profile-details"><dt>Nome</dt><dd>${esc(user().nome)}</dd><dt>RE</dt><dd>${esc(user().re)}</dd><dt>Cargo</dt><dd>${esc(MSA.auth.role(user()).label)}</dd><dt>Setor atual</dt><dd>${esc(sectorName(user().setorId)||(user().cargo==='chefe'?'Todos os setores':'Ainda não selecionado'))}</dd><dt>Máquina em uso</dt><dd>${esc(machineName(user().maquinaId)||'Nenhuma selecionada')}</dd></dl>`)+(allowed('maquinas:gerenciar')||allowed('setores:gerenciar')?panel('Preparar apresentação',hasContext?`<p>Cadastre as máquinas de exemplo ${user().cargo==='chefe'?'dos três setores':'do setor em acompanhamento'}. A preparação não cria apontamentos de produção.</p><p class="ops-note">Nomes, metas e limites iniciais são exemplos. Cadastros existentes são preservados.</p><div class="ops-actions">${button('Preparar máquinas de exemplo','seed','','',true)}</div>`:'<p>Selecione um setor no topo para preparar suas máquinas de exemplo.</p>'):'');
+    const hasDemo=state.demo||['registrosProducao','perdas','paradas','ocorrencias'].some(key=>(state[key]||[]).some(record=>record.id?.startsWith('demo-v1-')));
+    const focused=content.contains(document.activeElement)?document.activeElement:null,focusData=focused?.dataset;
+    content.innerHTML=context+(hasDemo?`<p class="demo-data-label">Cenário fictício · 1º turno, ${state.live?'base às 15h + ciclos simulados':'fotografia às 15h'}</p>`:'')+html;
+    if(focusData?.action){[...content.querySelectorAll('button[data-action]')].find(b=>b.dataset.action===focusData.action&&b.dataset.id===focusData.id&&b.dataset.tableKey===focusData.tableKey)?.focus({preventScroll:true});}
   }
   function field(name,label,value='',type='text',options='') { return `<label class="ops-field ${type==='textarea'?'full':''}">${esc(label)}${type==='textarea'?`<textarea name="${name}" maxlength="2000" ${options}>${esc(value)}</textarea>`:`<input name="${name}" type="${type}" value="${esc(value)}" ${options}>`}</label>`; }
   function select(name,label,values,value,required=true) { return `<label class="ops-field">${esc(label)}<select name="${name}" ${required?'required':''}>${values.map(([key,text])=>`<option value="${esc(key)}" ${key===value?'selected':''}>${esc(text)}</option>`).join('')}</select></label>`; }
@@ -177,18 +278,32 @@
     if (busy) return;
     form.reset(); submitAction=action; fields.innerHTML=`<div class="ops-form-grid">${html}</div>`; formError.hidden=true;
     document.querySelector('#operation-dialog-title').textContent=title;
+    saveButton.hidden=!action;document.querySelector('#operation-cancel').textContent=action?'Cancelar':'Fechar';
+    updateLossQuantity();
     dialog.showModal();
+  }
+  function recordDetails(collection,id){
+    const r=state[collection]?.find(r=>r.id===id);
+    if(!r||!MSA.rbac.inScope(user(),r))throw new Error('Registro indisponível neste acesso.');
+    const pairs=[['Máquina',machineLink(r.maquinaId)],['Data / início',time(r.data||r.inicio)],...(r.fim?[['Fim',time(r.fim)]]:[]),...(r.turno?[['Turno',esc(r.turno)+'º turno']]:[]),...(r.produto?[['Produto',esc(r.produto)]]:[]),...(r.lote?[['Lote / ordem',esc(r.lote)+' · '+esc(r.ordem||'—')]]:[]),...(r.quantidade!=null?[['Quantidade',num(r.quantidade)+' '+esc(r.unidade==='kg'?'kg':'peças')]]:[]),...(r.valores?[['Valores',Object.entries(r.valores).map(([key,value])=>{const p=state.maquinas.find(m=>m.id===r.maquinaId)?.parametros?.[key];return esc(p?.nome||key)+': '+num(value)+' '+esc(p?.unidade||'');}).join('<br>')]]:[]),...(r.motivo?[['Motivo',esc(r.motivo)]]:[]),...(r.causa?[['Causa / ação',esc(r.causa)]]:[]),['Responsável',responsible(r)],['Conferência',verification(r)],['Observações',esc(r.observacao||'Nenhuma observação registrada.')]];
+    open('Detalhes · '+labels[collection],`<section class="full"><dl class="profile-details">${pairs.map(([label,value])=>`<dt>${label}</dt><dd>${value}</dd>`).join('')}</dl></section>`,null);
+  }
+  function updateLossQuantity(){
+    const type=form.elements.tipo,quantity=form.elements.quantidade;
+    if(!type||!quantity)return;
+    const material=type.value==='perda';quantity.min=material?'0.001':'1';quantity.step=material?'any':'1';
   }
   function operationForm(collection,id='') {
     const existing=id?state[collection].find(r=>r.id===id):null;
-    const machine=state.maquinas.find(m=>m.id===(existing?.maquinaId||user().maquinaId));
+    const machine=state.maquinas.find(m=>m.id===(existing?.maquinaId||user().maquinaId||machineFilter))||(collection==='paradas'&&user().cargo!=='operador'?machines()[0]:null);
     if (!machine) { notify('Sua máquina precisa estar cadastrada antes do apontamento.',true); return; }
     const permissions={registrosProducao:'producao:registrar',leituras:'leituras:registrar',paradas:'paradas:registrar',perdas:'perdas:registrar',ocorrencias:'ocorrencias:registrar'};
     MSA.rbac.require(permissions[collection],user(),existing||machine);
-    const r=existing||{}; const now=Date.now();
+    const r=existing||{}; const now=state.scenarioAt||Date.now();
     let html=`<p class="ops-form-note">${esc(machine.nome)} · ${esc(sectorName(machine.setorId))} · RE ${esc(user().re)}</p>`;
+    if(collection==='paradas'&&user().cargo!=='operador'&&!id)html+=select('maquinaId','Máquina',machines().map(m=>[m.id,m.id+' · '+m.nome]),machine.id);
     if (collection==='registrosProducao') html+=field('quantidade','Peças aprovadas',r.quantidade??'','number','min="0" step="1" required')+select('turno','Turno',[['1','1º turno'],['2','2º turno'],['3','3º turno']],r.turno||'1')+field('inicio','Início do período',dateTimeInput(r.inicio||now-3600000),'datetime-local','required')+field('fim','Fim do período',dateTimeInput(r.fim||now),'datetime-local','required')+field('produto','Produto',r.produto||machine.produto,'text','maxlength="120" required')+field('lote','Lote / ordem de produção',r.lote||'','text','maxlength="80" required');
-    if (collection==='paradas') html+=field('inicio','Início da parada',dateTimeInput(r.inicio||now),'datetime-local','required')+field('fim','Fim (deixe vazio se em andamento)',r.fim?dateTimeInput(r.fim):'','datetime-local')+field('motivo','Motivo da parada',r.motivo||'','text','maxlength="300" required');
+    if (collection==='paradas') html+=field('inicio','Início da parada',secondsTimeInput(r.inicio||now),'datetime-local','step="1" required')+field('fim','Fim (deixe vazio se em andamento)',r.fim?secondsTimeInput(r.fim):'','datetime-local','step="1"')+MSA.workflowUI.reasonFields(workflowContext(),r);
     if (collection==='perdas') html+=select('tipo','Tipo',[['refugo','Refugo em peças'],['perda','Perda de material em kg'],['suspeito','Peças suspeitas / segregadas']],r.tipo||'refugo')+field('quantidade','Quantidade (peças ou kg conforme tipo)',r.quantidade??'','number','min="0.001" step="any" required')+field('data','Data e horário',dateTimeInput(r.data||now),'datetime-local','required')+field('motivo','Motivo',r.motivo||'','text','maxlength="300" required')+field('produto','Produto',r.produto||machine.produto,'text','maxlength="120" required')+field('lote','Lote / ordem',r.lote||'','text','maxlength="80" required');
     if (collection==='ocorrencias') html+=field('data','Data e horário',dateTimeInput(r.data||now),'datetime-local','required')+select('prioridade','Prioridade',[['normal','Normal'],['alta','Alta']],r.prioridade||'normal')+field('descricao','Descrição da ocorrência',r.descricao||'','textarea','required');
     if (collection==='leituras') {
@@ -198,7 +313,7 @@
       html+=parameters.map(([key,p])=>field('valor_'+key,`${p.nome} (${p.unidade}) · ${num(p.min)} a ${num(p.max)}`,r.valores?.[key]??'','number','step="any" required')).join('');
     }
     html+=field('observacao','Observações',r.observacao||'','textarea','maxlength="1000"');
-    open((id?'Editar ':'Registrar ')+labels[collection].toLowerCase(),html,values=>{values.maquinaId=machine.id;if(collection==='leituras')values.valores=Object.fromEntries(Object.keys(machine.parametros).map(key=>[key,values['valor_'+key]]));return MSA.data.save(collection,values,id||undefined);});
+    open((id?'Editar ':'Registrar ')+labels[collection].toLowerCase(),html,async values=>{values.maquinaId=values.maquinaId||machine.id;if(collection==='paradas')Object.assign(values,MSA.workflows.reason(values));if(collection==='leituras')values.valores=Object.fromEntries(Object.keys(machine.parametros).map(key=>[key,values['valor_'+key]]));const result=await MSA.data.save(collection,values,id||undefined);if(!id){if(page==='paradas')activeTabs.paradas=values.fim?'historico':'abertas';if(page==='qualidade')activeTabs.qualidade='perdas';render();}return result;});
   }
   function parameterRow(index,key='',p={}) { return `<div class="ops-parameter"><input type="hidden" name="key_${index}" value="${esc(key)}">${field('nome_'+index,'Parâmetro',p.nome||'','text','maxlength="80"')}${field('unidade_'+index,'Unidade',p.unidade||'','text','maxlength="20"')}${field('min_'+index,'Mínimo',p.min??'','number','step="any"')}${field('max_'+index,'Máximo',p.max??'','number','step="any"')}</div>`; }
   function machineForm(id) {
@@ -208,8 +323,17 @@
     const html=field('codigo','Código',id||'','text',id?'readonly':'maxlength="40" required')+field('nome','Nome da máquina',m.nome||'','text','maxlength="120" required')+field('processo','Processo',m.processo||'','text','maxlength="120" required')+field('produto','Produto',m.produto||'','text','maxlength="120" required')+field('metaDiaria','Meta diária (peças)',m.metaDiaria??0,'number','min="0" step="1" required')+`<p class="ops-form-note">Setor: ${esc(sectorName(user().setorId))}. Configure limites válidos para cada parâmetro. Limpe o nome para remover um parâmetro.</p><input type="hidden" name="paramCount" value="${params.length||1}"><div class="ops-parameter-list" id="ops-parameters">${params.length?params.map(([key,p],index)=>parameterRow(index,key,p)).join(''):parameterRow(0)}</div><div class="ops-actions">${button('Adicionar parâmetro','add-parameter')}</div>`;
     open(id?'Editar máquina':'Cadastrar máquina',html,values=>MSA.data.saveMachine({...values,setorId:user().setorId},id||undefined));
   }
-  async function action(name,collection,id) {
+  async function action(name,collection,id,target) {
+    if(name.startsWith('wf-'))return MSA.workflowUI.handle(name,id,workflowContext(),target);
     if (!user() || !MSA.rbac.route(page,user())) throw new Error('Esta tela não está disponível para seu cargo.');
+    if(name==='record-detail')return recordDetails(collection,id);
+    if(name==='ops-tab'){if(!tabDefinitions[page]?.some(([key])=>key===id))return;activeTabs[page]=id;render();document.querySelector('#ops-tab-'+id)?.focus({preventScroll:true});return;}
+    if(name==='list-search-reset'){listQueries[page]='';resetListPages();render();document.querySelector('#ops-list-search')?.focus({preventScroll:true});return;}
+    if(name==='list-page'){const next=Number(id);if(!Number.isInteger(next)||next<1)return;listPages.set(target.dataset.tableKey,next);render();const nav=[...content.querySelectorAll('[data-list-key]')].find(n=>n.dataset.listKey===target.dataset.tableKey);nav?.closest('.ops-panel')?.scrollIntoView({block:'start'});nav?.querySelector('button:not(:disabled)')?.focus({preventScroll:true});return;}
+    if(name==='machine-detail')return machineDetails(id);
+    if(name==='catalogue-reset'){catalogueSearch='';catalogueStatus='todos';catalogueOrder='priority';cataloguePage=1;machineFilter='';render();return;}
+    if(name==='catalogue-page'){cataloguePage=Number(id);render();document.querySelector('#equipment-results')?.scrollIntoView({block:'start'});return;}
+    if(name==='reset-demo'){MSA.data.reset();notify('Cenário restaurado.');return;}
     if (name==='new'||name==='edit') return operationForm(collection,name==='edit'?id:'');
     if (name==='machine') return machineForm(id);
     if (name==='review') { await MSA.data.review(collection,id); notify('Registro conferido.'); return; }
@@ -217,7 +341,7 @@
     if (name==='resolve') return open('Resolver ocorrência',field('resolucao','Ação realizada','','textarea','maxlength="1000" required'),values=>MSA.data.resolveOccurrence(id,values.resolucao));
     if (name==='target') { const m=state.maquinas.find(m=>m.id===id);MSA.rbac.require('metas:gerenciar',user(),m);return open('Alterar meta diária',field('meta','Peças por dia',m.metaDiaria,'number','min="0" step="1" required'),values=>MSA.data.setTarget(id,values.meta)); }
     if (name==='assign') { const p=state.perfis.find(p=>p.id===id);MSA.rbac.require('funcionarios:atribuir',user());return open('Vincular máquina',`<p class="ops-form-note">${esc(p.nome)} · RE ${esc(p.re)}</p>`+select('maquinaId','Máquina',state.maquinas.filter(m=>m.setorId===p.setorId).map(m=>[m.id,m.nome]),p.maquinaId),values=>MSA.data.assignMachine(id,values.maquinaId)); }
-    if (name==='consolidate') { MSA.rbac.require('consolidacoes:registrar',user()); const [a,b]=bounds(); return open('Consolidar informações do setor',field('inicio','Início',dateTimeInput(a),'datetime-local','required')+field('fim','Fim',dateTimeInput(Math.min(b-60000,Date.now())),'datetime-local','required')+field('observacao','Resumo, causas e pendências','','textarea','maxlength="2000" required'),values=>MSA.data.consolidate(values)); }
+    if (name==='consolidate') { MSA.rbac.require('consolidacoes:registrar',user()); const [a,b]=bounds(); return open('Consolidar informações do setor',field('inicio','Início',dateTimeInput(a),'datetime-local','required')+field('fim','Fim',dateTimeInput(Math.min(b-60000,state.scenarioAt||Date.now())),'datetime-local','required')+field('observacao','Resumo, causas e pendências','','textarea','maxlength="2000" required'),values=>MSA.data.consolidate(values)); }
     if (name==='seed') { await MSA.data.initializeExamples(); notify('Catálogo preparado. Máquinas existentes foram preservadas.');return; }
     if (name==='retry') { await MSA.data.start(user());return; }
     if (name==='export') { MSA.rbac.require('relatorios:ler',user());exportCSV();return; }
@@ -230,6 +354,9 @@
     const a=document.createElement('a');a.href=url;a.download=`MSA-registros-${from}-${to}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   content.addEventListener('change',event=>{
+    if(event.target.id.startsWith('wf-')){resetListPages();MSA.workflowUI.change(event,workflowContext());render();return;}
+    if(event.target.id==='demo-deviation-rate'){MSA.demo.simulation.setDeviationRate(event.target.value);return;}
+    if(event.target.id==='demo-reject-rate'){MSA.demo.simulation.setRejectRate(event.target.value);return;}
     if(page==='mapa-planta')return;
     if (event.target.id==='ops-work-machine') {
       const control=event.target;
@@ -238,6 +365,11 @@
       void MSA.data.changeContext({maquinaId:control.value}).then(()=>notify('Máquina em uso atualizada.')).catch(error=>{notify(error.message,true);render();});
       return;
     }
+    if(event.target.id==='catalogue-sector'){cataloguePage=1;const select=document.querySelector('#sector-selector');select.value=event.target.value;if(user().cargo==='supervisor')event.target.disabled=true;select.dispatchEvent(new Event('change',{bubbles:true}));return;}
+    if(event.target.id==='catalogue-status'){catalogueStatus=event.target.value;cataloguePage=1;}
+    if(event.target.id==='catalogue-order'){catalogueOrder=event.target.value;cataloguePage=1;}
+    resetListPages();
+    if(event.target.id==='ops-shift')shiftFilter=event.target.value;
     if (event.target.id==='ops-machine') machineFilter=event.target.value;
     if (event.target.id==='ops-from'||event.target.id==='ops-to') { const next=event.target.value; if(!/^\d{4}-\d{2}-\d{2}$/.test(next))return;if(event.target.id==='ops-from')from=next;else to=next;if(from>to)to=from; }
     render();
@@ -246,28 +378,35 @@
     const target=event.target.closest('[data-action]');if(!target||busy)return;
     if(target.dataset.action==='add-parameter') { const input=form.elements.paramCount;const index=Number(input.value);if(index>=100)return;document.querySelector('#ops-parameters').insertAdjacentHTML('beforeend',parameterRow(index));input.value=index+1;return; }
     target.disabled=true;
-    try { await action(target.dataset.action,target.dataset.collection,target.dataset.id); }
+    try { await action(target.dataset.action,target.dataset.collection,target.dataset.id,target); }
     catch(error) { notify(error.message,true); }
     finally { target.disabled=false; }
   }
+  content.addEventListener('keydown',event=>{const current=event.target.closest('[role="tab"]');if(!current||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const keys=tabDefinitions[page].map(([key])=>key),index=keys.indexOf(current.dataset.id),next=event.key==='Home'?0:event.key==='End'?keys.length-1:(index+(event.key==='ArrowRight'?1:-1)+keys.length)%keys.length;void action('ops-tab','',keys[next]);});
   content.addEventListener('click',handleAction);fields.addEventListener('click',handleAction);
+  fields.addEventListener('change',event=>{if(event.target.name==='tipo')updateLossQuantity();MSA.workflowUI?.formChange(event,workflowContext());});
+  fields.addEventListener('click',event=>{if(event.target.closest('.equipment-detail-links a'))dialog.close();});
+  content.addEventListener('input',event=>{if(event.target.id==='ops-list-search'){const input=event.target,start=input.selectionStart,end=input.selectionEnd;listQueries[page]=input.value;resetListPages();render();const next=document.querySelector('#ops-list-search');next.focus({preventScroll:true});next.setSelectionRange(start,end);return;}if(event.target.id!=='catalogue-search')return;const start=event.target.selectionStart,end=event.target.selectionEnd;catalogueSearch=event.target.value;cataloguePage=1;render();const input=document.querySelector('#catalogue-search');input.focus({preventScroll:true});input.setSelectionRange(start,end);});
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(!submitAction||busy)return;
     if(!form.reportValidity())return;
     busy=true;saveButton.disabled=true;saveButton.textContent='Salvando…';formError.hidden=true;
-    try { await submitAction(Object.fromEntries(new FormData(form)));dialog.close();notify('Informações salvas no Firebase.'); }
+    try { await submitAction(Object.fromEntries(new FormData(form)));dialog.close();notify(state.demo?'Informações salvas no cenário de apresentação.':'Informações salvas no Firebase.'); }
     catch(error) { formError.textContent=error.message;formError.hidden=false; }
     finally { busy=false;saveButton.disabled=false;saveButton.textContent='Salvar'; }
   });
   const close=()=>{if(!busy)dialog.close();};document.querySelector('#operation-close').addEventListener('click',close);document.querySelector('#operation-cancel').addEventListener('click',close);dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
-  MSA.data.subscribe(next=>{state=next;render();});
+  MSA.data.subscribe(next=>{state=next;if(page!=='mapa-planta'&&content.contains(document.activeElement)&&document.activeElement.matches('input,select,textarea'))return;render();});
   MSA.operations = {
     open(nextPage,nextSector) {
       const u=user();if(!u)return;
       if(nextPage!=='mapa-planta')MSA.plant.close();
       const key=[u.id,u.cargo,u.setorId,u.maquinaId].join('|');
       if(key!==identity || MSA.data.user?.id!==u.id) { identity=key;machineFilter='';if(dialog.open)dialog.close();void MSA.data.start(u); }
-      if(nextPage!==page||nextSector!==sector)machineFilter='';
+      if(nextPage!==page||nextSector!==sector){machineFilter='';cataloguePage=1;resetListPages();listQueries[nextPage]='';}
+      if(nextPage!==page&&dialog.open)dialog.close();
+      const routeId=decodeURIComponent(location.hash.split('/')[1]||'');if(nextPage!=='mapa-planta'&&state.maquinas.some(m=>m.id===routeId&&MSA.rbac.inScope(u,m)&&(nextSector==='todos'||m.setorId===nextSector))){machineFilter=routeId;if(nextPage==='paradas')activeTabs.paradas='abertas';if(nextPage==='qualidade')activeTabs.qualidade='lotes';}
+      if(nextPage==='producao'&&!productionVisited){productionVisited=true;if(state.demo){const d=new Date(state.scenarioAt);d.setDate(d.getDate()-6);from=dateInput(d);to=dateInput(state.scenarioAt);}}
       page=nextPage;sector=nextSector;render();
     }, notify
   };

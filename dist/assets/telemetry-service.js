@@ -145,6 +145,7 @@ window.MSA = window.MSA || {};
   function advanceClock() {
     const now=Date.now();
     if(mode==='simulation'&&!paused){simulationTime+=Math.max(0,now-lastTickAt);simulator.advance(simulationTime);}
+    if(mode==='records'&&!paused&&!MSA.demo?.simulation?.globalClock)MSA.demo?.simulation?.advance(Math.max(0,now-lastTickAt)/1000);
     lastTickAt=now;
   }
   const tick=()=>{advanceClock();emit();};

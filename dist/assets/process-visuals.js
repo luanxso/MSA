@@ -261,6 +261,21 @@
       }
       node.setAttribute('transform',`translate(${x.toFixed(2)} 314)`);
     });
+    const pieces=[...svg.querySelectorAll('[data-line-piece]')];
+    if(sample.recentReject&&instance.rejectId!==sample.recentReject.id){
+      instance.rejectId=sample.recentReject.id;
+      instance.rejectIndex=pieces.reduce((best,node,index)=>{
+        const x=Number(node.getAttribute('transform').match(/translate\(([-\d.]+)/)?.[1]||0);
+        return Math.abs(x-[210,470,730,990,1250][selected])<best.distance?{index,distance:Math.abs(x-[210,470,730,990,1250][selected])}:best;
+      },{index:0,distance:Infinity}).index;
+    }
+    pieces.forEach((node,index)=>{
+      const rejected=!!sample.recentReject&&index===instance.rejectIndex;
+      node.classList.toggle('quality-rejected-piece',rejected);
+      const marker=node.querySelector('[data-refugo-marker]');
+      if(rejected&&!marker)node.insertAdjacentHTML('beforeend','<g data-refugo-marker aria-label="Peça rejeitada"><circle cy="-70" r="11" fill="#b92625" stroke="#ffb7ae" stroke-width="2"/><text y="-64" text-anchor="middle" fill="#fff" font-size="18" font-weight="bold">!</text><text y="-91" text-anchor="middle" class="quality-refugo-mark">Refugo</text></g>');
+      if(!rejected)marker?.remove();
+    });
     instance.kind = kind;
     svg.querySelectorAll('[data-line-selection-tag]').forEach(node => {
       const active = finite(node.dataset.lineSelectionTag,-1) === selected;

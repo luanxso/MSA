@@ -25,7 +25,7 @@ export function createNhplData() {
       }
       const now=new Date(s.updatedAt||Date.now());now.setMinutes(0,0,0);const currentHour=now.getTime();
       s.hourly=simulated?[...observed].map(([time,goodCount])=>({time,goodCount,partial:true})):Array.isArray(s.hourly)?s.hourly:[];
-      if(mode==='records') {
+      if(mode==='records'&&s.source!=='demo-records') {
         const bins=new Map();
         const records=(manualState?.registrosProducao||[]).filter(r=>r.maquinaId===s.id && finite(r.quantidade) && finite(r.fim) && r.fim>=new Date().setHours(0,0,0,0));
         const latest=[...records].sort((a,b)=>b.fim-a.fim)[0];
@@ -35,11 +35,11 @@ export function createNhplData() {
         });
         s.hourly=[...bins].map(([time,goodCount])=>({time,goodCount,partial:true}));
       }
-      s.hourCount=s.hourly.find(h=>h.time===currentHour)?.goodCount ?? null;
+      s.hourCount=s.source==='demo-records'?s.hourly.at(-1)?.goodCount??null:s.hourly.find(h=>h.time===currentHour)?.goodCount??null;
       s.goalRecord=applicableGoal(simulated?config.goals:s.goalHistory||[],s);
       s.stateLabel=s.stale||s.connected===false||s.state==='desconhecido'?'Sem leitura':({operando:'Operando',parada:'Parada',setup:'Setup',manutencao:'Manutenção'})[s.state]||'Sem leitura';
-      s.sourceLabel=simulated?'Simulação':mode==='records'?'Registros manuais do sistema':'Telemetria real · '+(s.sourceLabel||'API / IoT');
-      s.reliability=reliability(s);
+      s.sourceLabel=s.source==='demo-records'?(s.sourceLabel||'Cenário fictício · 15h'):simulated?'Simulação':mode==='records'?'Registros manuais do sistema':'Telemetria real · '+(s.sourceLabel||'API / IoT');
+      s.reliability=s.source==='demo-records'&&s.reliability?s.reliability:reliability(s);
       s.efficiency=s.efficiency||null;
       s.stationStates=s.stationStates||{};
       s.alarms=[...(s.alarms||[])];

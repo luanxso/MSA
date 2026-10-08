@@ -7,10 +7,11 @@ window.MSA = window.MSA || {};
     password: { min: 6, max: 64 },
     roles: [
       { id: 'operador', label: 'Operador', home: 'visao-geral', permissions: [...common, 'apontamentos:ler', 'producao:registrar', 'leituras:registrar', 'paradas:registrar', 'perdas:registrar', 'ocorrencias:registrar'] },
-      { id: 'supervisor', label: 'Supervisor', home: 'visao-geral', permissions: [...common, 'conferencia:ler', 'registros:verificar', 'maquinas:gerenciar', 'funcionarios:ler', 'funcionarios:atribuir', 'relatorios:ler', 'consolidacoes:registrar', 'paradas:gerenciar', 'ocorrencias:gerenciar'] },
-      { id: 'chefe', label: 'Chefe', home: 'visao-geral', permissions: [...common, 'indicadores:ler', 'funcionarios:ler', 'relatorios:ler', 'setores:gerenciar', 'metas:gerenciar'] }
+      { id: 'supervisor', label: 'Supervisor', home: 'visao-geral', permissions: [...common, 'conferencia:ler', 'registros:verificar', 'maquinas:gerenciar', 'funcionarios:ler', 'funcionarios:atribuir', 'relatorios:ler', 'consolidacoes:registrar', 'paradas:gerenciar', 'ocorrencias:gerenciar', 'paradas:registrar', 'passagem:ler', 'passagem:gerenciar', 'alertas:gerenciar'] },
+      { id: 'chefe', label: 'Chefe', home: 'visao-geral', permissions: [...common, 'indicadores:ler', 'funcionarios:ler', 'relatorios:ler', 'setores:gerenciar', 'metas:gerenciar', 'funcionarios:atribuir', 'passagem:ler', 'passagem:gerenciar', 'paradas:registrar', 'paradas:gerenciar', 'alertas:gerenciar'] }
+      ,{ id: 'qualidade', label: 'Qualidade', home: 'qualidade', permissions: [...common, 'relatorios:ler', 'qualidade:decidir', 'alertas:gerenciar'] }
     ],
-    areas: { 'visao-geral': 'Visão geral', 'mapa-planta': 'Mapa da Planta', producao: 'Produção', maquinas: 'Máquinas', apontamentos: 'Apontamentos', conferencia: 'Conferência', paradas: 'Paradas', qualidade: 'Qualidade', ocorrencias: 'Ocorrências', funcionarios: 'Funcionários', indicadores: 'Indicadores', relatorios: 'Relatórios', chat: 'Chat', notificacoes: 'Notificações', configuracoes: 'Configurações' },
+    areas: { 'visao-geral': 'Visão geral', 'mapa-planta': 'Mapa da Planta', producao: 'Produção', maquinas: 'Máquinas', apontamentos: 'Apontamentos', conferencia: 'Conferência', paradas: 'Paradas', qualidade: 'Qualidade', ocorrencias: 'Ocorrências', funcionarios: 'Funcionários', indicadores: 'Indicadores', relatorios: 'Relatórios', passagem: 'Passagem de turno', chat: 'Chat', notificacoes: 'Notificações', configuracoes: 'Configurações' },
     sectors: [ { id: 'selagem', nome: 'Selagem' }, { id: 'injecao', nome: 'Injeção' }, { id: 'montagem', nome: 'Montagem de abafadores' } ],
     machines: [
       {id:'NHPL',nome:'NHPL · Montagem de abafadores',setorId:'montagem',processo:'Montagem de abafadores',produto:'VGARD HP / MARK V',productKind:'fones',parametros:{}},

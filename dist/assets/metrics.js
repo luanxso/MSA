@@ -4,7 +4,7 @@ window.MSA = window.MSA || {};
   'use strict';
   const count = records => records.reduce((total, record) => total + Number(record.quantidade || 0), 0);
   const stamp = record => record.fim ? record.fim - 1 : (record.data || record.inicio || record.createdAt);
-  const within = (record, start, end) => stamp(record) >= start && stamp(record) < end;
+  const within = (record, start, end) => MSA.shifts?.within(record,start,end) ?? (stamp(record) >= start && stamp(record) < end);
   function minutes(records, start, end, now = Date.now()) {
     const byMachine = new Map();
     records.forEach(record => {
@@ -32,12 +32,14 @@ window.MSA = window.MSA || {};
     const perdas = slice('perdas');
     const aprovadas = count(producao);
     const refugos = count(perdas.filter(record => record.tipo === 'refugo'));
-    const suspeitas = count(perdas.filter(record => record.tipo === 'suspeito'));
+    const suspeitas = state.lotesQualidade ? (state.lotesQualidade||[]).filter(b=>ids.has(b.maquinaId)&&!['liberado','descartado'].includes(b.status)).reduce((n,b)=>n+(b.quantidade||0),0) : count(perdas.filter(record => record.tipo === 'suspeito')); 
     const kg = count(perdas.filter(record => record.tipo === 'perda'));
     const days = Math.max(1, Math.round((end - start) / 86400000));
-    const meta = machines.reduce((total, machine) => total + Number(machine.metaDiaria || 0), 0) * days;
+    const meta = state.demo ? producao.reduce((n,r)=>n+(r.fim-r.inicio)/3600000*Number(machines.find(m=>m.id===r.maquinaId)?.hourTarget||0),0) : machines.reduce((total, machine) => total + Number(machine.metaDiaria || 0), 0) * days;
+    const stops=(state.paradas||[]).filter(r=>ids.has(r.maquinaId)&&(!(r.diaProducao||String(r.turno)==='3')||within(r,start,end)));
+    const stopEnd=(state.demo||producao.some(r=>String(r.turno)==='3'))?new Date(end).setHours(7,0,0,0):end;
     const abertas = (state.paradas || []).filter(record => ids.has(record.maquinaId) && !record.fim);
-    return { aprovadas, refugos, suspeitas, kg, meta, atendimento: meta > 0 ? aprovadas / meta * 100 : null, taxaRefugo: aprovadas + refugos > 0 ? refugos / (aprovadas + refugos) * 100 : null, minutos: minutes((state.paradas || []).filter(record => ids.has(record.maquinaId)), start, end), abertas, producao, perdas, leituras: slice('leituras'), ocorrencias: slice('ocorrencias') };
+    return { aprovadas, refugos, suspeitas, kg, meta, atendimento: meta > 0 ? aprovadas / meta * 100 : null, taxaRefugo: aprovadas + refugos > 0 ? refugos / (aprovadas + refugos) * 100 : null, minutos: minutes(stops,start,stopEnd,state.scenarioAt||Date.now()), abertas, producao, perdas, leituras: slice('leituras'), ocorrencias: slice('ocorrencias') };
   }
   function deviations(state, machines) {
     return machines.flatMap(machine => {

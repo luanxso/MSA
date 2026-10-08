@@ -43,7 +43,7 @@ window.MSA = window.MSA || {};
       throw failure('PROFILE_MISSING', 'Seu acesso ainda não está completo. Volte ao cadastro com o mesmo RE e senha ou procure o suporte interno.');
     }
     if (!['pendente', 'ativo', 'bloqueado'].includes(profile.status)) throw failure('PROFILE_INVALID', 'Seu perfil precisa ser revisado pelo responsável pelo sistema.');
-    if (profile.status === 'ativo' && !MSA.config.roles.some(role => role.id === profile.cargo)) throw failure('ROLE_INVALID', 'Escolha Operador, Supervisor ou Chefe no cadastro.');
+    if (profile.status === 'ativo' && !MSA.config.roles.some(role => role.id === profile.cargo)) throw failure('ROLE_INVALID', 'Selecione um cargo válido no cadastro.');
     return Object.freeze({
       id: firebaseUser.uid,
       nome: profile.nome,

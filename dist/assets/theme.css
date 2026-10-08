@@ -96,7 +96,13 @@ html[data-theme] .chat-thread-header h2, html[data-theme] .chat-list-heading h2,
 html[data-theme] .conversation-item:hover, html[data-theme] .conversation-item.is-active, html[data-theme] .message.is-own { background:var(--theme-hover); }
 html[data-theme] .chat-tabs button, html[data-theme] .chat-thread-header p, html[data-theme] .message-heading time, html[data-theme] .chat-list-footer, html[data-theme] .chat-empty p { color:var(--theme-muted); }
 html[data-theme] .chat-tabs button[aria-selected="true"] { color:var(--theme-good); border-color:var(--theme-good); }
-html[data-theme] .message-body { color:var(--theme-text); }
+html[data-theme] .message-body { color:var(--theme-text); background:var(--theme-control); border-color:var(--theme-border); }
+html[data-theme] .message.is-own { background:transparent; }
+html[data-theme] .message.is-own .message-body { background:var(--theme-good-bg); border-color:var(--theme-border); }
+html[data-theme] .message-avatar, html[data-theme] .conversation-initial { background:var(--theme-hover); color:var(--theme-muted); border-color:var(--theme-border); }
+html[data-theme] .conversation-button:hover { background:var(--theme-hover); }
+html[data-theme] .conversation-button[aria-current="true"] { background:var(--theme-good-bg); }
+html[data-theme] .conversation-button[aria-current="true"] .conversation-initial { color:var(--theme-good); }
 html[data-theme] .auth-page .login-card, html[data-theme] .auth-page .form-panel, html[data-theme] .auth-page .auth-masthead, html[data-theme] .gateway-header, html[data-theme] .gateway-main { background:var(--theme-surface); border-color:var(--theme-border); color:var(--theme-text); }
 html[data-theme] .auth-page .form-heading h1, html[data-theme] .auth-page .field label, html[data-theme] .gateway h1 { color:var(--theme-text); }
 html[data-theme] .auth-page .form-heading p, html[data-theme] .auth-page .role-hint, html[data-theme] .auth-page .hint, html[data-theme] .auth-page .account-link, html[data-theme] .auth-page .options, html[data-theme] .auth-page .auth-footer p, html[data-theme] dialog p { color:var(--theme-muted); }

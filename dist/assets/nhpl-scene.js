@@ -37,7 +37,7 @@ export function createScene(host, onSelect) {
     const band=new T.Mesh(new T.TorusGeometry(.56,.055,8,30,Math.PI),new T.MeshStandardMaterial({color:0x202328}));band.position.y=.56;group.add(band);parts.push({mesh:band,type:'bandStage'});
     scene.add(group);products.push({group,parts,cupMat});
   }
-  let sample=null,selected='montagem-b',model='VGARD HP',stamp=performance.now(),frame=0;
+  let sample=null,selected='montagem-b',model='VGARD HP',stamp=performance.now(),frame=0,rejectId='',rejectIndex=-1;
   const select=id=>{selected=id;onSelect(id);};
   const ray=new T.Raycaster(),point=new T.Vector2();let down=null;
   const pointerDown=e=>{down=[e.clientX,e.clientY];};
@@ -47,15 +47,23 @@ export function createScene(host, onSelect) {
   function animate(now){
     controls.update();
     stations.forEach((mesh,i)=>{const s=config.stations[i];const alert=sample?.alarms?.some(a=>a.stationId===s.id)||(sample?.source==='simulated'&&sample.state==='parada'&&s.id==='montagem-b');mesh.material.color.setHex(alert?0xd84842:s.id===selected?0xe2b955:0x426b76);mesh.material.emissive.setHex(alert?0x431009:0);});
-    const moving=sample?.source==='simulated'&&sample.state==='operando'&&sample.connected!==false&&!sample.stale&&!sample.paused;
+    const animated=['simulated','demo-records'].includes(sample?.source);
+    const moving=animated&&sample.state==='operando'&&sample.connected!==false&&!sample.stale&&!sample.paused;
     const progress=sample?.cycleProgress||0;
     const phase=moving?Math.min(.999,progress+Math.max(0,now-stamp)/1000/(sample.cycleSeconds||12)):progress;
+    if(sample?.recentReject&&sample.recentReject.id!==rejectId){
+      rejectId=sample.recentReject.id;
+      rejectIndex=products.reduce((best,p,i)=>{
+        const t=((i/5+((sample.totalCount||0)+phase)/5)%1)*4,distance=Math.abs(t-3.2);
+        return distance<best.distance?{index:i,distance}:best;
+      },{index:0,distance:Infinity}).index;
+    }
     products.forEach((p,i)=>{
-      const t=sample?.source==='simulated'?((i/5+((sample.totalCount||0)+phase)/5)%1)*4:i;
+      const t=animated?((i/5+((sample.totalCount||0)+phase)/5)%1)*4:i;
       const index=Math.min(3,Math.floor(t)),fraction=t-index;const a=config.stations[index].position,b=config.stations[index+1].position;
       p.group.position.set(a[0]+(b[0]-a[0])*fraction,1.25,a[2]+(b[2]-a[2])*fraction);
       const stage=config.stations[Math.min(4,Math.floor(t))].stage,definition=config.models[model];
-      p.parts.forEach(part=>part.mesh.visible=stage>=definition[part.type]);p.cupMat.color.setHex(definition.color);
+      p.parts.forEach(part=>part.mesh.visible=stage>=definition[part.type]);p.cupMat.color.setHex(sample?.recentReject&&i===rejectIndex?0xdb5851:definition.color);p.cupMat.emissive.setHex(sample?.recentReject&&i===rejectIndex?0x4b1110:0);
     });
     renderer.render(scene,camera);frame=requestAnimationFrame(animate);
   }

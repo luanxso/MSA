@@ -9,7 +9,7 @@
   const icon=name=>`<svg class="icon" aria-hidden="true"><use href="#icon-${name}"></use></svg>`;
   const stateLabel=value=>telemetry.states[value]||telemetry.states.desconhecido;
   let root=null,context=null,active=false,selected='',tab='operacao',lastMode='',sector='todos',status='todos',problems=false,product='todos',flowFrame=0;
-  let stopSubscription=null,resizeObserver=null,lastContextSector='',tableSignature='',catalogSignature='',hovered='',dragUntil=0;
+  let stopSubscription=null,resizeObserver=null,lastContextSector='',tableSignature='',catalogSignature='',hovered='',dragUntil=0,pendingNhpl=false;
   let summaryId='',summaryTrigger=null,restoreSummaryFocus=true,theme='light',headerControls=null;
   const camera={scale:null,x:0,y:0,width:0,height:0,autoFit:true};
   const pointers=new Map();
@@ -24,6 +24,7 @@
   }
   const sectorName=id=>layout.areas.find(s=>s.id===id)?.name||MSA.config.sectors.find(s=>s.id===id)?.nome||id;
   function manualSample(machine) {
+    if(context.state.demo)return MSA.performance.sample(machine,context.state);
     const now=Date.now(),start=new Date(now).setHours(0,0,0,0),end=start+86400000;
     const s=MSA.metrics.summarize(context.state,[machine],start,end);
     const readings=(context.state.leituras||[]).filter(r=>r.maquinaId===machine.id).sort((a,b)=>b.data-a.data);
@@ -54,7 +55,16 @@
   }
   function routeMachine() { try{return decodeURIComponent(location.hash.split('/')[1]||'');}catch{return '';} }
   function button(text,action,extra='') { return `<button class="plant-button${action==='theme'?' plant-theme-toggle':''}${action==='open-supervisor'?' is-primary':''}" type="button" data-plant-action="${action}" ${extra}>${text}</button>`; }
+  function rejectButton(id){return context?.state.demo?button('Simular refugo no próximo ciclo','reject',`data-machine-id="${esc(id)}"`)+button('Simular desvio de parâmetro','parameter-deviation',`data-machine-id="${esc(id)}"`)+(MSA.rbac.can('paradas:gerenciar',context.user,catalog().find(m=>m.id===id))?button('Demonstrar microparada','micro-stop',`data-machine-id="${esc(id)}"`):''):'';}
+  function updateRejectButtons(host){
+    host?.querySelectorAll('[data-plant-action="reject"]').forEach(b=>{
+      const m=catalog().find(m=>m.id===b.dataset.machineId),s=m?sample(m):null;
+      b.disabled=!s||s.state!=='operando'||!!s.rejectPending;
+      b.textContent=s?.rejectPending?'Refugo programado para o próximo ciclo':'Simular refugo no próximo ciclo';
+    });
+  }
   function sourceControls() {
+    if(context?.state.demo)return `<div class="plant-source"><span class="plant-muted">Cenário fictício · refugo ${number(MSA.demo.simulation.rejectRate*100)}% por ciclo</span>${selected?rejectButton(selected):''}${button(telemetry.paused?'Retomar':'Pausar','pause','aria-pressed="'+telemetry.paused+'"')}</div>`;
     const records=context?.demo?'':`<option value="records" ${telemetry.mode==='records'?'selected':''}>Registros do sistema</option>`;
     return `<div class="plant-source"><label for="plant-source">Fonte<select id="plant-source"><option value="simulation" ${telemetry.mode==='simulation'?'selected':''}>Demonstração</option>${records}${telemetry.adapterName?`<option value="api" ${telemetry.mode==='api'?'selected':''}>${esc(telemetry.adapterName)}</option>`:''}</select></label>${telemetry.mode==='simulation'?button(telemetry.paused?'Retomar':'Pausar','pause','aria-pressed="'+telemetry.paused+'"'):''}</div>`;
   }
@@ -131,7 +141,7 @@
         if(!path)return;
         const routeMachine=catalog().find(m=>m.id===(route.id==='fones'?'ABF-01':'INJ-01'))||catalog()[0];
         const routeSample=routeMachine?sample(routeMachine):{state:'desconhecido',stale:true};
-        const moving=telemetry.mode==='simulation'&&!telemetry.paused&&routeSample.state==='operando'&&!routeSample.stale;
+        const moving=(telemetry.mode==='simulation'||context.state.demo)&&!telemetry.paused&&routeSample.state==='operando'&&!routeSample.stale;
         if(moving)offsets[route.id]=(offsets[route.id]+seconds/100)%1;
         path.closest('[data-route]').classList.toggle('is-moving',moving);
         const length=path.getTotalLength();nodes.forEach((node,i)=>{const point=path.getPointAtLength(((offsets[route.id]+i/nodes.length)%1)*length);node.setAttribute('transform',`translate(${point.x} ${point.y})`);});
@@ -171,7 +181,7 @@
 
   function timeline(s) {
     if(!s.timeline.length)return '<p class="plant-muted">Nenhum estado registrado neste período.</p>';
-    const now=s.source==='simulated'?s.updatedAt:Date.now(),start=s.periodStart||s.timeline[0].start,span=Math.max(1,now-start);
+    const now=['simulated','demo-records'].includes(s.source)?s.updatedAt:Date.now(),start=s.periodStart||s.timeline[0].start,span=Math.max(1,now-start);
     return `<div class="hmi-timeline" role="img" aria-label="Sequência dos estados no período">${s.timeline.map(t=>{const end=t.end||now,width=Math.max(0,(Math.min(end,now)-Math.max(t.start,start))/span*100);return `<span class="state-${t.state}" style="width:${width}%" title="${esc(stateLabel(t.state)+' · '+clock(t.start)+' · '+t.reason)}"></span>`;}).join('')}</div><div class="hmi-timeline-axis"><span>${clock(start)}</span><span>Agora</span></div>`;
   }
   function chart(s) {
@@ -191,7 +201,7 @@
   }
   function eventTable(s) {
     const rows=[...s.events].sort((a,b)=>b.time-a.time);
-    return rows.length?`<div class="ops-table-wrap" tabindex="0" role="region" aria-label="Histórico de eventos"><table class="ops-table"><thead><tr><th>Horário</th><th>Tipo</th><th>Evento</th><th>Estado</th></tr></thead><tbody>${rows.map(e=>`<tr><td>${clock(e.time)}</td><td>${esc({estado:'Estado',alarme:'Alarme',parada:'Parada',leitura:'Leitura',ocorrencia:'Ocorrência'}[e.type]||e.type)}</td><td>${esc(e.description)}</td><td>${stateLabel(e.state)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="plant-muted">Nenhum evento disponível.</p>';
+    return rows.length?`<div class="ops-table-wrap" tabindex="0" role="region" aria-label="Histórico de eventos"><table class="ops-table"><thead><tr><th>Horário</th><th>Tipo</th><th>Evento</th><th>Estado</th></tr></thead><tbody>${rows.map(e=>`<tr><td>${clock(e.time)}</td><td>${esc({estado:'Estado',alarme:'Alarme',parada:'Parada',leitura:'Leitura',ocorrencia:'Ocorrência',qualidade:'Qualidade'}[e.type]||e.type)}</td><td>${esc(e.description)}</td><td>${stateLabel(e.state)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="plant-muted">Nenhum evento disponível.</p>';
   }
   function stopTable(s) {
     const rows=s.timeline.filter(t=>['parada','setup','manutencao'].includes(t.state)).sort((a,b)=>b.start-a.start);
@@ -263,20 +273,23 @@
   }
   function updateSource(samples) {
     const source=root.querySelector('[data-source-detail]'),last=root.querySelector('[data-last-update]');
-    if(source)source.textContent=telemetry.mode==='simulation'?'Dados de demonstração'+(telemetry.paused?' · pausado':''):telemetry.mode==='records'?(['registrosProducao','paradas','perdas'].some(key=>(context.state[key]||[]).some(record=>record.id?.startsWith('demo-v1-')))?'Dados de demonstração · Registros':'Registros do sistema'):(telemetry.adapterName||'API / IoT')+(samples.some(s=>s.stale)?' · dados desatualizados':'');
+    if(source)source.textContent=context.state.demo?'Cenário fictício · ciclos '+(telemetry.paused?'pausados':'em andamento'):telemetry.mode==='simulation'?'Dados de demonstração'+(telemetry.paused?' · pausado':''):telemetry.mode==='records'?(['registrosProducao','paradas','perdas'].some(key=>(context.state[key]||[]).some(record=>record.id?.startsWith('demo-v1-')))?'Dados de demonstração · Registros':'Registros do sistema'):(telemetry.adapterName||'API / IoT')+(samples.some(s=>s.stale)?' · dados desatualizados':'');
     const stamp=Math.max(0,...samples.map(s=>s.updatedAt||0));
     if(last)last.textContent=stamp?'Última atualização '+clock(stamp):'Sem leitura recebida';
     const error=root.querySelector('.plant-data-error'),message=telemetry.error||(telemetry.mode==='records'?context.state.error||'':'');error.hidden=!message;error.textContent=message;
+    [root,headerControls].filter(Boolean).forEach(updateRejectButtons);
     [root,headerControls].filter(Boolean).forEach(host=>host.querySelectorAll('[data-plant-action="pause"]').forEach(pause=>{pause.textContent=telemetry.paused?'Retomar':'Pausar';pause.setAttribute('aria-pressed',telemetry.paused);}));
   }
   function updateMap() {
     const entries=catalog().map(machine=>({machine,s:sample(machine)})),visible=entries.filter(({machine,s})=>matches(machine,s));
+    const event=visible.map(e=>MSA.qualityFeedback.event(e.s)).filter(Boolean).sort((a,b)=>b.at-a.at)[0];
+    MSA.qualityFeedback.update(root.querySelector('.plant-map-view'),event);
     const totals={'data-map-count':visible.length,'data-map-running':visible.filter(v=>v.s.state==='operando'&&!v.s.stale).length,'data-map-stopped':visible.filter(v=>v.s.state==='parada').length,'data-map-alarms':visible.filter(v=>v.s.alarms.length).length,'data-map-output':visible.length&&visible.every(v=>v.s.goodCount!=null)?visible.reduce((sum,v)=>sum+v.s.goodCount,0):null};
     Object.entries(totals).forEach(([key,value])=>{const node=root.querySelector('['+key+']');if(node)node.textContent=number(value);});
     root.querySelectorAll('[data-machine]').forEach(node=>{
       const item=entries.find(v=>v.machine.id===node.dataset.machine);if(!item)return;
       const match=matches(item.machine,item.s),displayState=item.s.stale?'desconhecido':item.s.state;
-      node.setAttribute('class',`floor-machine state-${displayState}${match?'':' is-dimmed'}${item.s.alarms.length?' has-alarm':''}${summaryId===item.machine.id?' is-selected':''}`);
+      node.setAttribute('class',`floor-machine state-${displayState}${match?'':' is-dimmed'}${item.s.alarms.length?' has-alarm':''}${summaryId===item.machine.id?' is-selected':''}${item.s.recentReject?' has-recent-reject':''}`);
       node.setAttribute('aria-label',`${item.machine.id} · ${item.machine.nome} · ${stateLabel(displayState)}${item.s.alarms.length?' · com alerta':''} · Consultar equipamento`);
       node.setAttribute('tabindex',match?'0':'-1');node.setAttribute('aria-disabled',!match);
       const glyph=node.querySelector('.machine-state-symbol'),glyphKey=displayState+':'+(item.s.alarms.length>0);
@@ -320,6 +333,7 @@
     if(mould)mould.style.transform=machine.setorId==='injecao'?`translateX(${Math.sin(progress*Math.PI)*14}px)`:`translateY(${Math.sin(progress*Math.PI)*28}px)`;
     if(part)part.style.transform=`translateX(${progress*(machine.setorId==='selagem'?650:machine.setorId==='injecao'?170:375)}px)`;
     MSA.processVisuals.update(root,machine,s,telemetry.paused);
+    MSA.qualityFeedback.update(root.querySelector('.hmi-process')||root.querySelector('#plant-tab-panel'),MSA.qualityFeedback.event(s));
     const beacon=root.querySelector('[data-hmi-beacon]');if(beacon)beacon.setAttribute('class','hmi-beacon state-'+(s.stale?'desconhecido':s.state));
     Object.entries(s.parameters).forEach(([id,p])=>{
       const entry=root.querySelector('#reading-'+CSS.escape(id));entry?.classList.toggle('has-alarm',!!p.alarm);
@@ -329,7 +343,7 @@
     });
     const alarmsNode=root.querySelector('[data-alarms]');if(alarmsNode){const html=alarms(s);if(alarmsNode.innerHTML!==html)alarmsNode.innerHTML=html;}
     const tl=root.querySelector('[data-timeline]');if(tl)tl.innerHTML=timeline(s);
-    root.querySelectorAll('[data-duration-start]').forEach(node=>{node.textContent=duration(((Number(node.dataset.durationEnd)||(s.source==='simulated'?s.updatedAt:Date.now()))-Number(node.dataset.durationStart))/1000);});
+    root.querySelectorAll('[data-duration-start]').forEach(node=>{node.textContent=duration(((Number(node.dataset.durationEnd)||(['simulated','demo-records'].includes(s.source)?s.updatedAt:Date.now()))-Number(node.dataset.durationStart))/1000);});
     const good=root.querySelector('[data-good-bar]'),rejected=root.querySelector('[data-reject-bar]');
     if(good)good.style.width=s.totalCount>0?s.goodCount/s.totalCount*100+'%':'0%';
     if(rejected)rejected.style.width=s.totalCount>0?s.rejectedCount/s.totalCount*100+'%':'0%';
@@ -340,6 +354,7 @@
   }
   function update() {
     if(!active)return;
+    if(context?.state.demo&&MSA.data?.state.demo)context.state=MSA.data.state;
     if(lastMode!==telemetry.mode+'|'+telemetry.adapterName||catalogSignature!==JSON.stringify(catalog())){render();return;}
     if(selected){const machine=catalog().find(m=>m.id===selected);if(machine)updateDetail(machine,sample(machine));else updateSource([]);}
     else {updateMap();updateSummary();}
@@ -380,6 +395,7 @@
     dialog.querySelector('[data-preview-phase]').textContent=s.stale?'Aguardando comunicação':s.phase||stateLabel(s.state);
     const alarmNode=dialog.querySelector('[data-alarms]'),html=alarms(s);if(alarmNode.innerHTML!==html)alarmNode.innerHTML=html;
     MSA.processVisuals.update(dialog,machine,s,telemetry.paused);
+    MSA.qualityFeedback.update(dialog.querySelector('.machine-preview'),MSA.qualityFeedback.event(s));updateRejectButtons(dialog);
     const pause=dialog.querySelector('[data-plant-action="pause"]');if(pause){pause.textContent=telemetry.paused?'Retomar animação':'Pausar animação';pause.setAttribute('aria-pressed',telemetry.paused);}
   }
   function openMachine(id) {
@@ -388,7 +404,7 @@
     if(machine.id==='NHPL'){
       closeSummary(false);hideTooltip();
       const svg=root.querySelector('#plant-svg');pointers.forEach((_,pointerId)=>{if(svg?.hasPointerCapture(pointerId))svg.releasePointerCapture(pointerId);});pointers.clear();drag=null;pinch=null;
-      if(!MSA.nhpl){feedback('O módulo 3D ainda está carregando. Tente novamente.');return;}
+      if(!MSA.nhpl){pendingNhpl=true;feedback('Carregando visualização da NHPL…');return;}
       MSA.nhpl.open({machine,read:()=>sample(machine),manualState:()=>context.state,trigger:root.querySelector('[data-machine="NHPL"]')||document.activeElement});return;
     }
     closeSummary(false);root.querySelector('.plant-machine-dialog')?.remove();hideTooltip();
@@ -396,7 +412,7 @@
     summaryTrigger=root.querySelector('[data-machine="'+CSS.escape(id)+'"]')||document.activeElement;
     const svg=root.querySelector('#plant-svg');pointers.forEach((_,pointerId)=>{if(svg?.hasPointerCapture(pointerId))svg.releasePointerCapture(pointerId);});pointers.clear();drag=null;pinch=null;
     const s=sample(machine),dialog=document.createElement('dialog');dialog.className='plant-machine-dialog';dialog.setAttribute('aria-labelledby','plant-machine-title');
-    dialog.innerHTML=`<header class="machine-dialog-heading"><div><p class="supervisor-code">${esc(machine.id)} · ${esc(sectorName(machine.setorId))}</p><h2 id="plant-machine-title">${esc(machine.nome)}</h2></div>${button('×','close-summary','aria-label="Fechar resumo da máquina" autofocus')}</header><div class="machine-dialog-body"><div class="machine-dialog-meta"><p>${esc(machine.produto||'Produto não informado')}${machine.order?' · '+esc(machine.order):''}</p><div class="supervisor-state state-${s.state}"><span data-machine-state>${stateLabel(s.state)}</span></div></div><div class="machine-summary-grid">${metric('Produção atual / aprovada','goodCount',' peças')}${metric('Meta','goal',' peças')}${metric('Tempo de operação','operatingSeconds')}${metric('Refugos','rejectedCount',' peças')}${metric('Alertas ativos','alarms.length')}<div class="hmi-metric" data-summary="last-stop"><span>Última parada</span><strong data-last-stop>—</strong></div></div><section class="machine-preview"><div class="hmi-process-heading"><div><span class="plant-eyebrow">PRÉVIA DO SUPERVISÓRIO</span><h3>Linha de ${machine.productKind==='fones'?'protetores auditivos':'capacetes'}</h3></div><span data-preview-phase></span></div>${processDiagram(machine,s)}</section><div data-alarms>${alarms(s)}</div><p class="machine-dialog-source"><span data-modal-source></span> · <span data-modal-updated></span></p></div><footer class="machine-dialog-footer">${telemetry.mode==='simulation'?button('Pausar animação','pause'):''}${button('Abrir supervisório completo','open-supervisor')}</footer>`;
+    dialog.innerHTML=`<header class="machine-dialog-heading"><div><p class="supervisor-code">${esc(machine.id)} · ${esc(sectorName(machine.setorId))}</p><h2 id="plant-machine-title">${esc(machine.nome)}</h2></div>${button('×','close-summary','aria-label="Fechar resumo da máquina" autofocus')}</header><div class="machine-dialog-body"><div class="machine-dialog-meta"><p>${esc(machine.produto||'Produto não informado')}${machine.order?' · '+esc(machine.order):''}</p><div class="supervisor-state state-${s.state}"><span data-machine-state>${stateLabel(s.state)}</span></div></div><div class="machine-summary-grid">${metric('Produção atual / aprovada','goodCount',' peças')}${metric('Meta','goal',' peças')}${metric('Tempo de operação','operatingSeconds')}${metric('Refugos','rejectedCount',' peças')}${metric('OEE','efficiency.oee','%')+metric('MTBF','reliability.mtbf')+metric('MTTR','reliability.mttr')+metric('Alertas ativos','alarms.length')}<div class="hmi-metric" data-summary="last-stop"><span>Última parada</span><strong data-last-stop>—</strong></div></div><nav class="machine-dialog-panels" aria-label="Painéis da máquina">${[ ["producao","Produção hora a hora"],["paradas","Paradas"],["qualidade","Qualidade"] ].map(([p,label])=>`<a class="ops-link" href="#${p}/${encodeURIComponent(machine.id)}">${label}</a>`).join("")}</nav><section class="machine-preview"><div class="hmi-process-heading"><div><span class="plant-eyebrow">PRÉVIA DO SUPERVISÓRIO</span><h3>Linha de ${machine.productKind==='fones'?'protetores auditivos':'capacetes'}</h3></div><span data-preview-phase></span></div>${processDiagram(machine,s)}</section><div data-alarms>${alarms(s)}</div><p class="machine-dialog-source"><span data-modal-source></span> · <span data-modal-updated></span></p></div><footer class="machine-dialog-footer">${telemetry.mode==='simulation'||context.state.demo?button('Pausar animação','pause'):''}${rejectButton(machine.id)}${button('Abrir supervisório completo','open-supervisor')}</footer>`;
     dialog.addEventListener('close',()=>{
       if(root?.querySelector('.plant-machine-dialog')!==dialog)return;
       summaryId='';updateMap();
@@ -424,6 +440,9 @@
       if(action==='back')location.hash='mapa-planta';
       if(action==='fullscreen'){const page=root.querySelector('.plant-page');if(document.fullscreenElement)document.exitFullscreen?.();else if(page.requestFullscreen)page.requestFullscreen().catch(()=>page.classList.toggle('is-expanded'));else page.classList.toggle('is-expanded');}
       if(action==='pause')telemetry.pause();
+      if(action==='micro-stop'){try{MSA.demo.simulation.microStop(control.dataset.machineId);update();}catch(e){feedback(e.message);}}
+      if(action==='parameter-deviation'){MSA.demo.simulation.simulateDeviation(control.dataset.machineId);update();}
+      if(action==='reject'){MSA.demo.simulation.rejectNext(control.dataset.machineId);update();}
       if(action==='zoom-in')zoom(1.25);
       if(action==='zoom-out')zoom(.8);
       if(action==='fit')fit();
@@ -519,9 +538,15 @@
     root.removeEventListener('pointerleave',hideTooltip);
     root.removeEventListener('wheel',handleWheel);root.removeEventListener('focusin',focusIn);root.removeEventListener('focusout',hideTooltip);
   }
+  window.addEventListener('msa:nhpl-ready',()=>{
+    if(!pendingNhpl||!active)return;
+    pendingNhpl=false;const notice=root.querySelector('.plant-feedback');if(notice)notice.hidden=true;
+    openMachine('NHPL');
+  });
   MSA.plant={
     open(element,nextContext) {
-      const nextSelected=routeMachine(),previousSelected=selected;
+      const requested=routeMachine(),summaryRequest=requested.startsWith('@')?requested.slice(1):'';
+      const nextSelected=summaryRequest?'':requested,previousSelected=selected;
       context=nextContext;
       if(lastContextSector!==context.sector) {
         lastContextSector=context.sector;
@@ -535,9 +560,10 @@
         stopSubscription=telemetry.subscribe(update);telemetry.start();render();
       }else if(selected!==previousSelected)render();
       else update();
+      if(summaryRequest)requestAnimationFrame(()=>{if(active)openMachine(summaryRequest);});
     },
     close() {
-      if(!active)return;MSA.nhpl?.close();closeSummary(false);headerControls?.remove();headerControls=null;active=false;cancelAnimationFrame(flowFrame);unbind();resizeObserver?.disconnect();resizeObserver=null;
+      pendingNhpl=false;if(!active)return;MSA.nhpl?.close();closeSummary(false);headerControls?.remove();headerControls=null;active=false;cancelAnimationFrame(flowFrame);unbind();resizeObserver?.disconnect();resizeObserver=null;
       stopSubscription?.();stopSubscription=null;telemetry.stop();pointers.clear();hovered='';
     }
   };

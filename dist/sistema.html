@@ -11,19 +11,19 @@
   <script src="assets/config.js" defer></script>
   <script src="assets/plant-layout.js" defer></script>
   <script src="assets/telemetry-service.js" defer></script>
-  <script src="assets/process-visuals.js" defer></script>
+  <script src="assets/process-visuals.js" defer></script><script src="assets/quality-feedback.js" defer></script>
   <script src="js/plant-ui.js" defer></script>
   <script src="assets/rbac.js" defer></script><script src="assets/validation.js" defer></script>
   <script src="assets/firebase-config.js" defer></script>
   <script src="assets/firebase-client.js" defer></script>
-  <script src="assets/auth-service.js" defer></script><script src="assets/operations-service.js" defer></script><script src="assets/firebase-chat.js" defer></script><script src="assets/metrics.js" defer></script><script src="js/operations-ui.js" defer></script><script src="js/system-guard.js" defer></script>
+  <script src="assets/auth-service.js" defer></script><script src="assets/operations-service.js" defer></script><script src="assets/firebase-chat.js" defer></script><script src="assets/shifts.js" defer></script><script src="assets/metrics.js" defer></script><script src="assets/performance.js" defer></script><script src="assets/scenario-parameters.js" defer></script><script src="assets/scenario-data.js" defer></script><script src="assets/scenario-live.js" defer></script><script src="assets/production-workflows.js" defer></script><script src="assets/scenario-chat.js" defer></script><script src="assets/scenario-service.js" defer></script><script src="js/workflows-ui.js" defer></script><script src="js/operations-ui.js" defer></script><script src="js/system-guard.js" defer></script>
   <script src="js/chat.js" defer></script>
   <script src="js/script.js" defer></script>
-  <link rel="stylesheet" href="assets/operations.css">
+  <link rel="stylesheet" href="assets/operations.css"><link rel="stylesheet" href="assets/performance.css"><link rel="stylesheet" href="assets/equipment.css"><link rel="stylesheet" href="assets/workflows.css">
   <link rel="stylesheet" href="css/panel-layout.css">
   <link rel="stylesheet" href="assets/plant.css">
   <link rel="stylesheet" href="css/panel-clean.css">
-<link rel="stylesheet" href="assets/theme.css"><link rel="stylesheet" href="assets/nhpl.css"><script type="module" src="assets/nhpl-modal.js"></script></head>
+<link rel="stylesheet" href="assets/theme.css"><link rel="stylesheet" href="assets/nhpl.css"><link rel="stylesheet" href="assets/quality-feedback.css"><script type="module" src="assets/nhpl-modal.js"></script></head>
 <body data-page="sistema">
   <a class="skip-link" href="#main-content">Ir para o conteúdo principal</a>
 
@@ -31,6 +31,7 @@
   <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
     <symbol id="icon-overview" viewbox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></symbol>
     <symbol id="icon-factory" viewbox="0 0 24 24"><path d="M3 21V10l6 3V10l6 3V3h6v18Z"></path><path d="M7 17h1m4 0h1m4 0h1"></path></symbol>
+    <symbol id="icon-map" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"></path><path d="M9 3v15M15 6v15"></path></symbol>
     <symbol id="icon-machine" viewbox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="1"></rect><path d="M7 21h10m-5-4v4M7 8h5m-5 4h10m-1-4h1"></path></symbol>
     <symbol id="icon-clipboard" viewbox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3M8 11h8m-8 5h8"></path></symbol>
     <symbol id="icon-pause" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M9 8v8m6-8v8"></path></symbol>
@@ -38,6 +39,7 @@
     <symbol id="icon-users" viewbox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path><circle cx="9" cy="7" r="4"></circle></symbol>
     <symbol id="icon-chart" viewbox="0 0 24 24"><path d="M3 3v18h18M8 16v-4m5 4V8m5 8V5"></path></symbol>
     <symbol id="icon-report" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Zm0 0v6h6M8 13h8m-8 4h8"></path></symbol>
+    <symbol id="icon-handover" viewBox="0 0 24 24"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"></path></symbol>
     <symbol id="icon-bell" viewbox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-11 1h0m3 12a2 2 0 0 0 4 0"></path></symbol>
     <symbol id="icon-settings" viewbox="0 0 24 24"><path d="m9.5 3-.6 2.1-2 .9-2-.5L2.4 9l1.4 1.6v2.8L2.4 15l2.5 3.5 2-.5 2 .9.6 2.1h5l.6-2.1 2-.9 2 .5 2.5-3.5-1.4-1.6v-2.8L21.6 9l-2.5-3.5-2 .5-2-.9-.6-2.1Z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
     <symbol id="icon-chevron" viewbox="0 0 24 24"><path d="m8 10 4 4 4-4"></path></symbol>
@@ -76,7 +78,7 @@
           <h2 class="nav-group-label" id="operation-label">Operação</h2>
           <ul class="nav-list">
             <li><a class="nav-item is-active" href="#visao-geral" data-page="visao-geral" aria-current="page" aria-label="Visão geral" title="Visão geral"><svg class="icon" aria-hidden="true"><use href="#icon-overview"></use></svg><span class="nav-text">Visão geral</span></a></li>
-            <li><a class="nav-item" href="#mapa-planta" data-page="mapa-planta" aria-label="Mapa da Planta" title="Mapa da Planta"><svg class="icon" aria-hidden="true"><use href="#icon-factory"></use></svg><span class="nav-text">Mapa da Planta</span></a></li>
+            <li><a class="nav-item" href="#mapa-planta" data-page="mapa-planta" aria-label="Mapa da Planta" title="Mapa da Planta"><svg class="icon" aria-hidden="true"><use href="#icon-map"></use></svg><span class="nav-text">Mapa da Planta</span></a></li>
             <li><a class="nav-item" href="#producao" data-page="producao" aria-label="Produção" title="Produção"><svg class="icon" aria-hidden="true"><use href="#icon-factory"></use></svg><span class="nav-text">Produção</span></a></li>
             <li><a class="nav-item" href="#maquinas" data-page="maquinas" aria-label="Máquinas" title="Máquinas"><svg class="icon" aria-hidden="true"><use href="#icon-machine"></use></svg><span class="nav-text">Máquinas</span></a></li>
             <li><a class="nav-item" href="#apontamentos" data-page="apontamentos" aria-label="Apontamentos" title="Apontamentos"><svg class="icon" aria-hidden="true"><use href="#icon-clipboard"></use></svg><span class="nav-text">Apontamentos</span></a></li>
@@ -90,6 +92,7 @@
           <ul class="nav-list">
             <li><a class="nav-item" href="#funcionarios" data-page="funcionarios" aria-label="Funcionários" title="Funcionários"><svg class="icon" aria-hidden="true"><use href="#icon-users"></use></svg><span class="nav-text">Funcionários</span></a></li>
             <li><a class="nav-item" href="#indicadores" data-page="indicadores" aria-label="Indicadores" title="Indicadores"><svg class="icon" aria-hidden="true"><use href="#icon-chart"></use></svg><span class="nav-text">Indicadores</span></a></li>
+            <li><a class="nav-item" href="#passagem" data-page="passagem" aria-label="Passagem de turno" title="Passagem de turno"><svg class="icon" aria-hidden="true"><use href="#icon-handover"></use></svg><span class="nav-text">Passagem de turno</span></a></li>
             <li><a class="nav-item" href="#relatorios" data-page="relatorios" aria-label="Relatórios" title="Relatórios"><svg class="icon" aria-hidden="true"><use href="#icon-report"></use></svg><span class="nav-text">Relatórios</span></a></li>
           </ul>
         </section>
@@ -193,6 +196,7 @@
               <button class="icon-button chat-back" id="chat-back" type="button" aria-label="Voltar para conversas"><svg class="icon" aria-hidden="true"><use href="#icon-back"></use></svg></button>
               <svg class="icon thread-icon" aria-hidden="true"><use href="#icon-chat"></use></svg>
               <div class="chat-thread-context"><h2 id="chat-thread-title">Produção</h2><p id="chat-thread-description">Alinhamentos da produção e áreas de suporte.</p></div>
+              <button class="text-button" id="chat-demo-update" type="button" hidden>Simular nova mensagem</button>
             </header>
 
             <div class="chat-feedback" id="chat-feedback" role="status" hidden>

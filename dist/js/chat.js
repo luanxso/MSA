@@ -64,6 +64,7 @@
     input.readOnly = sending;
     sendButton.disabled = !available || sending || !input.value.trim();
     sendButton.textContent = sending ? 'Enviando…' : 'Enviar';
+    const demoUpdate=document.querySelector('#chat-demo-update');if(demoUpdate){demoUpdate.hidden=!MSA.firebaseChat.demo;demoUpdate.disabled=!available;}
   }
 
   function initials(name) {
@@ -94,7 +95,7 @@
     name.textContent = conversation.name;
     const note = document.createElement('span');
     note.className = 'conversation-note';
-    note.textContent = person ? (conversation.re ? `RE ${conversation.re}` : 'Conversa individual') : conversation.note;
+    note.textContent = person ? [conversation.re?`RE ${conversation.re}`:'Conversa individual',conversation.note].filter(Boolean).join(' · ') : conversation.note;
     copy.append(name, note);
     button.append(initial, copy);
     button.addEventListener('click', () => person ? openPerson(conversation) : openConversation(conversation, true));
@@ -106,7 +107,7 @@
     const peopleList = document.querySelector('#chat-people-list');
     sectorList.replaceChildren();
     peopleList.replaceChildren();
-    const matches = (item) => `${item.name} ${item.re || ''}`.toLocaleLowerCase('pt-BR').includes(search);
+    const matches = (item) => `${item.name} ${item.re || ''} ${item.note || ''}`.toLocaleLowerCase('pt-BR').includes(search);
     rooms.filter(matches).forEach((room) => sectorList.append(conversationButton(room)));
     people.filter(matches).forEach((person) => peopleList.append(conversationButton(person, true)));
     const empty = document.querySelector('#chat-people-empty');
@@ -171,6 +172,7 @@
     body.className = 'message-body';
     body.textContent = message.body;
     heading.append(author, re, time);
+    if(message.simulated){const label=document.createElement('span');label.className='message-re';label.textContent='Mensagem simulada';heading.append(label);}
     content.append(heading, body);
     article.append(avatar, content);
     return article;
@@ -300,6 +302,13 @@
       }
     } catch (error) { if (active?.id === conversationId) showError(error); }
     finally { sending = false; updateComposer(); }
+  });
+
+  document.querySelector('#chat-demo-update')?.addEventListener('click',async()=>{
+    if(!visible||!active||loading||!MSA.firebaseChat.demo)return;
+    const id=active.id,button=document.querySelector('#chat-demo-update');button.disabled=true;
+    try{const data=await MSA.firebaseChat.simulateIncoming(id);if(!visible||active?.id!==id)return;if(!messages.some(m=>m.id===data.message.id)){messages.push(data.message);messages.sort((a,b)=>a.id-b.id);serverCursor=Math.max(serverCursor,data.message.id);renderHistory({scroll:true});}document.querySelector('#chat-announcement').textContent='Nova mensagem simulada recebida.';}
+    catch(error){showError(error);}finally{updateComposer();}
   });
 
   input.addEventListener('input', () => {

@@ -129,6 +129,7 @@
     navigationItems.forEach(item => { item.closest('li').hidden = !MSA.rbac.route(item.dataset.page, currentUser); });
     document.querySelectorAll('.nav-group').forEach(group => { group.hidden = ![...group.querySelectorAll('li')].some(item => !item.hidden); });
     const previousSector = sectorSelector.value;
+    for(const s of MSA.config.sectors)if(![...sectorSelector.options].some(o=>o.value===s.id))sectorSelector.add(new Option(s.nome,s.id));
     [...sectorSelector.options].forEach(option => {
       option.hidden = currentUser.cargo === 'operador' ? option.value !== currentUser.setorId
         : currentUser.cargo === 'supervisor' ? option.value === 'todos' : option.value === '';
@@ -136,7 +137,7 @@
     sectorSelector.disabled = currentUser.cargo === 'operador';
     sectorSelector.options[0].textContent = currentUser.cargo === 'operador' ? 'Selecione uma máquina na operação' : 'Selecione o setor em acompanhamento';
     document.querySelector('.context-label').textContent = currentUser.cargo === 'supervisor' ? 'Setor em acompanhamento' : 'Setor';
-    sectorSelector.value = currentUser.cargo === 'chefe' ? (previousSector || 'todos') : currentUser.setorId;
+    sectorSelector.value = ['chefe','qualidade'].includes(currentUser.cargo) ? (previousSector || 'todos') : currentUser.setorId;
     const requestedPage = window.location.hash.slice(1).split('/')[0];
     let pageId = requestedPage || role.home;
     if (!MSA.rbac.route(pageId, currentUser)) {
@@ -166,12 +167,12 @@
     contextDivider.hidden = sameContext;
     const descriptions = {
       'visao-geral': currentUser.cargo === 'operador' ? 'Sua máquina, produção registrada e pendências.' : 'Produção registrada e condições das máquinas em acompanhamento.',
-      producao: 'Metas, apontamentos e parâmetros do período.', maquinas: 'Equipamentos, processos e parâmetros registrados.',
+      producao: 'Metas, apontamentos e parâmetros do período.', maquinas: 'Localize equipamentos por setor e acompanhe situação, produção e parâmetros.',
       apontamentos: 'Registre a produção e os parâmetros da máquina em uso.', conferencia: 'Confira os registros e consolide as informações do setor.',
-      paradas: 'Motivos, duração e encerramento das paradas.', qualidade: 'Refugos, perdas de material e peças segregadas.',
-      ocorrencias: 'Problemas registrados e ações de resolução.', funcionarios: 'Identificação por RE e contexto atual de trabalho.',
+      paradas: 'Microparadas, motivos selecionáveis e duração das interrupções.', qualidade: 'Refugos, lotes suspeitos, reinspeção e decisões da Qualidade.',
+      ocorrencias: 'Problemas registrados e ações de resolução.', funcionarios: 'Presença, postos de trabalho e distribuição da equipe por turno.',
       indicadores: 'Compare a produção dos setores e acompanhe as consolidações.', relatorios: 'Registros e resumos para acompanhamento da produção.',
-      notificacoes: 'Paradas abertas, ocorrências e desvios de parâmetros.', configuracoes: 'Seu acesso e o catálogo de equipamentos.',
+      passagem: 'Entrega, recebimento e pendências entre turnos.', notificacoes: 'Alertas, responsáveis e acompanhamento das ações.', configuracoes: 'Seu acesso e o catálogo de equipamentos.',
       chat: 'Conversas entre funcionários e passagem de turno'
     };
     pageDescription.textContent = descriptions[pageId] || '';
@@ -212,9 +213,9 @@
   });
 
   function updateConnectionStatus() {
-    const online = navigator.onLine && MSA.data.state.connected;
+    const online = MSA.data.state.demo || (navigator.onLine && MSA.data.state.connected);
     connectionStatus.classList.toggle('is-offline', !online);
-    connectionStatus.querySelector('.status-text').textContent = online ? 'Registros conectados' : 'Registros sem conexão';
+    connectionStatus.querySelector('.status-text').textContent = MSA.data.state.demo ? 'Cenário fictício · 15h' : online ? 'Registros conectados' : 'Registros sem conexão';
   }
 
   window.addEventListener('online', updateConnectionStatus);

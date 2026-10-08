@@ -4,7 +4,7 @@ window.MSA = window.MSA || {};
   const role = user => user?.status === 'ativo' ? MSA.config.roles.find(item => item.id === user.cargo) || null : null;
   function inScope(user, record) {
     if (!role(user) || !record) return false;
-    if (user.cargo === 'chefe') return true;
+    if (['chefe','qualidade'].includes(user.cargo)) return true;
     if (record.setorId !== user.setorId) return false;
     return user.cargo === 'supervisor' || (record.maquinaId || record.id) === user.maquinaId;
   }

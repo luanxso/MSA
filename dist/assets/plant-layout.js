@@ -4,7 +4,7 @@ window.MSA = window.MSA || {};
   const areas = [
     {id:'recebimento',name:'Recebimento / estoque',short:'Estoque',x:40,y:64,width:220,height:816,kind:'storage',color:'#94a3b8',prefix:'EST',count:3,type:'storage'},
     {id:'injecao',name:'Injeção',x:292,y:64,width:540,height:354,kind:'production',color:'#459bff',prefix:'INJ',count:6,type:'injection'},
-    {id:'acabamento',name:'Acabamento',x:864,y:64,width:360,height:354,kind:'production',color:'#22d3ee',prefix:'ACB',count:4,type:'sealing'},
+    {id:'selagem',name:'Acabamento / selagem',x:864,y:64,width:360,height:354,kind:'production',color:'#22d3ee',prefix:'ACB',count:4,type:'sealing'},
     {id:'qualidade',name:'Qualidade / testes',short:'Qualidade',x:1256,y:64,width:300,height:354,kind:'quality',color:'#ec71b6',prefix:'QAL',count:4,type:'quality'},
     {id:'capacetes',name:'Montagem de capacetes',short:'Capacetes',x:292,y:510,width:460,height:370,kind:'production',color:'#f8ca52',prefix:'CAP',count:4,type:'assembly'},
     {id:'montagem',name:'Montagem de fones',short:'Fones',x:784,y:510,width:440,height:370,kind:'production',color:'#33d6a3',prefix:'ABF',count:4,type:'assembly'},
@@ -14,7 +14,7 @@ window.MSA = window.MSA || {};
   const machines=[],placements={};
   areas.forEach(a => {
     for(let i=0;i<a.count;i++) {
-      const id=a.id==='montagem'&&i===2?'NHPL':a.id==='acabamento'&&i===0?'SEL-01':a.prefix+'-'+String(i+1).padStart(2,'0');
+      const id=a.id==='montagem'&&i===2?'NHPL':a.id==='selagem'&&i===0?'SEL-01':a.prefix+'-'+String(i+1).padStart(2,'0');
       const columns=a.id==='recebimento'||a.id==='expedicao'?1:a.id==='injecao'?3:2;
       const rows=Math.ceil(a.count/columns),cell=a.width/columns;
       const x=a.x+cell*(i%columns+.5),y=a.y+116+Math.floor(i/columns)*(a.height-210)/Math.max(1,rows-1);
