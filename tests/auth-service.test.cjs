@@ -139,14 +139,14 @@ test('cadastro incompleto pode ser retomado sem sobrescrever um perfil existente
   assert.equal(f.profiles.get(`perfis/${user.id}`).cargo, 'operador');
 });
 
-test('três cargos se cadastram sem setor ou máquina e recebem acesso imediato', async () => {
+test('quatro cargos se cadastram sem setor ou máquina e recebem acesso imediato', async () => {
   const f=fixture();
   for(const [index,role] of f.config.roles.entries()) {
     const values={...valid,re:String(index+1),cargo:role.id};
     const user=await f.service.register(values);
     assert.equal(user.setorId,'');
     assert.equal(user.maquinaId,'');
-    assert.equal(f.service.home(user),'sistema.html#visao-geral');
+    assert.equal(f.service.home(user),role.id==='qualidade'?'sistema.html#qualidade':'sistema.html#visao-geral');
     assert.equal(f.service.role(user).id,role.id);
     assert.equal(f.service.home(user),`sistema.html#${role.home}`);
     for(const permission of role.permissions)assert.equal(f.service.can(permission,user),true);

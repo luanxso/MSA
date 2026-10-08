@@ -54,6 +54,6 @@ export async function authenticatedEmployee(request, config) {
   if (!profile || typeof profile.nome !== 'string' || !profile.nome.trim() || profile.nome.length > 120 || typeof profile.re !== 'string' || !/^\d{1,10}$/.test(profile.re) || identity.email !== `re-${profile.re}@${config.projectId}.invalid`) throw new EmployeeAuthError(403, 'Seu cadastro precisa ser revisado pelo responsável pelo sistema.');
   if (profile.status === 'bloqueado') throw new EmployeeAuthError(403, 'Seu acesso está bloqueado. Procure o responsável pelo sistema.');
   if (profile.status !== 'ativo') throw new EmployeeAuthError(403, 'Seu cadastro ainda aguarda liberação.');
-  if (!['operador', 'supervisor', 'chefe'].includes(profile.cargo)) throw new EmployeeAuthError(403, 'Seu cargo precisa ser liberado pelo responsável pelo sistema.');
+  if (!['operador', 'supervisor', 'chefe', 'qualidade'].includes(profile.cargo)) throw new EmployeeAuthError(403, 'Seu cargo precisa ser liberado pelo responsável pelo sistema.');
   return { id: `firebase:${identity.localId}`, name: profile.nome.trim(), re: profile.re, role: profile.cargo };
 }

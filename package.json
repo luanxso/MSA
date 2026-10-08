@@ -10,7 +10,9 @@
     "test:browser": "node scripts/test-browser.mjs",
     "test:plant": "node scripts/test-plant-browser.mjs",
     "demo": "node scripts/serve-demo.mjs",
-    "test:nhpl": "node scripts/test-nhpl-browser.mjs"
+    "test:nhpl": "node scripts/test-nhpl-browser.mjs",
+    "test:navigation": "node scripts/test-page-navigation-browser.mjs",
+    "test:chat-demo": "node scripts/test-scenario-chat-browser.mjs"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",

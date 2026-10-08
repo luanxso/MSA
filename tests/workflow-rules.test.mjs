@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {startEmulator,api,profile} from './emulator-fixture.mjs';
+test('Firebase aplica permissões e valida decisões de lote, recebimento, alertas e equipe', {skip:!process.env.MSA_DATABASE_EMULATOR_JAR},async t=>{
+ const e=await startEmulator(process.env.MSA_DATABASE_EMULATOR_JAR);t.after(e.close);
+ const ok=async(path,user,method='GET',body,query)=>{const r=await api(e.base,path,user,method,body,query);assert.equal(r.status,200,path+': '+JSON.stringify(r.data));return r.data;};
+ const deny=async(path,user,method,body)=>assert.equal((await api(e.base,path,user,method,body)).status,401,path);
+ for(const [id,cargo]of [['op','operador'],['sup','supervisor'],['chief','chefe'],['qa','qualidade']])await ok('perfis/'+id,'owner','PUT',profile(cargo,cargo==='qualidade'?'':'montagem'));
+ await ok('perfis/newqa','newqa','PUT',profile('qualidade','',''));await ok('maquinas/ABF-01','owner','PUT',{nome:'Montagem 01',setorId:'montagem'});await ok('maquinas/INJ-01','owner','PUT',{nome:'Injetora 01',setorId:'injecao'});
+ const at=Date.now(),base={setorId:'montagem',maquinaId:'ABF-01',createdAt:at,updatedAt:at,atualizadoPor:'qa'};
+ const batch={...base,status:'segregado',lote:'LT-01',quantidade:100,refugosIdentificados:2,historico:[{status:'segregado',at,responsavel:'Qualidade'}]};
+ await deny('lotesQualidade/q1','sup','PUT',{...batch,atualizadoPor:'sup'});await deny('lotesQualidade/q1','chief','PUT',{...batch,atualizadoPor:'chief'});
+ await ok('lotesQualidade/q1','qa','PUT',batch);await ok('lotesQualidade/q1','qa','PATCH',{status:'reinspecao',atualizadoPor:'qa'});
+ await deny('lotesQualidade/q1','qa','PATCH',{status:'liberado',inspecionadas:90,descartadas:2,liberadas:98});
+ await ok('lotesQualidade/q1','qa','PATCH',{status:'liberado',inspecionadas:100,descartadas:2,liberadas:98});
+ await ok('lotesQualidade','qa');await ok('lotesQualidade','op','GET',undefined,{orderBy:'maquinaId',equalTo:'ABF-01'});
+ const loss={setorId:'montagem',maquinaId:'ABF-01',usuarioId:'qa',usuarioRe:'1',createdAt:at,updatedAt:at,atualizadoPor:'qa',verificado:false,observacao:'Reinspeção',tipo:'refugo',quantidade:3,unidade:'pecas',data:at,motivo:'Reinspeção da Qualidade',produto:'Abafador',lote:'LT-01',decisaoQualidade:true,loteQualidadeId:'q1'};
+ await ok('perdas/qa-extra','qa','PUT',loss);await deny('perdas/qa-wrong','qa','PUT',{...loss,lote:'OUTRO'});
+ const handover={...base,atualizadoPor:'sup',dia:'2026-10-07',turno:'1',resumo:{aprovadas:80},usuarioId:'sup',usuarioRe:'1',entreguePor:'Supervisor',status:'entregue'};
+ await ok('passagensTurno/h1','sup','PUT',handover);await deny('passagensTurno/h1','sup','PATCH',{status:'recebida',recebidoId:'sup'});
+ await ok('passagensTurno/h1','chief','PATCH',{status:'recebida',recebidoId:'chief',atualizadoPor:'chief',recebidoEm:at});
+ await deny('passagensTurno/h2','op','PUT',{...handover,usuarioId:'op',atualizadoPor:'op'});
+ const alert={...base,atualizadoPor:'sup',sourceKey:'param:ABF-01',status:'reconhecido',active:true,destinatario:'Liderança',descricao:'Pressão alta'};
+ await ok('atendimentosAlertas/a1','sup','PUT',alert);await deny('atendimentosAlertas/a1','sup','PATCH',{status:'resolvido'});await ok('atendimentosAlertas/a1','sup','PATCH',{active:false,status:'resolvido'});
+ const staff={...base,atualizadoPor:'sup',funcionarioId:'op',funcionarioRe:'1',dia:'2026-10-07',turno:'1',presenca:'presente'};
+ await ok('alocacoes/s1','sup','PUT',staff);await deny('alocacoes/s1','sup','PATCH',{presenca:'ausente'});await ok('alocacoes/s1','sup','PATCH',{presenca:'ausente',maquinaId:''});await deny('alocacoes/s1','sup','PATCH',{presenca:'presente',maquinaId:'INJ-01'});await ok('alocacoes/s1','chief','PATCH',{presenca:'presente',maquinaId:'INJ-01',atualizadoPor:'chief'});
+});

@@ -1,0 +1,38 @@
+MSA - APRESENTAÇÃO COM PAINÉIS PREENCHIDOS
+
+1. Extraia o ZIP.
+2. No Windows, execute INICIAR-DEMO.cmd (é necessário Node.js).
+3. Abra http://127.0.0.1:4173/demonstracao.html no navegador.
+
+Alternativa: sirva a pasta dist com Live Server e abra demonstracao.html.
+O link "Visualizar cenário de apresentação" também está no login.
+
+Todos os exemplos são fictícios. Painéis e planta usam a mesma base.
+Clique no nome de uma máquina para abrir seu pop-up no mapa.
+No pop-up, acesse Produção, Paradas ou Qualidade da máquina selecionada.
+Em Configurações, restaure o cenário ou escolha outro cargo da apresentação.
+
+Não é necessário importar exemplos no Firebase. A consulta real é mantida
+em sistema.html?dados=reais, com o login existente.
+
+PRODUÇÃO POR TURNO
+Na página Produção use o filtro Turno: Todos, 1º, 2º ou 3º.
+A comparação dos três turnos aparece logo abaixo dos indicadores.
+Produção abre com os últimos sete dias para mostrar os três turnos.
+Os horários são fictícios; o terceiro turno pertence ao dia em que começa.
+
+REVISÃO DO SISTEMA
+Esta versão corrige erros de salvamento, formulários, filtros, indicadores
+e carregamento do mapa. Veja docs/Verificacao-do-sistema.md para os resultados.
+
+CINCO FLUXOS DA OPERAÇÃO
+Paradas: microparadas automáticas em segundos e seleção de motivos comuns.
+Passagem de turno: resumo automático, pendências e confirmação de recebimento.
+Qualidade: lote suspeito, segregação, reinspeção e decisão por cargo Qualidade.
+Notificações: reconhecimento, atendimento, normalização e conclusão com histórico.
+Funcionários: confirmação de presença e redistribuição de postos por dia/turno.
+
+A simulação continua fora do mapa. No cenário, alterne Chefe, Supervisor,
+Operador e Qualidade em Configurações. Para o modo Firebase, publique as
+regras atualizadas. CLP/IHM e envio de e-mail ainda exigem integração real.
+Veja docs/Fluxos-da-operacao.md para demonstrar cada fluxo.

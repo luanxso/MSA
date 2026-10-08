@@ -102,7 +102,7 @@ try {
       try{await route.fulfill({contentType:({'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.ttf':'font/ttf'})[extname(file)]||'application/octet-stream',body:await readFile(file)});}catch{await route.fulfill({status:404,body:'Arquivo não encontrado'});}
     });
     page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(base+'/sistema.html?qa='+cargo+'#'+hash);
+    await page.goto(base+'/sistema.html?dados=reais&qa='+cargo+'#'+hash);
     await page.locator('.plant-page').waitFor();
     return page;
   };
@@ -192,6 +192,7 @@ try {
   assert.match(await page.locator('#plant-tab-panel').innerText(),/Taxa de refugo/);
   await page.getByRole('button',{name:'Voltar à planta',exact:true}).click();
   await page.locator('#plant-svg').waitFor();
+  await page.waitForFunction(expected=>document.querySelector('#plant-world')?.getAttribute('transform')===expected,zoomed);
   assert.equal(await page.locator('#plant-world').getAttribute('transform'),zoomed);
   await page.locator('[data-plant-product="fones"]').click();
   assert.equal(await page.locator('[data-machine="INJ-01"]').getAttribute('aria-disabled'),'true');
@@ -227,7 +228,7 @@ try {
   await page.evaluate(()=>{const m=MSA.data.state.maquinas;MSA.data.state.maquinas=[];MSA.qaNotify();window.qaCatalog=m;});
   await page.locator('#plant-empty').waitFor({state:'visible'});
   await page.evaluate(()=>{MSA.data.state.maquinas=window.qaCatalog;MSA.qaNotify();});
-  assert.equal(await page.locator('[data-machine]').count(),5);
+  assert.equal(await page.locator('[data-machine]').count(),await page.evaluate(()=>MSA.config.machines.length));
   // O adaptador começa sem parâmetros e os acrescenta na primeira leitura.
   await page.evaluate(()=>MSA.telemetry.useAdapter({name:'CLP de teste',subscribe(send,fail){MSA.qaSend=send;MSA.qaFail=fail;return()=>{};}}));
   const adapterSummary=await openSummary(page,'INJ-01');
@@ -248,9 +249,9 @@ try {
   assert.equal(await page.locator('.plant-data-error').isVisible(),false);
   await page.evaluate(()=>MSA.telemetry.disconnectAdapter());
   // Rotas diretas e os diferentes cargos preservam o escopo real.
-  const deep=await open('supervisor','mapa-planta/SEL-01');
-  assert.match(await deep.locator('.supervisor-code').innerText(),/SEL-01/);
-  await deep.screenshot({path:resolve(output,'supervisor-selagem.png'),fullPage:true});
+  const deep=await open('supervisor','mapa-planta/INJ-03');
+  assert.match(await deep.locator('.supervisor-code').innerText(),/INJ-03/);
+  await deep.screenshot({path:resolve(output,'supervisor-injecao.png'),fullPage:true});
   await showSource(deep,'records');
   await deep.locator('.plant-unavailable').waitFor();
   const operator=await open('operador');

@@ -47,15 +47,16 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const base=`http://127.0.0.1:${server.address().port}`;
 let browser;
 try {
- const seed={perfis:{op:profile('operador'),sup:profile('supervisor'),chief:profile('chefe'),newop:profile('operador','',''),newsup:profile('supervisor','',''),outside:profile('operador','injecao','INJ-01')}};
+ const seed={perfis:{op:profile('operador'),sup:profile('supervisor'),chief:profile('chefe'),qa:profile('qualidade','',''),newop:profile('operador','',''),newsup:profile('supervisor','',''),outside:profile('operador','injecao','INJ-01')}};
  assert.equal((await api(e.base,'','owner','PUT',seed)).status,200);
  browser=await chromium.launch({...(process.env.MSA_CHROME_BINARY?{executablePath:process.env.MSA_CHROME_BINARY}:{}),args:['--no-sandbox']});
  const errors=[];
- const open=async(uid,hash)=>{const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',err=>errors.push(uid+': '+err.message));await page.goto(base+'/sistema.html?qa='+uid+'#'+hash);await page.waitForFunction(()=>MSA.data?.state.ready&&MSA.data.state.connected,{timeout:15000});return page;};
+ const open=async(uid,hash)=>{const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',err=>errors.push(uid+': '+err.message));await page.goto(base+'/sistema.html?dados=reais&qa='+uid+'#'+hash);await page.waitForFunction(()=>MSA.data?.state.ready&&MSA.data.state.connected,{timeout:15000});return page;};
  const sup=await open('sup','configuracoes');await sup.getByRole('button',{name:'Preparar máquinas de exemplo'}).click();await sup.getByText('Catálogo preparado.',{exact:false}).waitFor();
+ assert.equal((await api(e.base,'maquinas/NHPL','owner')).data.metaDiaria,0);
 
  await sup.evaluate(()=>location.hash='maquinas');
- await sup.getByRole('button',{name:'Editar máquina'}).first().click();
+ await sup.locator('.equipment-row[data-equipment-id="ABF-01"] [data-action="machine-detail"]').click();await sup.getByRole('button',{name:'Editar máquina'}).click();
  await sup.locator('[name="nome_0"]').fill('Temperatura');await sup.locator('[name="unidade_0"]').fill('°C');await sup.locator('[name="min_0"]').fill('240');await sup.locator('[name="max_0"]').fill('260');
  for(let index=1;index<4;index++){await sup.getByRole('button',{name:'Adicionar parâmetro'}).click();await sup.locator(`[name="nome_${index}"]`).fill(index===1?'Vácuo':'Zona '+index);await sup.locator(`[name="unidade_${index}"]`).fill(index===1?'mmHg':'°C');await sup.locator(`[name="min_${index}"]`).fill(index===1?'-600':'240');await sup.locator(`[name="max_${index}"]`).fill(index===1?'-300':'260');}
  await sup.getByRole('button',{name:'Salvar',exact:true}).click();await sup.waitForFunction(()=>Object.keys(MSA.data.state.maquinas.find(m=>m.id==='ABF-01').parametros).length===4);
@@ -65,8 +66,8 @@ try {
 
  await op.getByRole('button',{name:'Registrar parâmetros',exact:true}).click();
  await op.locator('[name="valor_p0"]').fill('270');await op.locator('[name="valor_p1"]').fill('-400');await op.locator('[name="valor_p2"]').fill('250');await op.locator('[name="valor_p3"]').fill('250');await op.locator('[name="lote"]').fill('DEMO-01');await op.getByRole('button',{name:'Salvar',exact:true}).click();await chief.waitForFunction(()=>MSA.data.state.leituras.length===1);
- await chief.evaluate(()=>location.hash='notificacoes');await chief.getByText('Fora do limite',{exact:true}).waitFor();await chief.evaluate(()=>location.hash='indicadores');
- await sup.evaluate(()=>location.hash='maquinas');await sup.locator('.machine-parameters summary').first().click();await sup.locator('.machine-parameters[open]').getByText('270 °C',{exact:false}).waitFor();
+ await chief.evaluate(()=>location.hash='notificacoes');await chief.getByText('Parâmetro ·',{exact:false}).waitFor();await chief.evaluate(()=>location.hash='indicadores');
+ await sup.evaluate(()=>location.hash='maquinas');await sup.locator('.equipment-row[data-equipment-id="ABF-01"] [data-action="machine-detail"]').click();await sup.locator('.machine-parameters[open]').getByText('270 °C',{exact:false}).waitFor();
  assert.equal(await op.locator('.nav-item[data-page="indicadores"]').isVisible(),false);
  assert.equal(await chief.locator('.nav-item[data-page="apontamentos"]').isVisible(),false);
  await op.getByRole('button',{name:'Registrar produção',exact:true}).click();
@@ -80,14 +81,14 @@ try {
  await chief.waitForFunction(()=>MSA.data.state.registrosProducao[0].quantidade===250);
  await op.evaluate(()=>location.hash='indicadores');await op.waitForFunction(()=>location.hash==='#visao-geral');assert.equal(await op.locator('#page-title').innerText(),'Visão geral');
  const blocked=await op.evaluate(async()=>{const c=await MSA.firebase.ready();c.databaseSDK.goOffline(c.database);await new Promise(r=>setTimeout(r,100));try{await MSA.data.save('ocorrencias',{maquinaId:'ABF-01',descricao:'Offline',data:Date.now()});return false;}catch(err){return err.message.includes('conexão');}finally{c.databaseSDK.goOnline(c.database);}});assert(blocked);await op.waitForFunction(()=>MSA.data.state.connected);
- await op.evaluate(()=>location.hash='paradas');await op.getByRole('button',{name:'Registrar parada',exact:true}).click();await op.locator('[name="motivo"]').fill('Falha de avanço');await op.getByRole('button',{name:'Salvar',exact:true}).click();await op.waitForFunction(()=>MSA.data.state.paradas.length===1);
- await sup.evaluate(()=>location.hash='paradas');await sup.getByRole('button',{name:'Encerrar',exact:true}).click();await sup.locator('[name="causa"]').fill('Ajuste realizado');await sup.getByRole('button',{name:'Salvar',exact:true}).click();await op.waitForFunction(()=>MSA.data.state.paradas[0].fim>0);
+ await op.evaluate(()=>location.hash='paradas');await op.getByRole('button',{name:'Registrar parada',exact:true}).click();await op.locator('[name="motivoCodigo"]').selectOption('outro');await op.locator('[name="motivoOutro"]').fill('Falha de avanço');await op.getByRole('button',{name:'Salvar',exact:true}).click();await op.waitForFunction(()=>MSA.data.state.paradas.length===1);
+ await sup.evaluate(()=>location.hash='paradas');await sup.locator('[role="tab"][data-id="abertas"]').click();await sup.getByRole('button',{name:'Encerrar',exact:true}).click();await sup.locator('[name="causa"]').fill('Ajuste realizado');await sup.getByRole('button',{name:'Salvar',exact:true}).click();await op.waitForFunction(()=>MSA.data.state.paradas[0].fim>0);
  await op.evaluate(()=>location.hash='qualidade');await op.getByRole('button',{name:'Registrar refugo / perda'}).click();await op.locator('[name="quantidade"]').fill('4');await op.locator('[name="motivo"]').fill('Selo enrugado');await op.locator('[name="lote"]').fill('DEMO-01');await op.getByRole('button',{name:'Salvar',exact:true}).click();await chief.waitForFunction(()=>MSA.data.state.perdas.length===1);
  await op.evaluate(()=>location.hash='ocorrencias');await op.getByRole('button',{name:'Registrar ocorrência'}).click();await op.locator('[name="descricao"]').fill('Oscilação no processo');await op.getByRole('button',{name:'Salvar',exact:true}).click();await sup.waitForFunction(()=>MSA.data.state.ocorrencias.length===1);
  await sup.evaluate(()=>location.hash='ocorrencias');await sup.getByRole('button',{name:'Resolver',exact:true}).click();await sup.locator('[name="resolucao"]').fill('Parâmetros conferidos');await sup.getByRole('button',{name:'Salvar',exact:true}).click();await op.waitForFunction(()=>MSA.data.state.ocorrencias[0].status==='resolvida');
  await sup.evaluate(()=>location.hash='conferencia');await sup.getByRole('button',{name:'Consolidar setor'}).click();await sup.locator('[name="observacao"]').fill('Produção acompanhada; pendência resolvida.');await sup.getByRole('button',{name:'Salvar',exact:true}).click();await chief.waitForFunction(()=>MSA.data.state.consolidacoes.length===1);
  // Chat original, com mensagens compartilhadas no Realtime Database.
- await op.evaluate(()=>location.hash='chat');await op.locator('#chat-message').waitFor({state:'visible'});await op.waitForFunction(()=>!document.querySelector('#chat-message').disabled);await op.locator('#chat-message').fill('Passagem de turno registrada');await op.locator('#chat-send').click();await op.getByText('Passagem de turno registrada',{exact:true}).waitFor();
+ await op.evaluate(()=>location.hash='chat');await op.locator('#chat-message').waitFor({state:'visible'});await op.waitForFunction(()=>!document.querySelector('#chat-message').disabled);assert(await op.locator('#chat-demo-update').isHidden());await op.locator('#chat-message').fill('Passagem de turno registrada');await op.locator('#chat-send').click();await op.getByText('Passagem de turno registrada',{exact:true}).waitFor();
  await sup.evaluate(()=>location.hash='chat');await sup.getByText('Passagem de turno registrada',{exact:true}).waitFor();
  const privateId=await op.evaluate(async()=>{const thread=await MSA.firebaseChat.request('threads',{method:'POST',body:JSON.stringify({person_id:'sup'})});await MSA.firebaseChat.request('messages',{method:'POST',body:JSON.stringify({conversation:thread.id,body:'Conversa privada',client_key:'private-qa'})});return thread.id;});
  const priv=await sup.evaluate(async id=>MSA.firebaseChat.request('messages?conversation='+id),privateId);assert.equal(priv.messages[0].body,'Conversa privada');
@@ -118,14 +119,30 @@ try {
  assert.equal(history.find(r=>r.quantidade===30).usuarioRe,history.find(r=>r.quantidade===250).usuarioRe);
  await op.locator('#ops-work-machine').selectOption('ABF-01');await op.waitForFunction(()=>MSA.data.user?.maquinaId==='ABF-01'&&MSA.data.state.ready&&MSA.data.state.connected);
  await sup.locator('#sector-selector').selectOption('montagem');await sup.waitForFunction(()=>MSA.data.user?.setorId==='montagem'&&MSA.data.state.ready&&MSA.data.state.connected);
- // Troca da máquina atual restringe imediatamente dados e ações da sessão aberta.
- await sup.evaluate(()=>location.hash='funcionarios');await sup.getByRole('button',{name:'Vincular máquina'}).click();await sup.locator('[name="maquinaId"]').selectOption('ABF-02');await sup.getByRole('button',{name:'Salvar',exact:true}).click();await op.waitForFunction(()=>MSA.data.user.maquinaId==='ABF-02'&&MSA.data.state.ready&&MSA.data.state.registrosProducao.length===0);
- await op.evaluate(()=>location.hash='apontamentos');assert.match(await op.locator('#page-content').innerText(),/Montagem 02/);
+ // Alocação de turno preserva o contexto de login e a origem dos apontamentos.
+ await sup.evaluate(()=>location.hash='funcionarios');await sup.locator('[data-action="wf-staff"][data-id="op"]').click();await sup.locator('[name="presenca"]').selectOption('presente');await sup.locator('[name="maquinaId"]').selectOption('ABF-02');await sup.getByRole('button',{name:'Salvar',exact:true}).click();await sup.waitForFunction(()=>MSA.data.state.alocacoes.some(a=>a.funcionarioId==='op'&&a.maquinaId==='ABF-02'));
+ const allocation=(await api(e.base,'alocacoes','owner')).data;assert(Object.values(allocation).some(a=>a.funcionarioId==='op'&&a.maquinaId==='ABF-02'));assert.equal((await api(e.base,'perfis/op','owner')).data.maquinaId,'ABF-01');
+ await op.evaluate(()=>location.hash='apontamentos');assert.match(await op.locator('#page-content').innerText(),/Montagem 01/);
+ // Novos fluxos compartilhados também usam o SDK real e as regras do emulador.
+ const realHandover=await sup.evaluate(async()=>{const d=new Date();d.setDate(d.getDate()-1);return MSA.data.workflow('handover-create',{maquinaId:'ABF-01',dia:d.toLocaleDateString('sv'),turno:'1',acoesRealizadas:'Abastecimento revisto',pendencias:'Conferir alimentação'});});
+ await chief.waitForFunction(id=>MSA.data.state.passagensTurno.some(h=>h.id===id),realHandover);await chief.evaluate(id=>MSA.data.workflow('handover-receive',{},id),realHandover);
+ await chief.evaluate(id=>MSA.data.workflow('handover-task',{taskId:MSA.data.state.passagensTurno.find(h=>h.id===id).pendencias[0].id},id),realHandover);
+ const storedHandover=(await api(e.base,'passagensTurno/'+realHandover,'owner')).data;assert.equal(storedHandover.recebidoId,'chief');assert(storedHandover.pendencias[0].done);
+ const realStop=await sup.evaluate(()=>MSA.data.state.paradas[0].id);await sup.evaluate(id=>MSA.data.workflow('classify-stop',{motivoCodigo:'sensor'},id),realStop);assert.equal((await api(e.base,'paradas/'+realStop,'owner')).data.motivoCodigo,'sensor');
+ const paramAlert=await chief.evaluate(()=>MSA.data.state.atendimentosAlertas.find(a=>a.sourceKey.startsWith('param:ABF-01:')).id);
+ await chief.evaluate(id=>MSA.data.workflow('alert-transition',{status:'reconhecido'},id),paramAlert);await chief.evaluate(id=>MSA.data.workflow('alert-transition',{status:'atendimento',observacao:'Conferir processo'},id),paramAlert);
+ await op.evaluate(()=>MSA.data.save('leituras',{maquinaId:'ABF-01',data:Date.now(),lote:'DEMO-01',valores:{p0:255,p1:-400,p2:250,p3:250}},MSA.data.state.leituras[0].id));await chief.waitForFunction(id=>MSA.data.state.atendimentosAlertas.find(a=>a.id===id)?.active===false,paramAlert);
+ await chief.evaluate(id=>MSA.data.workflow('alert-transition',{status:'resolvido',observacao:'Temperatura normalizada'},id),paramAlert);assert.equal((await api(e.base,'atendimentosAlertas/'+paramAlert,'owner')).data.status,'resolvido');
+ const qa=await open('qa','qualidade');await qa.locator('[role="tab"][data-id="lotes"]').click();const realBatch=await qa.evaluate(()=>MSA.data.state.lotesQualidade.find(b=>b.lote==='DEMO-01').id);
+ await qa.evaluate(id=>MSA.data.workflow('batch-transition',{status:'segregado',observacao:'Área vermelha'},id),realBatch);await qa.waitForFunction(id=>MSA.data.state.lotesQualidade.find(b=>b.id===id)?.status==='segregado',realBatch);
+ await qa.evaluate(id=>MSA.data.workflow('batch-transition',{status:'reinspecao',observacao:'Reinspeção iniciada'},id),realBatch);await qa.waitForFunction(id=>MSA.data.state.lotesQualidade.find(b=>b.id===id)?.status==='reinspecao',realBatch);
+ await qa.evaluate(id=>{const b=MSA.data.state.lotesQualidade.find(b=>b.id===id);return MSA.data.workflow('batch-transition',{status:'liberado',observacao:'Peças conformes liberadas',inspecionadas:b.quantidade,descartadas:b.refugosIdentificados+2},id);},realBatch);await qa.waitForFunction(id=>MSA.data.state.lotesQualidade.find(b=>b.id===id)?.status==='liberado',realBatch);
+ const storedBatch=(await api(e.base,'lotesQualidade/'+realBatch,'owner')).data;assert.equal(storedBatch.quantidade,254);assert.equal(storedBatch.liberadas,248);assert.equal(storedBatch.descartadas,6);assert.equal(storedBatch.status,'liberado');await qa.close();
  await chief.evaluate(()=>location.hash='indicadores');
  const artifacts=process.env.MSA_QA_OUTPUT||resolve('.qa-output');await mkdir(artifacts,{recursive:true});
  await chief.screenshot({path:resolve(artifacts,'chefe-desktop.png'),fullPage:true});
  for(const page of [op,sup,chief]){await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.locator('.sidebar-toggle').click();assert(await page.locator('#sidebar').evaluate(el=>!el.inert));await page.locator('.drawer-close').click();}
  await op.screenshot({path:resolve(artifacts,'operador-mobile.png'),fullPage:true});
  assert.deepEqual(errors,[]);
- console.log('OK: cadastro sem setor; mesma conta troca de máquina entre setores; histórico preservado; três cargos em sessões separadas; Firebase real no emulador; RBAC, produção, conferência, qualidade, paradas, ocorrências, consolidação e chat. Desktop e mobile sem overflow.');
+ console.log('OK: cadastro sem setor; mesma conta troca de máquina entre setores; histórico preservado; quatro cargos em sessões separadas; cinco fluxos persistidos; Firebase real no emulador; RBAC, produção, conferência, qualidade, paradas, ocorrências, consolidação e chat. Desktop e mobile sem overflow.');
 }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));e.close();}

@@ -1,5 +1,33 @@
 # MSA — Sistema integrado de gestão da produção
 
+## Painéis preenchidos e integrados à planta — entrega atual
+
+**Produção, Qualidade e Paradas** agora usam abas internas e tabelas com **8 registros por página**. A busca localiza máquina, lote e motivo; os filtros e os indicadores ficam no topo. **Detalhes** abre as informações completas sem expandir a lista. No celular, as linhas viram blocos com rótulos. Consulte [Navegação e fluxos da operação](docs/Fluxos-da-operacao.md). Para validar essa navegação, execute `npm run test:navigation` com Playwright/Chromium.
+
+Execute **INICIAR-DEMO.cmd** no Windows ou **npm run demo** e acesse **http://127.0.0.1:4173/demonstracao.html**. Na página de login também existe **Visualizar cenário de apresentação**. A apresentação abre sem cadastro, com perfil fictício de Chefe. Em Configurações é possível visualizar como Supervisor ou Operador e restaurar os exemplos.
+
+A revisão do chat passou por **16 testes de cenário** e verificação no navegador: históricos exclusivos, envio isolado, atualização simulada, três larguras e contraste de pelo menos 4,5:1 nas mensagens nos dois temas. A integração Firebase também foi verificada no emulador, com o botão de simulação oculto na fonte real.
+
+Os módulos usam sete dias de dados fictícios para os mesmos **32 equipamentos e oito setores** da planta. O cenário representa o primeiro turno, das 07h às 15h, e atualiza as datas automaticamente. Painéis, filtros e pop-ups consultam uma única base. No Mapa da Planta, o cenário continua em movimento: o ciclo avança e cada ciclo completo classifica uma peça como aprovada ou refugo nos mesmos registros dos painéis. Use Pausar/Retomar para controlar a apresentação. Clique no nome de uma máquina para abrir seu pop-up no mapa; o pop-up oferece acesso aos painéis de Produção, Paradas e Qualidade com essa máquina selecionada.
+
+A página **Produção** agora oferece **Todos os turnos, 1º, 2º e 3º turno**. O filtro atualiza produção aprovada, meta acumulada, produtividade, hora a hora, resultados por máquina, apontamentos e parâmetros. A tabela **Comparativo de produção por turno** mantém os três turnos visíveis para comparar os resultados das máquinas e datas selecionadas. Para facilitar a apresentação, Produção abre com os últimos sete dias: os turnos 2 e 3 possuem exemplos nos seis dias anteriores, pois o cenário de hoje está às 15h. Horários ilustrativos: 07h–15h, 15h–23h e 23h–07h. O terceiro turno pertence à data em que começa.
+
+A página **Máquinas** segue a hierarquia visual dos demais painéis, com filtros por **setor e situação**, busca por **código, nome ou produto** e ordenação por prioridade, código ou produção. Para consultar a Expedição, escolha **Setor → Expedição** na própria página. Os indicadores acompanham os filtros; a lista mostra produção aprovada, meta, OEE e alertas do dia, com oito equipamentos por página. **Detalhes** reúne parâmetros, ações de cadastro permitidas e atalhos para Produção, Paradas, Qualidade e o mapa. O filtro de setor acompanha o seletor do cabeçalho e preserva as permissões de cada cargo.
+
+A simulação tem **2% de chance de refugo por ciclo**, uma taxa fictícia ajustável em **Configurações → Chance de refugo por ciclo**. O refugo aumenta somente as peças rejeitadas, atualiza Qualidade e fica registrado com máquina, lote, motivo e horário. No mapa e nos pop-ups aparece um aviso discreto por dez segundos e a peça ganha destaque vermelho. Para mostrar isso na apresentação, use **Simular refugo no próximo ciclo** no supervisório completo, no resumo de uma máquina ou nos controles da NHPL; o evento só acontece ao terminar o ciclo.
+
+Temperatura e pressão agora têm **leituras automáticas variáveis** no cenário, com horário atualizado. As seis injetoras e os quatro equipamentos de selagem oferecem temperatura e pressão; NHPL e montagem mostram pressão pneumática e parâmetros de montagem. Valores e limites são fictícios. A cada 30 segundos de simulação há uma chance de 5% por máquina operando de gerar um desvio temporário; o campo sai do limite, aparece um aviso e um alarme, e a leitura se normaliza após dez segundos. Para apresentar sem depender do sorteio, use **Simular desvio de parâmetro** no supervisório ou nos controles da NHPL. A chance pode ser alterada em Configurações. Pausar congela as leituras automáticas junto com a produção.
+
+Cada painel tem conteúdo próprio: Visão geral com produtividade, OEE, MTBF, MTTR e destaque da NHPL; Produção com hora a hora, lote, ordem e turno; Paradas com motivos e confiabilidade; Qualidade com refugos, material e segregados; Equipe com presença ilustrativa; Indicadores com eficiência por máquina; Relatórios com fechamento do dia; Notificações com destinatário previsto. O chat inclui históricos fictícios próprios para os oito setores, Produção, Passagem de turno e cada funcionário. **Simular nova mensagem** demonstra uma atualização chegando à conversa selecionada.
+
+Nesta entrega o cenário fictício é a fonte padrão dos painéis, inclusive após login. Para consultar a fonte real, use **Configurações → Consultar dados do Firebase** ou **sistema.html?dados=reais**. A apresentação não importa dados no banco nem envia mensagens/e-mails. As alterações feitas nos exemplos ficam na sessão do navegador. Contagens de máquinas em diferentes etapas não representam um total de produtos finais únicos.
+
+Respostas do supervisor orientaram os campos, a prioridade da NHPL e as faixas de alertas. Nomes, presença, planta, tempos, metas, parâmetros e limites são exemplos que precisam de validação. Detalhes: [Painéis e cenário](docs/Paineis-e-cenario.md).
+
+Validação da revisão das abas: **80 testes automatizados aprovados**, incluindo as regras no emulador; **nove roteiros de navegador aprovados**, cobrindo as novas abas, paginação, cinco fluxos, quatro cargos, integração com a planta e três larguras nos dois temas; build concluído. A conexão com equipamentos reais não faz parte desta validação.
+
+## Histórico e arquitetura anterior
+
 ## Entrega do supervisório 3D NHPL — 07/10/2026
 
 Execute `INICIAR-DEMO.cmd` (Windows) ou `npm run demo` e abra `http://127.0.0.1:4173/planta-demo.html`. Clique em **NHPL** no mapa para abrir a cena 3D em popup. O mesmo popup está integrado ao sistema autenticado, com permissões existentes. A demonstração trabalha em memória.

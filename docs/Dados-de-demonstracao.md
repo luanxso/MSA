@@ -1,3 +1,13 @@
+# Dados para apresentação — versão atual
+
+Os painéis agora carregam um cenário local preenchido para as 32 máquinas da planta. Nenhuma importação no Firebase é necessária. Abra `demonstracao.html` usando um servidor HTTP ou `npm run demo`. Datas se renovam a cada dia; o dia atual representa uma fotografia às 15h. Nos seis dias anteriores há exemplos completos dos três turnos, acessíveis pelo filtro em Produção. A consulta real continua disponível em `sistema.html?dados=reais`.
+
+Leia [Painéis e cenário](Paineis-e-cenario.md) para os campos, fontes e fórmulas atuais.
+
+## Importador anterior — opcional, não utilizado nesta entrega
+
+O conteúdo abaixo documenta um conjunto antigo de cinco máquinas. Ele é independente do cenário local atual e não é necessário para apresentar os painéis preenchidos.
+
 # Dados para preencher o sistema
 
 O conjunto foi preparado para o cadastro operacional atual: três setores e cinco máquinas, com sete dias de exemplos, incluindo hoje. Contém 70 registros de produção, 14 leituras, 36 paradas (uma aberta), 75 perdas em peças/kg, cinco ocorrências, três consolidações e oito perfis ilustrativos. Não altera a planta ilustrativa de 32 equipamentos.
