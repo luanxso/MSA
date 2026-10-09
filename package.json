@@ -1,6 +1,6 @@
 {
   "name": "msa-producao-base",
-  "version": "0.6.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,15 @@
     "test:nhpl": "node scripts/test-nhpl-browser.mjs",
     "test:navigation": "node scripts/test-page-navigation-browser.mjs",
     "test:chat-demo": "node scripts/test-scenario-chat-browser.mjs",
-    "test:shifts": "node scripts/test-shifts-browser.mjs"
+    "test:shifts": "node scripts/test-shifts-browser.mjs",
+    "test:photo": "node scripts/test-photo-browser.mjs",
+    "test:motion": "node scripts/test-motion-browser.mjs",
+    "test:analysis": "node scripts/test-analysis-browser.mjs",
+    "test:ocr": "node scripts/test-ocr-browser.mjs",
+    "test:camera": "node scripts/test-camera-browser.mjs",
+    "test:examples": "node scripts/test-photo-examples-browser.mjs",
+    "test:ocr-local-auth": "node scripts/test-ocr-local-auth-browser.mjs",
+    "test:regressoes": "node scripts/test-final-regressions-browser.mjs"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",

@@ -1,4 +1,36 @@
-MSA - APRESENTAÇÃO COM PAINÉIS PREENCHIDOS
+MSA - V18: CORREÇÕES FINAIS E TESTES DE REGRESSÃO
+
+Confira docs/Correcoes-finais-v18.md para as alterações e os resultados dos testes.
+Para Firebase real, publique database.rules.json atualizado ao instalar esta versão.
+
+MSA - V9: GRÁFICOS DA PRODUÇÃO, FOTOS E MOTION
+
+ANÁLISE DA PRODUÇÃO - PÁGINA DE GRÁFICOS
+Entre como Chefe, Supervisor ou Qualidade e abra Análise da produção.
+Selecione setor no cabeçalho e use máquina, período, turno e lote.
+A tela mostra produção, taxa de refugo, comparações e motivos de parada.
+Clique nas barras para isolar setor, máquina ou turno.
+Selecione uma máquina com leituras para incluir o gráfico dos parâmetros.
+Passe sobre os pontos, toque ou use o teclado para consultar os valores.
+Amplie pelo botão no canto do gráfico. Clique em um ponto vermelho para investigar.
+Gráficos atualizam com novos registros; fotos permanecem leituras pontuais.
+Guia: docs/Analise-da-producao.md.
+
+MOTION
+Inclui as animações locais da v7 e a tela secundária de registro por foto.
+A preferência de movimento reduzido do dispositivo é respeitada.
+Guia: ANIMACOES-MOTION.md.
+
+REGISTRO POR FOTO - TELA SECUNDÁRIA
+Entre como Operador e abra Registro por foto no menu ou em Apontamentos.
+Na apresentação, use:
+http://127.0.0.1:4173/sistema.html?demonstracao=1&cargo=operador#registro-foto
+Selecione setor, máquina e lote. Confira a escala do instrumento antes
+de usar a leitura automática de pressão e vácuo. Temperatura permite
+foto e preenchimento manual; o leitor automático de IHM não está conectado.
+As leituras reconhecidas são encaminhadas aos painéis existentes.
+Na fonte Firebase, publique o database.rules.json atualizado antes de enviar.
+Guia completo: docs/Registro-por-foto.md.
 
 1. Extraia o ZIP.
 2. No Windows, execute INICIAR-DEMO.cmd (é necessário Node.js).

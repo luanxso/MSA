@@ -111,6 +111,22 @@
         },
         "$other": {
           ".validate": false
+        },
+        "historicoMetas": {
+          ".write": "auth != null && root.child('perfis').child(auth.uid).child('status').val() === 'ativo' && (root.child('perfis').child(auth.uid).child('cargo').val() === 'chefe' || (root.child('perfis').child(auth.uid).child('cargo').val() === 'supervisor' && data.parent().child('setorId').val() === root.child('perfis').child(auth.uid).child('setorId').val()))",
+          ".validate": "newData.hasChildren(['base'])",
+          "$version": {
+            ".validate": "newData.hasChildren(['inicio','metaDiaria']) && newData.child('inicio').isNumber() && newData.child('inicio').val() >= 0 && newData.child('inicio').val() <= now + 60000 && newData.child('metaDiaria').isNumber() && newData.child('metaDiaria').val() >= 0 && (!data.exists() || (newData.child('inicio').val() === data.child('inicio').val() && newData.child('metaDiaria').val() === data.child('metaDiaria').val()))",
+            "inicio": {
+              ".validate": "newData.isNumber()"
+            },
+            "metaDiaria": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
         }
       }
     },
@@ -261,6 +277,42 @@
             "$key": {
               ".validate": "newData.isNumber() && ($key === \"temp_ambiente\" || $key === \"aquecimento_z1\" || $key === \"aquecimento_z2\" || $key === \"aquecimento_z3\" || $key === \"aquecimento_z4\" || $key === \"aquecimento_z5\" || $key === \"aquecimento_z6\" || $key === \"aquecimento_z7\" || $key === \"aquecimento_z8\" || $key === \"aquecimento_z9\" || $key === \"aquecimento_z10\" || $key === \"aquecimento_z11\" || $key === \"aquecimento_z12\" || $key === \"aquecimento_z13\" || $key === \"aquecimento_z14\" || $key === \"aquecimento_z15\" || $key === \"aquecimento_z16\" || $key === \"aquecimento_z17\" || $key === \"aquecimento_z18\" || $key === \"aquecimento_z19\" || $key === \"aquecimento_z20\" || $key === \"aquecimento_z21\" || $key === \"medida_passo\" || $key === \"velocidade_passo\" || $key === \"tempo_vacuo\" || $key === \"tempo_resfriamento\" || $key === \"tempo_destacar\" || $key === \"tempo_contra_molde\" || $key === \"tempo_prensa_corte\" || $key === \"tempo_esteira_saida\" || $key === \"retardo_passo\" || $key === \"retardo_mesa\" || $key === \"retardo_vacuo\" || $key === \"retardo_resfriamento\" || $key === \"retardo_destacar\" || $key === \"retardo_contra_molde\" || $key === \"retardo_prensa_corte\" || $key === \"retardo_disco_corte\" || $key === \"retardo_esteira_saida\" || $key === \"pressao_ar\" || $key === \"vacuo\")"
             }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "origem": {
+          ".validate": "newData.val() === 'foto' && newData.parent().hasChild('fotoProcesso')"
+        },
+        "turno": {
+          ".validate": "newData.val() === '1' || newData.val() === '2' || newData.val() === '3'"
+        },
+        "fotoProcesso": {
+          ".validate": "newData.hasChildren(['parametro','imagem','capturadaEm','metodo','unidade','escala']) && newData.parent().child('origem').val() === 'foto' && newData.parent().child('valores').hasChild(newData.child('parametro').val())",
+          "parametro": {
+            ".validate": "newData.isString() && root.child('maquinas').child(newData.parent().parent().child('maquinaId').val()).child('parametros').child(newData.val()).exists()"
+          },
+          "imagem": {
+            ".validate": "newData.isString() && newData.val().length <= 220000 && newData.val().beginsWith('data:image/jpeg;base64,')"
+          },
+          "capturadaEm": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+          },
+          "metodo": {
+            ".validate": "newData.val() === 'manual' || newData.val() === 'ponteiro-local' || newData.val() === 'adaptador' || newData.val() === 'ocr-local'"
+          },
+          "unidade": {
+            ".validate": "newData.val() === root.child('maquinas').child(newData.parent().parent().child('maquinaId').val()).child('parametros').child(newData.parent().child('parametro').val()).child('unidade').val()"
+          },
+          "escala": {
+            ".validate": "newData.isString() && newData.val().length <= 200"
+          },
+          "confianca": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+          },
+          "extraido": {
+            ".validate": "newData.isNumber()"
           },
           "$other": {
             ".validate": false
@@ -433,6 +485,9 @@
         },
         "loteQualidadeId": {
           ".validate": "newData.isString()"
+        },
+        "producaoId": {
+          ".validate": "newData.isString() && newData.parent().child('decisaoQualidade').val() === true && root.child('registrosProducao').child(newData.val()).child('maquinaId').val() === newData.parent().child('maquinaId').val() && root.child('registrosProducao').child(newData.val()).child('lote').val() === newData.parent().child('lote').val()"
         }
       }
     },

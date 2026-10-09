@@ -1,5 +1,64 @@
 # MSA — Sistema integrado de gestão da produção
 
+## Correções finais — versão 18
+
+Corrige as dez falhas da análise final: fotos parciais/restauradas, reclassificação de refugo, data das correções, períodos sobrepostos, validação de turnos, histórico de metas, divisão de paradas, passagem de turno, taxas exibidas e contraste. Inclui testes de regressão e mantém o apontamento original auditável. Veja [Correções e validação](docs/Correcoes-finais-v18.md).
+
+Para Firebase real, publique o `database.rules.json` desta versão junto com a atualização do sistema.
+
+## Modelo empacotado e exemplo analógico — versão 17
+
+O build empacota os bytes originais do modelo OCR em `eng-model.js`, um script local, evitando o download do `.gz` por `fetch` em visualizadores Android. O reconhecimento continua sendo feito pelo Tesseract local, sem API. Exemplos analógicos agora geram e leem a imagem com uma escala de demonstração quando a escala real ainda não está confirmada; não marcam a escala real como conferida.
+
+## OCR e botão de exemplos — versão 16
+
+O modelo local agora é carregado pela página com a autenticação HTTP da mesma origem, quando presente, e enviado em bytes ao worker. Assim, o modelo não depende do `fetch` do worker em visualizadores que bloqueiam essa operação. O botão de exemplos recebe estilos explícitos para os estados normal, foco, toque e desabilitado, preservando o tema escuro. Testes: `npm run test:ocr-local-auth` e `npm run test:examples`.
+
+## OCR em visualizadores locais — versão 15
+
+Os caminhos de recursos do OCR preservam origem, porta e pasta, mas removem usuário e senha embutidos na URL. Isso evita o erro de `fetch` ao carregar o modelo em visualizadores locais com autenticação HTTP. A sessão HTTP continua sob controle do navegador. Teste: `npm run test:ocr-local-auth`.
+
+## Mais imagens de exemplo — versão 14
+
+O botão de teste alterna entre **cinco imagens por tipo de instrumento e parâmetro**. Visores variam valor, fundo claro/escuro e decimal; ponteiros variam posição dentro da escala confirmada. As imagens geradas são identificadas como demonstração e passam pelos mesmos leitores locais e envio das fotos reais. O contador mostra o exemplo atual. Teste: `npm run test:examples`.
+
+## Captura pela câmera — versão 13
+
+**Tirar foto** abre a câmera com imagem ao vivo, troca de câmera e captura, sem acionar o seletor de arquivos. A foto segue para a leitura local e o envio automático existentes. **Escolher arquivo** permanece separado. O navegador precisa permitir a câmera e servir a página por HTTPS ou localhost; visualizadores de editores podem bloquear o recurso. Veja [Registro por foto](docs/Registro-por-foto.md). Teste: `npm run test:camera`.
+
+## Acessibilidade integrada — versão 12
+
+Em **Configurações → Acessibilidade**, personalize cores para daltonismo, tamanho de texto, contraste, espaçamento e redução de animações. Preferências locais persistem ao navegar e entre abas da mesma origem. A integração preserva a escolha de cargo da v11, OCR local, gráficos e Motion. Veja [Acessibilidade](docs/Acessibilidade.md).
+
+## Escolha de cargo na apresentação — versão 11
+
+Na tela de login, **Visualizar cenário de apresentação** abre a escolha de **Operador, Supervisor, Chefe ou Qualidade**. Ao selecionar o cargo, o cenário abre com o menu e as permissões desse perfil, sem exigir RE ou senha. Fechar a escolha mantém o formulário preenchido.
+
+## Leitura automática por foto — versão 10
+
+O operador fotografa um instrumento e o sistema preenche e envia a leitura, sem digitar o valor, quando há reconhecimento. Visores usam OCR real local, sem API; ponteiros usam análise geométrica com escala confirmada. A apresentação tem imagens de exemplo identificadas. A seleção do posto e do lote continua necessária. Veja [Como usar e limitações](docs/Registro-por-foto.md). Os gráficos da v9 e Motion da v7 estão preservados.
+
+## Análise da produção — gráficos, versão 9
+
+Página dedicada a gráficos em **Gestão → Análise da produção**. O filtro mantém setor, máquina, período, turno e lote. Os gráficos aparecem diretamente abaixo dos filtros, sem cartões de indicadores, abas de listas ou tabelas na tela principal.
+
+- Evolução da produção aprovada por hora/dia.
+- Evolução da taxa de refugo em escala percentual própria.
+- Comparação por setores na visão geral, por máquinas em um setor e por turnos quando uma máquina é selecionada. Clique nas barras para filtrar.
+- Motivos de parada em gráfico de barras.
+- Parâmetros com faixa configurada quando há leituras de uma máquina isolada. Clique nos pontos vermelhos para investigar registros próximos.
+
+Passe sobre os pontos, toque ou use o teclado para consultar valores. Cada gráfico tem botão de ampliar; a janela ampliada também recebe atualizações. Os gráficos adaptam os eixos ao celular. Supervisor continua vendo seu setor; Chefe e Qualidade acessam os setores permitidos.
+
+Esta versão preserva o registro por foto e as animações **Motion da v7**. Dados, filtros e cálculos usam a base comum dos painéis. Guia: [Análise da produção](docs/Analise-da-producao.md).
+
+Verificação: `npm test`, `npm run test:analysis`, `npm run test:motion`, `npm run test:photo`, `npm run test:ocr`, `npm run build`.
+
+## Registro por foto — acesso secundário do operador
+
+Em **Registro por foto**, selecione setor, máquina e lote para capturar manômetro, vacuômetro ou IHM. Pressão e vácuo têm leitura geométrica local experimental com escala confirmada e envio automático; visores de temperatura, pressão ou vácuo têm OCR real local, sem API, preenchimento e envio automáticos. A configuração dos instrumentos fica guardada neste navegador. Fotos ambíguas ficam pendentes; o modo de apresentação oferece imagens de exemplo identificadas como demonstração. Os registros alimentam os painéis existentes, preservam foto/RE/horário e deixam de ser sobrescritos pela simulação. Veja [Registro por foto](docs/Registro-por-foto.md), incluindo as regras Firebase atualizadas e as diferenças entre apresentação local e fonte compartilhada.
+
+
 ## Estudo de capacidade MSA — entrega atual
 
 Em **Relatórios → Exportar planilha Excel**, os registros filtrados preenchem o `.xlsx` original do estudo Selo V-Gard da MSA, com as mesmas abas, cores e colunas espaçadas. O arquivo conserva fórmulas editáveis, inclui todas as leituras e amplia o modelo quando necessário. **CSV da coleta para BI** e **CSV geral do sistema** continuam disponíveis. Os campos sem coleta ficam vazios; o cenário identifica os dados fictícios. Veja [Exportação do estudo de capacidade](docs/Exportacao-estudo-capacidade.md) para o mapeamento, cálculos e integração dos sinais reais.

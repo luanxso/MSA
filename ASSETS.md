@@ -27,3 +27,11 @@ não representam valores atuais nem conexão automática com a máquina.
 
 Os ativos permanecem sujeitos aos direitos e condições de seus titulares. Usados como
 referências em protótipo acadêmico solicitado para o projeto MSA; sem afirmação de endosso.
+
+## Motion JavaScript
+
+`dist/assets/vendor/motion-12.23.24.js`: distribuição oficial do Motion 12.23.24, incluída localmente para não depender de CDN ao executar o sistema.
+
+- Origem: https://cdn.jsdelivr.net/npm/motion@12.23.24/dist/motion.js
+- Licença MIT: `dist/assets/vendor/MOTION-LICENSE.txt`.
+- A interface usa a API Mini para as transições de estilos e a API completa para interpolar as posições ilustrativas do supervisório.
