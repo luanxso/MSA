@@ -1,0 +1,25 @@
+/* Limit visual previews without changing the canvas used by the readers. */
+.photo-instrument{min-width:0}
+.photo-instrument canvas.has-image{
+ display:block;
+ width:min(100%,320px,40vh);
+ width:min(100%,320px,40dvh);
+ height:auto;
+ aspect-ratio:1;
+ margin-inline:auto;
+}
+.photo-detail-dialog{
+ box-sizing:border-box;
+ max-width:calc(100vw - 24px);
+ max-height:calc(100vh - 24px);
+ max-height:calc(100dvh - 24px);
+ overflow:auto;
+}
+.photo-detail-dialog img{
+ display:block;
+ width:100%;
+ height:auto;
+ max-height:min(320px,45vh);
+ max-height:min(320px,45dvh);
+ object-fit:contain;
+}
