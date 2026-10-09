@@ -1,0 +1,13 @@
+node_modules/
+dist/server/
+dist/.openai/
+dist/drizzle/
+worker/assets.generated.js
+.sites-runtime/
+.wrangler/
+.sites-cache/
+.sites-home/
+.sites-tmp/
+
+.firebase-backups/
+*service-account*.json

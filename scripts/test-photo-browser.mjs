@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {mkdir,readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),{chromium}=require(process.env.MSA_PLAYWRIGHT_MODULE||'playwright');
+const server=spawn(process.execPath,['scripts/serve-demo.mjs']);await new Promise((r,e)=>{server.stdout.once('data',r);server.once('error',e)});
+const browser=await chromium.launch({headless:true,...(process.env.MSA_CHROME_BINARY?{executablePath:process.env.MSA_CHROME_BINARY}:{}),args:['--no-sandbox']});
+await mkdir('.qa-output',{recursive:true});const errors=[];
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000},timezoneId:'America/Sao_Paulo'});page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:4173/sistema.html?demonstracao=1&cargo=operador#registro-foto');await page.locator('#photo-workspace').waitFor();
+ await page.evaluate(()=>MSA.telemetry.pause());
+ await page.locator('#photo-sector').selectOption('selagem');await page.locator('#photo-machine').selectOption('SEL-01');await page.locator('#photo-lot').fill('LT-FOTO-TESTE');
+ await page.screenshot({path:'.qa-output/registro-foto-desktop.png',fullPage:false});
+ const fixture=async angle=>Buffer.from(await page.evaluate(a=>{const c=document.createElement('canvas');c.width=c.height=320;const x=c.getContext('2d');x.fillStyle='#e8e8e6';x.fillRect(0,0,320,320);x.fillStyle='#fff';x.beginPath();x.arc(160,160,132,0,Math.PI*2);x.fill();x.strokeStyle='#161616';x.lineWidth=5;x.beginPath();x.moveTo(160,160);x.lineTo(160+Math.cos(a*Math.PI/180)*102,160+Math.sin(a*Math.PI/180)*102);x.stroke();x.fillStyle='#161616';x.beginPath();x.arc(160,160,12,0,Math.PI*2);x.fill();return c.toDataURL().split(',')[1];},angle),'base64');
+ const pressure=page.locator('[data-photo-key="pressao"]');await pressure.locator('summary').click();await pressure.locator('[data-scale-confirm]').check();
+ await pressure.locator('input[data-photo-file]').last().setInputFiles({name:'manometro.png',mimeType:'image/png',buffer:await fixture(270)});
+ await page.waitForFunction(()=>MSA.data.state.leituras.some(r=>r.origem==='foto'),{timeout:10000});
+ const first=await page.evaluate(()=>MSA.data.state.leituras.filter(r=>r.origem==='foto'));assert.equal(first.length,1);assert.equal(first[0].maquinaId,'SEL-01');assert.equal(first[0].lote,'LT-FOTO-TESTE');assert(Math.abs(first[0].valores.pressao-6.864655)<.4);assert.deepEqual(Object.keys(first[0].valores),['pressao']);
+ await pressure.locator('[data-photo-value]').fill('6,8');await pressure.locator('[data-photo-send]').click();await page.waitForFunction(()=>MSA.data.state.leituras.find(r=>r.origem==='foto').valores.pressao===6.8);
+ const vacuum=page.locator('[data-photo-key="vacuo"]');await vacuum.locator('summary').click();await vacuum.locator('[data-scale-confirm]').check();await vacuum.locator('input[data-photo-file]').last().setInputFiles({name:'vacuo.png',mimeType:'image/png',buffer:await fixture(270)});
+ await page.waitForFunction(()=>MSA.data.state.leituras.filter(r=>r.origem==='foto').length===2);
+ const sample=await page.evaluate(()=>MSA.performance.sample(MSA.data.state.maquinas.find(m=>m.id==='SEL-01'),MSA.data.state));assert.equal(sample.parameters.pressao.value,6.8);assert(Math.abs(sample.parameters.vacuo.value+380)<20);
+ await page.evaluate(()=>MSA.demo.simulation.advance(90));assert.equal(await page.evaluate(()=>MSA.performance.sample(MSA.data.state.maquinas.find(m=>m.id==='SEL-01'),MSA.data.state).parameters.pressao.value),6.8);
+ await page.getByRole('button',{name:'Ver foto'}).first().click();await page.locator('#photo-detail-dialog[open] img').waitFor();await page.getByRole('button',{name:'Fechar foto'}).click();await page.locator('#photo-detail-dialog').waitFor({state:'hidden'});
+ await page.locator('[data-theme-toggle]').click();await page.screenshot({path:'.qa-output/registro-foto-dark.png',fullPage:false});
+ await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{document.querySelectorAll('*').forEach(e=>{if(e.scrollTop)e.scrollTop=0;});});await page.screenshot({path:'.qa-output/registro-foto-mobile.png',fullPage:false});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ await pressure.locator('input[data-photo-file]').last().setInputFiles({name:'sem-ponteiro.png',mimeType:'image/png',buffer:await fixture(NaN)});await pressure.getByText('Ponteiro ambíguo.',{exact:false}).waitFor();assert.equal(await pressure.locator('[data-photo-value]').inputValue(),'');assert.equal(await page.evaluate(()=>MSA.data.state.leituras.filter(r=>r.origem==='foto').length),2);
+ await page.reload();await page.locator('#photo-workspace').waitFor();assert.equal(await page.evaluate(()=>MSA.data.state.leituras.filter(r=>r.origem==='foto').length),2);
+ await page.locator('#photo-sector').selectOption('selagem');await page.locator('#photo-machine').selectOption('SEL-01');await page.locator('.photo-history-row').filter({hasText:'Vácuo'}).getByRole('button',{name:'Corrigir',exact:true}).click();const corrected=page.locator('[data-photo-key="vacuo"]');await corrected.locator('.photo-card-status').filter({hasText:'Corrigindo registro existente'}).waitFor();await corrected.locator('[data-photo-value]').fill('-370');await corrected.locator('[data-photo-send]').click();await page.waitForFunction(()=>MSA.data.state.leituras.some(r=>r.origem==='foto'&&r.valores.vacuo===-370));assert.equal(await page.evaluate(()=>MSA.data.state.leituras.filter(r=>r.origem==='foto').length),2);
+ assert.deepEqual(errors,[]);console.log('Photo flow passed: extraction, automatic send, context, correction, persistence, mobile and dark theme.');
+}finally{await browser.close();server.kill();}

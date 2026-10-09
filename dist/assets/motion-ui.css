@@ -1,0 +1,14 @@
+/* Motion handles action transitions; CSS handles small interaction feedback. */
+:where(.nav-item,.primary-button,.secondary-button,.text-button,.icon-button,.ops-tabs button,.supervisor-tabs button) { transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease; }
+:where(.primary-button,.secondary-button,.icon-button):active { translate: 0 1px; }
+dialog[open]::backdrop { animation: msa-backdrop-in 240ms ease both; }
+dialog.msa-dialog-closing::backdrop { animation: msa-backdrop-out 160ms ease both; }
+.hmi-cycle-track > span { transition: width 900ms linear; }
+.is-paused .hmi-cycle-track > span { transition: none; }
+@keyframes msa-backdrop-in { from { background-color: transparent; } }
+@keyframes msa-backdrop-out { to { background-color: transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  dialog[open]::backdrop, dialog.msa-dialog-closing::backdrop { animation: none; }
+  :where(.nav-item,.primary-button,.secondary-button,.text-button,.icon-button,.ops-tabs button,.supervisor-tabs button,.hmi-cycle-track > span) { transition: none; }
+  :where(.primary-button,.secondary-button,.icon-button):active { translate: none; }
+}

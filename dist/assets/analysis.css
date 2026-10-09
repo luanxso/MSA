@@ -1,0 +1,63 @@
+.analysis-page { min-width:0; }
+.analysis-filters { display:grid; grid-template-columns:1fr 1fr minmax(170px,1.5fr) 1fr 1.3fr; gap:12px; margin-bottom:18px; }
+.analysis-filters label { min-width:0; }
+.analysis-filters input, .analysis-filters select { width:100%; font:inherit; }
+.analysis-context { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:18px; font-size:.8125rem; color:var(--theme-muted); }
+.analysis-context strong { font-weight:600; color:var(--theme-text); }
+.analysis-context span { text-align:right; }
+.analysis-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.analysis-card { min-width:0; padding:20px; border:1px solid var(--theme-border); border-radius:6px; background:var(--theme-surface); color:var(--theme-text); }
+.analysis-card-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.analysis-card-heading h2 { font-size:1rem; line-height:1.3; font-weight:600; margin:0; }
+.analysis-card-heading p { font-size:.8125rem; color:var(--theme-muted); margin:5px 0 0; }
+.analysis-expand { display:grid; place-content:center; flex:0 0 32px; width:32px; height:32px; border:1px solid var(--theme-border); border-radius:4px; color:var(--theme-muted); background:transparent; cursor:pointer; }
+.analysis-expand:hover { color:var(--theme-text); background:var(--theme-hover); }
+.analysis-expand svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.5; }
+.analysis-chart { min-width:0; width:100%; }
+.analysis-chart svg { display:block; width:100%; height:auto; color:var(--theme-muted); overflow:visible; }
+.analysis-chart text { fill:currentColor; font-size:13px; }
+.analysis-gridline { stroke:var(--theme-border); stroke-width:1; opacity:.7; }
+.analysis-series { fill:none; stroke-width:2.5; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.analysis-series-0 { stroke:var(--theme-good); }
+.analysis-series-1 { stroke:var(--theme-warning); }
+.analysis-dot-0, .analysis-fill-0 { fill:var(--theme-good); }
+.analysis-dot-1, .analysis-fill-1 { fill:var(--theme-warning); }
+.analysis-fill-2 { fill:#718d7d; }
+html[data-theme="dark"] .analysis-fill-2 { fill:#a5b9ae; }
+.analysis-dot.is-deviation { fill:var(--theme-danger); stroke:var(--theme-surface); stroke-width:2; }
+.analysis-band { fill:var(--theme-good); opacity:.08; }
+.analysis-limit { stroke:var(--theme-good); stroke-dasharray:5 5; fill:none; opacity:.6; }
+.analysis-hit { fill:transparent; pointer-events:all; }
+.analysis-target { cursor:pointer; outline:none; }
+.analysis-target:hover .analysis-dot, .analysis-target:focus .analysis-dot { stroke:var(--theme-text); stroke-width:2; }
+.analysis-target:hover .analysis-bar, .analysis-target:focus .analysis-bar { opacity:.7; stroke:var(--theme-text); stroke-width:1; }
+.analysis-target:focus .analysis-category { fill:var(--theme-good); font-weight:600; text-decoration:underline; }
+.analysis-legend { display:flex; flex-wrap:wrap; gap:8px 20px; margin:8px 0 0; font-size:.75rem; color:var(--theme-muted); }
+.analysis-legend span { display:inline-flex; align-items:center; gap:7px; }
+.analysis-key { width:15px; height:3px; background:var(--theme-good); }
+.analysis-key-1 { background:var(--theme-warning); }
+.analysis-key-2 { background:#718d7d; }
+.analysis-card-footer { margin-top:14px; padding-top:12px; border-top:1px solid var(--theme-border); color:var(--theme-muted); font-size:.75rem; line-height:1.5; }
+.analysis-empty { display:grid; place-content:center; min-height:210px; padding:24px; color:var(--theme-muted); text-align:center; font-size:.875rem; }
+.analysis-range, .analysis-footnote { color:var(--theme-muted); font-size:.75rem; margin-top:12px; }
+.analysis-parameter { max-width:240px; margin-bottom:12px; }
+.analysis-parameter select { font:inherit; }
+.analysis-card[data-analysis-card="parameter"] { grid-column:1/-1; }
+.analysis-card[data-analysis-card="parameter"] .analysis-chart { max-width:100%; }
+.analysis-card[data-analysis-card="parameter"] .analysis-chart svg { max-height:300px; }
+.analysis-method { margin-top:22px; color:var(--theme-muted); font-size:.8125rem; }
+.analysis-method summary { cursor:pointer; }
+.analysis-method p { max-width:90ch; margin-top:10px; line-height:1.6; }
+.analysis-pagination { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-top:10px; }
+.analysis-pagination button { border:1px solid var(--theme-border); background:var(--theme-surface); color:var(--theme-text); padding:5px 9px; border-radius:3px; font:inherit; cursor:pointer; }
+.analysis-pagination button:disabled { opacity:.4; cursor:default; }
+.analysis-chart-dialog { width:min(1160px,calc(100% - 32px)); }
+.analysis-expanded .analysis-chart { max-width:100%; }
+.analysis-expanded .analysis-chart svg { max-height:65dvh; }
+.analysis-tooltip { position:fixed; z-index:10000; max-width:min(300px,calc(100vw - 24px)); padding:14px 30px 14px 14px; border:1px solid var(--theme-border); border-radius:5px; background:var(--theme-surface); color:var(--theme-text); font-size:.8125rem; box-shadow:0 6px 24px #0002; pointer-events:auto; }
+.analysis-tooltip[hidden] { display:none; }
+.analysis-tooltip > div { white-space:pre-line; line-height:1.5; }
+.analysis-tooltip button { position:absolute; right:5px; top:5px; width:24px; height:24px; border:0; color:var(--theme-muted); background:transparent; cursor:pointer; font-size:18px; }
+@media(max-width:1100px) { .analysis-filters { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:900px) { .analysis-chart-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:650px) { .analysis-filters { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .analysis-machine-filter { grid-column:1/-1; } .analysis-context { flex-direction:column; align-items:flex-start; gap:4px; } .analysis-context span { text-align:left; font-size:.75rem; } .analysis-card { padding:16px; } .analysis-card-heading h2 { font-size:.9375rem; } .analysis-card[data-analysis-card="parameter"] .analysis-chart svg { max-height:none; } .analysis-chart-grid { gap:16px; } }
