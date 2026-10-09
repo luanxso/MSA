@@ -46,10 +46,9 @@ window.MSA = window.MSA || {};
     const m=machine(s,id),[a,b]=period(day,shift),end=Math.min(b,now(s));
     if(a>=end)throw new Error('Esse turno ainda não começou no cenário atual.');
     const start=new Date(day+'T00:00:00').getTime();
-    const production=s.registrosProducao.filter(r=>r.maquinaId===id&&MSA.shifts.id(r)===String(shift)&&MSA.shifts.within(r,start,start+86400000));
+    const production=MSA.metrics.netProduction(s).filter(r=>r.maquinaId===id&&r.inicio<end&&MSA.shifts.id(r)===String(shift)&&MSA.shifts.within(r,start,start+86400000));
     const rejected=s.perdas.filter(r=>r.maquinaId===id&&r.tipo==='refugo'&&MSA.shifts.id(r)===String(shift)&&MSA.shifts.within(r,start,start+86400000)).reduce((n,r)=>n+r.quantidade,0);
-    const stopEnd=s.demo&&day===new Date(now(s)).toLocaleDateString('sv')&&String(shift)==='1'?now(s):end;
-    return {inicio:a,fim:stopEnd,planejado:Math.round(production.reduce((n,r)=>n+(r.fim-r.inicio)/3600000*MSA.shifts.hourTarget(m),0)),aprovadas:production.reduce((n,r)=>n+r.quantidade,0),refugos:rejected,paradaSegundos:MSA.metrics.minutes(s.paradas.filter(r=>r.maquinaId===id),a,stopEnd,now(s))*60,
+    return {inicio:a,fim:end,planejado:Math.round(MSA.metrics.plannedTarget(production.map(r=>({...r,fim:Math.min(r.fim,end)})),[m])),aprovadas:production.reduce((n,r)=>n+r.quantidade,0),refugos:rejected,paradaSegundos:MSA.metrics.minutes(s.paradas.filter(r=>r.maquinaId===id),a,end,now(s))*60,
       lotes:[...new Set(production.map(r=>r.lote).filter(Boolean))],ordens:[...new Set(production.map(r=>r.ordem).filter(Boolean))],
       problemas:s.ocorrencias.filter(r=>r.maquinaId===id&&r.status!=='resolvida').map(r=>r.descricao),
       alarmes:(s.atendimentosAlertas||[]).filter(r=>r.maquinaId===id&&r.status!=='resolvido').map(r=>r.descricao)};
@@ -148,7 +147,12 @@ window.MSA = window.MSA || {};
         Object.assign(b,{inspecionadas:checked,descartadas:discarded,liberadas:b.quantidade-discarded,destino:observacao});
         // Somente rejeições adicionais viram refugo. Os já apontados nunca são somados de novo.
         const extra=discarded-b.refugosIdentificados;
-        if(extra>0)s.perdas.push({id:uid('descarte'),maquinaId:b.maquinaId,setorId:b.setorId,usuarioId:u.id,usuarioRe:u.re,data:at,tipo:'refugo',quantidade:extra,unidade:'pecas',lote:b.lote,produto:b.produto,motivo:'Reinspeção da Qualidade',observacao,createdAt:at,updatedAt:at,verificado:false,decisaoQualidade:true,loteQualidadeId:b.id});
+        if(extra>0){
+          let left=extra;
+          const add=(quantidade,origin)=>s.perdas.push({id:uid('descarte'),maquinaId:b.maquinaId,setorId:b.setorId,usuarioId:u.id,usuarioRe:u.re,data:origin?origin.fim-1:at,tipo:'refugo',quantidade,unidade:'pecas',lote:b.lote,produto:b.produto,motivo:'Reinspeção da Qualidade',observacao,createdAt:at,updatedAt:at,verificado:false,decisaoQualidade:true,loteQualidadeId:b.id,...(origin?.id?{producaoId:origin.id}:{})});
+          for(const r of MSA.metrics.netProduction(s).filter(r=>r.maquinaId===b.maquinaId&&r.lote===b.lote).sort((a,b)=>a.inicio-b.inicio)){const take=Math.min(left,r.quantidade);if(take>0)add(take,r);left-=take;if(left<=0)break;}
+          if(left>0)add(left,null);
+        }
       }
       b.status=v.status;history(b);
       // A decisão não deve reabrir o lote pelo próprio registro de descarte.

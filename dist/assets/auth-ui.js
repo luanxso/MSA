@@ -42,6 +42,12 @@
     $('remember').checked = !!MSA.auth.rememberedRE();
     $('open-recovery').addEventListener('click', () => $('recovery-dialog').showModal());
     $('close-recovery').addEventListener('click', () => $('recovery-dialog').close());
+    const demo = $('demo-role-dialog');
+    if (demo) {
+      $('open-demo').addEventListener('click', () => demo.showModal());
+      $('close-demo').addEventListener('click', () => demo.close());
+      demo.addEventListener('close', () => $('open-demo').focus());
+    }
   }
   const fields = [...form.querySelectorAll('input:not([type=checkbox]), select')];
   function errors(values) {

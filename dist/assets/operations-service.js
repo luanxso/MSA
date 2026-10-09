@@ -21,7 +21,7 @@ window.MSA = window.MSA || {};
   };
   const date = (value, label, now = Date.now()) => { const n = typeof value === 'number' ? value : Date.parse(value); if (!Number.isFinite(n) || n > now + 60000) fail('Informe ' + label + ' válido.'); return n; };
   const required = (value, label, max = 500) => { const text = String(value || '').trim(); if (!text || text.length > max) fail('Informe ' + label + ' (até ' + max + ' caracteres).'); return text; };
-  const productionSignature=r=>JSON.stringify([r.maquinaId,Number(r.inicio),Number(r.fim),String(r.turno),String(r.produto),String(r.lote),Number(r.quantidade)]);
+  const productionSignature=r=>JSON.stringify([r.maquinaId,Number(r.inicio),Number(r.fim),String(r.turno),String(r.produto),String(r.lote)]);
   async function recordKey(prefix,value) {
     const bytes=Uint8Array.from(unescape(encodeURIComponent(value)),c=>c.charCodeAt(0));
     const digest=await crypto.subtle.digest('SHA-256',bytes);
@@ -55,6 +55,7 @@ window.MSA = window.MSA || {};
       const inicio = date(values.inicio, 'início do período');
       const fim = date(values.fim, 'fim do período');
       if (fim <= inicio) fail('O fim deve ser posterior ao início.');
+      MSA.shifts.validateProduction(inicio,fim,values.turno);
       const quantidade = number(values.quantidade, 'quantidade');
       if (!Number.isSafeInteger(quantidade)) fail('Informe uma quantidade inteira.');
       return { ...common, quantidade, inicio, fim, turno: required(values.turno, 'turno', 20), produto: required(values.produto, 'produto', 120), lote: required(values.lote, 'lote ou ordem', 80) };
@@ -75,9 +76,9 @@ window.MSA = window.MSA || {};
     if (collection === 'ocorrencias') return { ...common, descricao: required(values.descricao, 'descrição', 1000), prioridade: ['normal', 'alta'].includes(values.prioridade) ? values.prioridade : 'normal', status: existing?.status || 'aberta', resolucao: existing?.resolucao || '', data: date(values.data, 'data') };
     if (collection === 'leituras') {
       const parametros = {};
-      for (const [id, definition] of Object.entries(machine.parametros || {})) parametros[id] = number(values.valores?.[id] ?? values['param_' + id], definition.nome, -100000);
+      for (const [id, definition] of Object.entries(machine.parametros || {})) { if(values.fotoProcesso&&!Object.hasOwn(values.valores||{},id))continue; parametros[id] = number(values.valores?.[id] ?? values['param_' + id], definition.nome, -100000); }
       if (!Object.keys(parametros).length) fail('Esta máquina ainda não possui parâmetros cadastrados.');
-      return { ...common, valores: parametros, lote: required(values.lote, 'lote ou ordem', 80), data: date(values.data, 'data'), ...(MSA.capability?.compatible(machine)?{estudoSelo:MSA.capability.clean(values.estudoSelo||values)}:{}) };
+      return { ...common, valores: parametros, lote: required(values.lote, 'lote ou ordem', 80), data: date(values.data, 'data'), ...(values.fotoProcesso?MSA.photoRecords.clean(values,machine):{}), ...(!values.fotoProcesso&&MSA.capability?.compatible(machine)?{estudoSelo:MSA.capability.clean(values.estudoSelo||values)}:{}) };
     }
   }
   async function write(action) {
@@ -164,16 +165,19 @@ window.MSA = window.MSA || {};
       const existing = id ? recordById(collection, id) : null;
       if (id && !existing) fail('Registro não encontrado no seu acesso.');
       if (existing && values.maquinaId && values.maquinaId !== existing.maquinaId) fail('A máquina de origem não pode ser alterada.');
+      if(existing?.origem==='foto'&&!values.fotoProcesso)fail('Corrija esta leitura pela tela Registro por foto para preservar a evidência.');
+      if(existing?.origem==='foto')values={...values,data:existing.data,fotoProcesso:{...values.fotoProcesso,capturadaEm:existing.fotoProcesso.capturadaEm}};
       const payload = cleanRecord(collection, values, existing);
       uniqueRecord(state,collection,payload,id);
       if (!connected) fail('Aguarde a conexão com o Firebase antes de salvar.');
       const sdk=client.databaseSDK;
       let recordId=id;
+      if(!id&&values.fotoProcesso)recordId=await recordKey('foto',JSON.stringify([user.id,payload.maquinaId,payload.lote,payload.fotoProcesso.parametro,payload.fotoProcesso.capturadaEm]));
       if(!id&&collection==='registrosProducao')recordId=await recordKey('producao',productionSignature(payload));
       if(!id&&collection==='paradas'&&!payload.fim)recordId=await recordKey('parada',JSON.stringify([payload.maquinaId,payload.inicio]));
       const target=recordId?sdk.ref(client.database,collection+'/'+recordId):sdk.push(sdk.ref(client.database,collection));
       if(collection==='paradas'&&!payload.fim)await reserveStop(payload,target.key);
-      if(!id&&['registrosProducao','paradas'].includes(collection))return createOnce(target,payload,'Este registro já foi recebido. Consulte o histórico antes de reenviar.');
+      if(!id&&(['registrosProducao','paradas'].includes(collection)||values.fotoProcesso))return createOnce(target,payload,'Este registro já foi recebido. Consulte o histórico antes de reenviar.');
       await write(() => sdk.set(target, payload));
       return target.key;
     },
@@ -220,7 +224,8 @@ window.MSA = window.MSA || {};
       }
       const metaDiaria = number(values.metaDiaria, 'meta diária');
       if (!Number.isSafeInteger(metaDiaria)) fail('Informe uma meta inteira em peças.');
-      const payload = { nome: required(values.nome, 'nome da máquina', 120), setorId: values.setorId, processo: required(values.processo, 'processo', 120), produto: required(values.produto, 'produto', 120), metaDiaria, parametros, createdAt: existing?.createdAt || client.databaseSDK.serverTimestamp(), updatedAt: client.databaseSDK.serverTimestamp(), atualizadoPor: user.id };
+      const history=existing&&metaDiaria!==existing.metaDiaria?MSA.shifts.targetHistory(existing,metaDiaria,Date.now()):existing?.historicoMetas;
+      const payload = { nome: required(values.nome, 'nome da máquina', 120), setorId: values.setorId, processo: required(values.processo, 'processo', 120), produto: required(values.produto, 'produto', 120), metaDiaria, parametros,...(history?{historicoMetas:history}:{}), createdAt: existing?.createdAt || client.databaseSDK.serverTimestamp(), updatedAt: client.databaseSDK.serverTimestamp(), atualizadoPor: user.id };
       if (!connected) fail('Aguarde a conexão com o Firebase antes de salvar.');
       await write(() => client.databaseSDK.set(client.databaseSDK.ref(client.database, 'maquinas/' + machineId), payload));
       return machineId;
@@ -231,7 +236,8 @@ window.MSA = window.MSA || {};
       MSA.rbac.require('metas:gerenciar', user, machine);
       const metaDiaria = number(target, 'meta diária');
       if (!Number.isSafeInteger(metaDiaria)) fail('Informe uma meta inteira em peças.');
-      await write(() => client.databaseSDK.update(client.databaseSDK.ref(client.database, 'maquinas/' + id), { metaDiaria, updatedAt: client.databaseSDK.serverTimestamp(), atualizadoPor: user.id }));
+      if(metaDiaria===machine.metaDiaria)return;
+      await write(() => client.databaseSDK.update(client.databaseSDK.ref(client.database, 'maquinas/' + id), { metaDiaria,historicoMetas:MSA.shifts.targetHistory(machine,metaDiaria,Date.now()), updatedAt: client.databaseSDK.serverTimestamp(), atualizadoPor: user.id }));
     },
     async workflow(action,values={},id) {
       if(!connected)fail('Aguarde a conexão com o Firebase antes de salvar.');

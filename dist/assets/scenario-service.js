@@ -77,6 +77,7 @@
    const inicio=date(v.inicio,'início do período'),fim=date(v.fim,'fim do período');
    if(fim<=inicio)throw new Error('O fim deve ser posterior ao início.');
    if(!['1','2','3'].includes(String(v.turno)))throw new Error('Selecione um turno válido.');
+   MSA.shifts.validateProduction(inicio,fim,v.turno);
    return {...base,inicio,fim,quantidade:integer(v.quantidade,'quantidade'),turno:String(v.turno),produto:required(v.produto,'produto',120),lote:required(v.lote,'lote ou ordem',80)};
   }
   if(collection==='paradas'){
@@ -91,9 +92,9 @@
    return {...base,tipo:v.tipo,quantidade,unidade:v.tipo==='perda'?'kg':'pecas',data:date(v.data,'data'),motivo:required(v.motivo,'motivo',300),produto:required(v.produto,'produto',120),lote:required(v.lote,'lote ou ordem',80)};
   }
   if(collection==='leituras'){
-   const valores=Object.fromEntries(Object.entries(machine.parametros||{}).map(([k,p])=>[k,number(v.valores?.[k]??v['param_'+k],p.nome,-100000)]));
+   const valores=Object.fromEntries(Object.entries(machine.parametros||{}).filter(([k])=>!v.fotoProcesso||Object.hasOwn(v.valores||{},k)).map(([k,p])=>[k,number(v.valores?.[k]??v['param_'+k],p.nome,-100000)]));
    if(!Object.keys(valores).length)throw new Error('Esta máquina ainda não possui parâmetros cadastrados.');
-   return {...base,valores,data:date(v.data,'data'),lote:required(v.lote,'lote ou ordem',80),...(MSA.capability?.compatible(machine)?{estudoSelo:MSA.capability.clean(v.estudoSelo||v)}:{})};
+   return {...base,valores,data:date(v.data,'data'),lote:required(v.lote,'lote ou ordem',80),...(v.fotoProcesso?MSA.photoRecords.clean(v,machine):{}),...(!v.fotoProcesso&&MSA.capability?.compatible(machine)?{estudoSelo:MSA.capability.clean(v.estudoSelo||v)}:{})};
   }
   return {...base,data:date(v.data,'data'),descricao:required(v.descricao,'descrição',1000),prioridade:['normal','alta'].includes(v.prioridade)?v.prioridade:'normal',status:existing?.status||'aberta',resolucao:existing?.resolucao||''};
  }
@@ -107,11 +108,16 @@
    if(!permissions[collection])throw new Error('Tipo de registro inválido.');
    const existing=id?item(collection,id):null;
    if(existing&&values.maquinaId&&values.maquinaId!==existing.maquinaId)throw new Error('A máquina de origem não pode ser alterada.');
+   if(existing?.origem==='foto'&&!values.fotoProcesso)throw new Error('Corrija esta leitura pela tela Registro por foto para preservar a evidência.');
+   if(existing?.origem==='foto')values={...values,data:existing.data,fotoProcesso:{...values.fotoProcesso,capturadaEm:existing.fotoProcesso.capturadaEm}};
    const machine=item('maquinas',values.maquinaId||existing?.maquinaId);requirePermission(permissions[collection],existing||machine);
    const record={...existing,...cleanRecord(collection,values,existing,machine),id:id||'exemplo-local-'+crypto.randomUUID(),maquinaId:machine.id,setorId:machine.setorId,usuarioId:existing?.usuarioId||user.id,usuarioRe:existing?.usuarioRe||user.re,createdAt:existing?.createdAt||now(),updatedAt:now(),verificado:false};
    delete record.verificadoPor;delete record.verificadoEm;delete record.diaProducao;
    MSA.recordValidation.uniqueRecord(state,collection,record,id);
-   if(id){delete existing.verificadoPor;delete existing.verificadoEm;delete existing.diaProducao;Object.assign(existing,record);}else state[collection].push(record);persist();return record.id;
+   const backup=existing?JSON.parse(JSON.stringify(existing)):null;
+   if(id){delete existing.verificadoPor;delete existing.verificadoEm;delete existing.diaProducao;Object.assign(existing,record);}else state[collection].push(record);
+   if(values.fotoProcesso){try{sessionStorage.setItem(key,snapshot());}catch{if(existing){Object.keys(existing).forEach(k=>delete existing[k]);Object.assign(existing,backup);}else state[collection]=state[collection].filter(r=>r.id!==record.id);throw new Error('O navegador está sem espaço para esta foto. Reduza o enquadramento ou reinicie o cenário após guardar os registros.');}}
+   persist();return record.id;
   },
   async review(collection,id){if(!['registrosProducao','leituras','paradas','perdas','ocorrencias'].includes(collection))throw new Error('Registro inválido.');const r=item(collection,id);requirePermission('registros:verificar',r);Object.assign(r,{verificado:true,verificadoPor:user.id,verificadoEm:now()});persist();},
   async finishStop(id,cause){const r=item('paradas',id);requirePermission(user.cargo==='supervisor'?'paradas:gerenciar':'paradas:registrar',r);if(r.fim)throw new Error('Parada já encerrada.');if(now()<r.inicio)throw new Error('O fim deve ser posterior ao início.');Object.assign(r,{fim:now(),causa:String(cause||'').slice(0,300),encerradaPor:user.id,updatedAt:now(),verificado:false});delete r.verificadoPor;delete r.verificadoEm;persist();},
@@ -133,11 +139,12 @@
     parametros[k]={nome:required(v['nome_'+i],'nome do parâmetro',80),unidade:required(v['unidade_'+i],'unidade',20),min,max};
    }
    const metaDiaria=integer(v.metaDiaria,'meta diária');
-   const patch={id:machineId,nome:required(v.nome,'nome da máquina',120),setorId:v.setorId,processo:required(v.processo,'processo',120),produto:required(v.produto,'produto',120),metaDiaria,hourTarget:metaDiaria/8,parametros,parametrosPersonalizados:true};
+   const history=existing&&metaDiaria!==existing.metaDiaria?MSA.shifts.targetHistory(existing,metaDiaria,now()):existing?.historicoMetas;
+   const patch={id:machineId,nome:required(v.nome,'nome da máquina',120),setorId:v.setorId,processo:required(v.processo,'processo',120),produto:required(v.produto,'produto',120),metaDiaria,hourTarget:metaDiaria/8,...(history?{historicoMetas:history}:{}),parametros,parametrosPersonalizados:true};
    if(existing)Object.assign(existing,patch);else state.maquinas.push(patch);
    delete state.liveParameters?.[machineId];persist();return machineId;
   },
-  async setTarget(id,target){const m=item('maquinas',id);requirePermission('metas:gerenciar',m);m.metaDiaria=integer(target,'meta diária');m.hourTarget=m.metaDiaria/8;persist();},
+  async setTarget(id,target){const m=item('maquinas',id);requirePermission('metas:gerenciar',m);const value=integer(target,'meta diária');if(value===m.metaDiaria)return;m.historicoMetas=MSA.shifts.targetHistory(m,value,now());m.metaDiaria=value;m.hourTarget=value/8;persist();},
   async workflow(action,values={},id){const result=MSA.workflows.command(state,action,values,id,user);persist();return result;},
   async assignMachine(id,machineId){requirePermission('funcionarios:atribuir');const p=item('perfis',id),m=item('maquinas',machineId);if(p.cargo!=='operador'||(user.cargo!=='chefe'&&p.setorId!==user.setorId)||m.setorId!==p.setorId)throw new Error('Selecione um operador e uma máquina do setor.');p.maquinaId=machineId;persist();},
   async consolidate(v){requirePermission('consolidacoes:registrar');const inicio=date(v.inicio,'início'),fim=date(v.fim,'fim');if(fim<=inicio)throw new Error('O fim deve ser posterior ao início.');const observacao=required(v.observacao,'resumo',2000);state.consolidacoes.push({id:'exemplo-local-'+crypto.randomUUID(),inicio,fim,observacao,setorId:user.setorId,usuarioId:user.id,usuarioRe:user.re,createdAt:now()});persist();},

@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"><script src="assets/theme.js?v=c5a9b40adfd0"></script>
+  <meta charset="utf-8"><script src="assets/theme.js?v=c3aa2b0f2bcc"></script>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#FFFFFF">
   <meta name="description" content="Acesso por RE ao sistema de acompanhamento e gestão da produção da MSA do Brasil.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='3'%20fill='%23009534'/%3E%3Cpath%20d='M7%2023V9l9%209%209-9v14'%20fill='none'%20stroke='white'%20stroke-width='3'/%3E%3C/svg%3E">
   <link rel="preload" href="assets/fonts/Barlow-Regular.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="assets/styles.css?v=927315f6f137">
-  <link rel="stylesheet" href="assets/login-layout.css?v=d2a9d61cdbb3">
-  <script src="assets/config.js?v=b44924861faa" defer></script>
+  <link rel="stylesheet" href="assets/login-layout.css?v=01b5b4a1f42d">
+  <script src="assets/config.js?v=133d7390019e" defer></script>
   <script src="assets/rbac.js?v=24748804957b" defer></script>
   <script src="assets/validation.js?v=007e33e7ed46" defer></script>
   <script src="assets/firebase-config.js?v=d459a4fd9399" defer></script>
   <script src="assets/firebase-client.js?v=5d7d249f8c71" defer></script>
   <script src="assets/auth-service.js?v=c525e960cb7e" defer></script>
-  <script src="assets/auth-ui.js?v=14e68e912099" defer></script>
+  <script src="assets/auth-ui.js?v=3c3032f8bd47" defer></script>
   <title>Entrar | MSA do Brasil</title>
-<link rel="stylesheet" href="assets/theme.css?v=9072bba0ef55"></head>
+<link rel="stylesheet" href="assets/theme.css?v=37c12c2d2281"><link rel="stylesheet" href="assets/accessibility.css?v=2fb6a22a9777"><script src="assets/accessibility.js?v=8344f8d67572"></script></head>
 <body class="auth-page" data-page="login">
   <a class="skip" href="#auth-form">Ir para o formulário</a>
   <div class="auth-layout">
@@ -57,12 +57,22 @@
               <button class="text-button" type="button" id="open-recovery">Esqueci minha senha</button>
             </div>
             <button class="primary" type="submit" data-label="Entrar"><span class="button-label">Entrar</span></button>
-          </form><p class="form-note"><a href="sistema.html?demonstracao=1">Visualizar cenário de apresentação</a></p>
+          </form><p class="form-note"><button type="button" class="text-button" id="open-demo" aria-haspopup="dialog" aria-controls="demo-role-dialog">Visualizar cenário de apresentação</button></p>
           <p class="account-link"><span>Ainda não tem cadastro?</span> <a href="cadastro.html">Criar cadastro</a></p>
         </section>
       </div>
     </main>
   </div>
+  <dialog id="demo-role-dialog" aria-labelledby="demo-role-title" aria-describedby="demo-role-description">
+    <header class="demo-role-heading"><h2 id="demo-role-title">Escolha seu cargo</h2><button class="demo-role-close" type="button" id="close-demo" aria-label="Fechar escolha de cargo">×</button></header>
+    <p id="demo-role-description">Com qual cargo você quer explorar o cenário de apresentação?</p>
+    <nav class="demo-role-options" aria-label="Cargos da apresentação">
+      <a href="sistema.html?demonstracao=1&amp;cargo=operador" autofocus><strong>Operador</strong><span>Apontamentos, paradas e registro por foto.</span></a>
+      <a href="sistema.html?demonstracao=1&amp;cargo=supervisor"><strong>Supervisor</strong><span>Acompanhar o setor, conferir registros e analisar a produção.</span></a>
+      <a href="sistema.html?demonstracao=1&amp;cargo=chefe"><strong>Chefe</strong><span>Visão geral da fábrica, indicadores e gestão dos setores.</span></a>
+      <a href="sistema.html?demonstracao=1&amp;cargo=qualidade"><strong>Qualidade</strong><span>Refugos, parâmetros e análise da qualidade.</span></a>
+    </nav>
+  </dialog>
   <dialog id="recovery-dialog" aria-labelledby="recovery-title">
     <h2 id="recovery-title">Recuperar acesso</h2>
     <p>Para redefinir sua senha, procure a equipe de TI ou o responsável pelo acesso ao sistema e informe seu RE.</p>

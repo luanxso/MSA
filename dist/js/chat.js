@@ -355,9 +355,9 @@
   document.querySelector('#chat-profile-button').addEventListener('click', () => {
     if (!me) return;
     document.querySelector('#chat-profile-re').value = me.re || '';
-    profileDialog.showModal();
+    MSA.motion.openDialog(profileDialog);
   });
-  ['#chat-profile-close', '#chat-profile-cancel'].forEach((selector) => document.querySelector(selector).addEventListener('click', () => profileDialog.close()));
+  ['#chat-profile-close', '#chat-profile-cancel'].forEach((selector) => document.querySelector(selector).addEventListener('click', () => MSA.motion.closeDialog(profileDialog)));
 
   async function activate(sector) {
     const wasVisible = visible;
@@ -401,7 +401,7 @@
       if (active) drafts.set(active.id, input.value);
       loadController?.abort();
       clearInterval(timer);
-      if (profileDialog.open) profileDialog.close();
+      if (profileDialog.open) MSA.motion.closeDialog(profileDialog);
     },
     clear() {
       identityGeneration += 1;

@@ -1,8 +1,8 @@
 import {nhplConfig as config} from './nhpl-config.js';
 const finite = n => typeof n === 'number' && Number.isFinite(n) && n >= 0;
 export function applicableGoal(goals, sample, date = new Date()) {
-  const day = [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
-  return [...goals].reverse().find(g => g.source === sample.source && day >= g.validFrom && day < g.validTo && (!g.shift || g.shift === sample.shift) && (!g.order || g.order === sample.order)) || null;
+  const at=+date,stamp=value=>Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(value)?value+'T00:00:00':value);
+  return [...goals].reverse().find(g => g.source === sample.source && at >= stamp(g.validFrom) && at < stamp(g.validTo) && (!g.shift || g.shift === sample.shift) && (!g.order || g.order === sample.order)) || null;
 }
 export function reliability(sample) {
   const failures = sample.timeline?.filter(t=>t.state==='parada' && t.failure===true) || [];
@@ -36,7 +36,7 @@ export function createNhplData() {
         s.hourly=[...bins].map(([time,goodCount])=>({time,goodCount,partial:true}));
       }
       s.hourCount=s.source==='demo-records'?s.hourly.at(-1)?.goodCount??null:s.hourly.find(h=>h.time===currentHour)?.goodCount??null;
-      s.goalRecord=applicableGoal(simulated?config.goals:s.goalHistory||[],s);
+      s.goalRecord=applicableGoal(simulated?config.goals:s.goalHistory||[],s,new Date(s.updatedAt||Date.now()));
       s.stateLabel=s.stale||s.connected===false||s.state==='desconhecido'?'Sem leitura':({operando:'Operando',parada:'Parada',setup:'Setup',manutencao:'Manutenção'})[s.state]||'Sem leitura';
       s.sourceLabel=s.source==='demo-records'?(s.sourceLabel||'Cenário fictício · 15h'):simulated?'Simulação':mode==='records'?'Registros manuais do sistema':'Telemetria real · '+(s.sourceLabel||'API / IoT');
       s.reliability=s.source==='demo-records'&&s.reliability?s.reliability:reliability(s);

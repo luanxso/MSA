@@ -1,29 +1,32 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"><script src="assets/theme.js?v=c5a9b40adfd0"></script>
+  <meta charset="UTF-8"><script src="assets/theme.js?v=c3aa2b0f2bcc"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#FFFFFF">
   <meta name="description" content="Base visual do sistema de acompanhamento e gestão da produção da MSA do Brasil.">
   <title>Visão geral | MSA do Brasil</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23333333'%20stroke-width='2'%3E%3Cpath%20d='M3%2021V8l6%203V8l6%203V3h6v18Z'/%3E%3Cpath%20stroke='%23009534'%20d='M3%2021h18'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css?v=127ca1b02674">
-  <script src="assets/config.js?v=b44924861faa" defer></script>
+  <script src="assets/config.js?v=133d7390019e" defer></script>
+  <script src="assets/vendor/motion-12.23.24.js?v=631dbfc6984d" defer></script>
+  <script src="assets/motion-ui.js?v=be2b3b2f2ee4" defer></script>
+  <link rel="stylesheet" href="assets/motion-ui.css?v=66b3638ad253">
   <script src="assets/plant-layout.js?v=779668624296" defer></script>
   <script src="assets/telemetry-service.js?v=6342c074b105" defer></script>
-  <script src="assets/process-visuals.js?v=adf7093ec2dc" defer></script><script src="assets/quality-feedback.js?v=824964f3ba76" defer></script>
-  <script src="js/plant-ui.js?v=3b16b264c296" defer></script>
+  <script src="assets/process-visuals.js?v=8f2fccf4c06f" defer></script><script src="assets/quality-feedback.js?v=824964f3ba76" defer></script>
+  <script src="js/plant-ui.js?v=6ee6ea92c634" defer></script>
   <script src="assets/rbac.js?v=24748804957b" defer></script><script src="assets/validation.js?v=007e33e7ed46" defer></script>
   <script src="assets/firebase-config.js?v=d459a4fd9399" defer></script>
   <script src="assets/firebase-client.js?v=5d7d249f8c71" defer></script>
-  <script src="assets/auth-service.js?v=c525e960cb7e" defer></script><script src="assets/operations-service.js?v=97a547bda37c" defer></script><script src="assets/firebase-chat.js?v=9ed3e57093d7" defer></script><script src="assets/shifts.js?v=049c1f05231b" defer></script><script src="assets/metrics.js?v=b717612e724f" defer></script><script src="assets/performance.js?v=f4b4385dba17" defer></script><script src="assets/shift-analysis.js?v=8cae1c9fded1" defer></script><script src="assets/capability-export.js?v=fdbd7497f877" defer></script><script src="assets/capability-excel.js?v=008bbaafca4f" defer></script><script src="assets/scenario-parameters.js?v=6750a6e80273" defer></script><script src="assets/scenario-data.js?v=80caf222efe7" defer></script><script src="assets/scenario-live.js?v=82ab4b1cbeee" defer></script><script src="assets/production-workflows.js?v=e7ec253ac2a6" defer></script><script src="assets/scenario-chat.js?v=0d7e9f1f0255" defer></script><script src="assets/scenario-service.js?v=cf24ffbdf3ec" defer></script><script src="assets/alert-sound.js?v=a7e347623eee" defer></script><script src="js/workflows-ui.js?v=cba39e9d440c" defer></script><script src="js/operations-ui.js?v=1c814e896b53" defer></script><script src="js/system-guard.js?v=c2a9fe8d21c6" defer></script>
-  <script src="js/chat.js?v=3bd8797765e0" defer></script>
-  <script src="js/script.js?v=7a6ffd14d618" defer></script>
-  <link rel="stylesheet" href="assets/operations.css?v=7ecb8b155e00"><link rel="stylesheet" href="assets/performance.css?v=b104d4272bf4"><link rel="stylesheet" href="assets/equipment.css?v=247a5a9fbf60"><link rel="stylesheet" href="assets/workflows.css?v=210a0d9bf701">
+  <script src="assets/auth-service.js?v=c525e960cb7e" defer></script><script src="assets/photo-records.js?v=7fff5e6af687" defer></script><script src="assets/gauge-reader.js?v=f9a92e460d49" defer></script><script src="assets/digital-reader.js?v=18e1518385a4" defer></script><script src="assets/photo-camera.js?v=b7ef521e4ffa" defer></script><script src="js/photo-ui.js?v=e758170b9ff5" defer></script><script src="assets/operations-service.js?v=d69112bd208c" defer></script><script src="assets/firebase-chat.js?v=9ed3e57093d7" defer></script><script src="assets/shifts.js?v=e56d72d6c0cb" defer></script><script src="assets/metrics.js?v=8e7481994dc0" defer></script><script src="assets/performance.js?v=4f0b43be96e1" defer></script><script src="assets/shift-analysis.js?v=e793475a5b78" defer></script><script src="assets/capability-export.js?v=d23feee41977" defer></script><script src="assets/capability-excel.js?v=008bbaafca4f" defer></script><script src="assets/scenario-parameters.js?v=04912c387b17" defer></script><script src="assets/scenario-data.js?v=80caf222efe7" defer></script><script src="assets/scenario-live.js?v=82ab4b1cbeee" defer></script><script src="assets/production-workflows.js?v=db368efafe2c" defer></script><script src="assets/scenario-chat.js?v=0d7e9f1f0255" defer></script><script src="assets/scenario-service.js?v=7b6f0dc001bc" defer></script><script src="assets/alert-sound.js?v=a7e347623eee" defer></script><script src="js/workflows-ui.js?v=cba39e9d440c" defer></script><script src="assets/production-analysis.js?v=ff4fc3692735" defer></script><script src="js/analysis-ui.js?v=b3642a23a144" defer></script><script src="js/operations-ui.js?v=9fd8de59c7b5" defer></script><script src="js/system-guard.js?v=c2a9fe8d21c6" defer></script>
+  <script src="js/chat.js?v=733cef524c9e" defer></script>
+  <script src="js/script.js?v=074bae3e3c2c" defer></script>
+  <link rel="stylesheet" href="assets/photo-records.css?v=0419b5788b9a"><link rel="stylesheet" href="assets/analysis.css?v=a95120d74600"><link rel="stylesheet" href="assets/operations.css?v=7ecb8b155e00"><link rel="stylesheet" href="assets/performance.css?v=b104d4272bf4"><link rel="stylesheet" href="assets/equipment.css?v=247a5a9fbf60"><link rel="stylesheet" href="assets/workflows.css?v=210a0d9bf701">
   <link rel="stylesheet" href="css/panel-layout.css?v=35ab3c35a932">
   <link rel="stylesheet" href="assets/plant.css?v=7ae45839a038">
   <link rel="stylesheet" href="css/panel-clean.css?v=c0e641dc8294">
-<link rel="stylesheet" href="assets/theme.css?v=9072bba0ef55"><link rel="stylesheet" href="assets/nhpl.css?v=1f8335ddc260"><link rel="stylesheet" href="assets/quality-feedback.css?v=5fc16f3ac835"><link rel="stylesheet" href="assets/header-controls.css?v=fb8d8f06644c"><script type="module" src="assets/nhpl-modal.js?v=f16c84f36edc"></script></head>
+<link rel="stylesheet" href="assets/theme.css?v=37c12c2d2281"><link rel="stylesheet" href="assets/nhpl.css?v=1f8335ddc260"><link rel="stylesheet" href="assets/quality-feedback.css?v=5fc16f3ac835"><link rel="stylesheet" href="assets/header-controls.css?v=fb8d8f06644c"><script type="module" src="assets/nhpl-modal.js?v=88e4970827f4"></script><link rel="stylesheet" href="assets/accessibility.css?v=2fb6a22a9777"><script src="assets/accessibility.js?v=8344f8d67572"></script></head>
 <body data-page="sistema">
   <a class="skip-link" href="#main-content">Ir para o conteúdo principal</a>
 
@@ -37,6 +40,7 @@
     <symbol id="icon-pause" viewbox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M9 8v8m6-8v8"></path></symbol>
     <symbol id="icon-quality" viewbox="0 0 24 24"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"></path><path d="m9 12 2 2 4-4"></path></symbol>
     <symbol id="icon-users" viewbox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path><circle cx="9" cy="7" r="4"></circle></symbol>
+    <symbol id="icon-trend" viewBox="0 0 24 24"><path d="M3 3v18h18M6 16l5-6 4 3 6-8M17 5h4v4"></path></symbol>
     <symbol id="icon-chart" viewbox="0 0 24 24"><path d="M3 3v18h18M8 16v-4m5 4V8m5 8V5"></path></symbol>
     <symbol id="icon-report" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Zm0 0v6h6M8 13h8m-8 4h8"></path></symbol>
     <symbol id="icon-handover" viewBox="0 0 24 24"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"></path></symbol>
@@ -47,7 +51,7 @@
     <symbol id="icon-menu" viewbox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></symbol>
     <symbol id="icon-close" viewbox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"></path></symbol>
     <symbol id="icon-chat" viewbox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"></path><path d="M8 10h8m-8 4h5"></path></symbol>
-    <symbol id="icon-back" viewbox="0 0 24 24"><path d="m12 5-7 7 7 7M5 12h14"></path></symbol>
+    <symbol id="icon-camera" viewBox="0 0 24 24"><path d="M3 6h5l2-3h4l2 3h5v15H3Z"/><circle cx="12" cy="13" r="4"/></symbol><symbol id="icon-back" viewbox="0 0 24 24"><path d="m12 5-7 7 7 7M5 12h14"></path></symbol>
     <symbol id="icon-search" viewbox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></symbol>
     <symbol id="icon-logout" viewbox="0 0 24 24"><path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 8l4 4-4 4m-6-4h10"></path></symbol>
   </svg>
@@ -82,7 +86,7 @@
             <li><a class="nav-item" href="#producao" data-page="producao" aria-label="Produção" title="Produção"><svg class="icon" aria-hidden="true"><use href="#icon-factory"></use></svg><span class="nav-text">Produção</span></a></li>
             <li><a class="nav-item" href="#maquinas" data-page="maquinas" aria-label="Máquinas" title="Máquinas"><svg class="icon" aria-hidden="true"><use href="#icon-machine"></use></svg><span class="nav-text">Máquinas</span></a></li>
             <li><a class="nav-item" href="#apontamentos" data-page="apontamentos" aria-label="Apontamentos" title="Apontamentos"><svg class="icon" aria-hidden="true"><use href="#icon-clipboard"></use></svg><span class="nav-text">Apontamentos</span></a></li>
-            <li><a class="nav-item" href="#paradas" data-page="paradas" aria-label="Paradas" title="Paradas"><svg class="icon" aria-hidden="true"><use href="#icon-pause"></use></svg><span class="nav-text">Paradas</span></a></li>
+            <li><a class="nav-item" href="#registro-foto" data-page="registro-foto" title="Registro por foto"><svg class="icon" aria-hidden="true"><use href="#icon-camera"></use></svg><span class="nav-text">Registro por foto</span></a></li><li><a class="nav-item" href="#paradas" data-page="paradas" aria-label="Paradas" title="Paradas"><svg class="icon" aria-hidden="true"><use href="#icon-pause"></use></svg><span class="nav-text">Paradas</span></a></li>
             <li><a class="nav-item" href="#qualidade" data-page="qualidade" aria-label="Qualidade" title="Qualidade"><svg class="icon" aria-hidden="true"><use href="#icon-quality"></use></svg><span class="nav-text">Qualidade</span></a></li>
           <li><a class="nav-item" href="#ocorrencias" data-page="ocorrencias" title="Ocorrências"><svg class="icon" aria-hidden="true"><use href="#icon-bell"></use></svg><span class="nav-text">Ocorrências</span></a></li><li><a class="nav-item" href="#conferencia" data-page="conferencia" title="Conferência"><svg class="icon" aria-hidden="true"><use href="#icon-clipboard"></use></svg><span class="nav-text">Conferência</span></a></li></ul>
         </section>
@@ -91,6 +95,7 @@
           <h2 class="nav-group-label" id="management-label">Gestão</h2>
           <ul class="nav-list">
             <li><a class="nav-item" href="#funcionarios" data-page="funcionarios" aria-label="Funcionários" title="Funcionários"><svg class="icon" aria-hidden="true"><use href="#icon-users"></use></svg><span class="nav-text">Funcionários</span></a></li>
+            <li><a class="nav-item" href="#analise-producao" data-page="analise-producao" aria-label="Análise da produção" title="Análise da produção"><svg class="icon" aria-hidden="true"><use href="#icon-trend"></use></svg><span class="nav-text">Análise da produção</span></a></li>
             <li><a class="nav-item" href="#indicadores" data-page="indicadores" aria-label="Indicadores" title="Indicadores"><svg class="icon" aria-hidden="true"><use href="#icon-chart"></use></svg><span class="nav-text">Indicadores</span></a></li>
             <li><a class="nav-item" href="#passagem" data-page="passagem" aria-label="Passagem de turno" title="Passagem de turno"><svg class="icon" aria-hidden="true"><use href="#icon-handover"></use></svg><span class="nav-text">Passagem de turno</span></a></li>
             <li><a class="nav-item" href="#relatorios" data-page="relatorios" aria-label="Relatórios" title="Relatórios"><svg class="icon" aria-hidden="true"><use href="#icon-report"></use></svg><span class="nav-text">Relatórios</span></a></li>

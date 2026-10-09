@@ -29,7 +29,8 @@ window.MSA=window.MSA||{};
   state.maquinas.forEach((m,index)=>{
    const now=state.scenarioAt,runtime=state.liveParameters[m.id]||={};runtime.channels||={};
    let row=state.leituras.find(r=>r.id==='exemplo-leitura-ativa-'+m.id);
-   if(!row){const last=state.leituras.filter(r=>r.maquinaId===m.id).sort((a,b)=>b.data-a.data)[0];row={...last,id:'exemplo-leitura-ativa-'+m.id,maquinaId:m.id,setorId:m.setorId,turno:'1',valores:{...last?.valores},simulacaoParametros:true,verificado:false};state.leituras.push(row);}
+   if(!row){const last=state.leituras.filter(r=>r.maquinaId===m.id&&r.origem!=='foto').sort((a,b)=>b.data-a.data)[0];row={...last,id:'exemplo-leitura-ativa-'+m.id,maquinaId:m.id,setorId:m.setorId,turno:'1',valores:{...last?.valores},simulacaoParametros:true,verificado:false};state.leituras.push(row);}
+   delete row.origem;delete row.fotoProcesso;
    row.valores=Object.fromEntries(Object.keys(m.parametros||{}).filter(k=>Object.hasOwn(row.valores,k)).map(k=>[k,row.valores[k]]));
    // Um sorteio por máquina a cada 30 segundos; alterações de valores não sorteiam a cada frame.
    const stopped=state.paradas.some(r=>r.maquinaId===m.id&&!r.fim),bucket=Math.floor(now/30000);
@@ -38,6 +39,7 @@ window.MSA=window.MSA||{};
    if(runtime.bucket!==bucket){if(runtime.bucket!==undefined&&!stopped&&random()<(state.demoDeviationRate??.02)&&eligible.length)trigger=eligible[Math.floor(random()*eligible.length)];runtime.bucket=bucket;}
    if(trigger){runtime.channels[trigger]||={};runtime.channels[trigger].until=now+10000;runtime.pending=null;}
    for(const[key,p]of Object.entries(m.parametros)){
+    if(state.leituras.some(r=>r.maquinaId===m.id&&r.origem==='foto'&&Number.isFinite(r.valores?.[key]))){delete row.valores[key];if(runtime.channels[key])runtime.channels[key].active=false;continue;}
     if(!Number.isFinite(p.min)||!Number.isFinite(p.max)||p.max<=p.min)continue;
     const channel=runtime.channels[key]||={},isCycle=p.unidade==='s'&&/ciclo/i.test(p.nome||key),span=p.max-p.min;
     if(isCycle){row.valores[key]??=(p.min+p.max)/2;continue;}

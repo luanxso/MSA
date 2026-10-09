@@ -4,6 +4,19 @@
   const MSA = window.MSA = window.MSA || {};
   const instances = new WeakMap();
   let serial = 0;
+  const moving = new Map();
+  function stopMotion(svg, instance) {
+    instance.generation=(instance.generation||0)+1;
+    instance.animation?.stop(); instance.animation = null; moving.delete(svg);
+    instance.offset = instance.visualOffset;
+  }
+  function sweep() {
+    for (const [svg, instance] of moving) {
+      if (!svg.isConnected || !svg.getClientRects().length || !MSA.motion?.enabled()) stopMotion(svg, instance);
+    }
+  }
+  new MutationObserver(sweep).observe(document.documentElement, {childList:true,subtree:true});
+  document.addEventListener('msa:motion-preference', sweep);
   const stationX = [175, 437, 700, 963, 1225];
   const START = 67, END = 1333, COUNT = 12, PITCH = (END - START) / COUNT;
   const stateNames = {operando:'Operando', parada:'Parada', setup:'Setup', manutencao:'Manutenção', desconhecido:'Sem leitura'};
@@ -224,6 +237,54 @@
     </svg>`;
   }
 
+  function renderPosition(svg, instance, kind) {
+    svg.dataset.lineVisualOffset = String(instance.visualOffset);
+    svg.querySelectorAll('[data-line-piece]').forEach((node,index) => {
+      const pieceIndex = finite(node.dataset.index,index), x = START + mod(pieceIndex * PITCH + instance.visualOffset * PITCH,END - START), stage = stageAt(x);
+      if (node.dataset.stage !== String(stage) || instance.kind !== kind) {
+        const marker=node.querySelector('[data-refugo-marker]')?.cloneNode(true);
+        node.innerHTML = product(kind,stage,0,0,.68);
+        if(marker)node.append(marker);
+        node.dataset.stage = String(stage);
+      }
+      node.setAttribute('transform',`translate(${x.toFixed(2)} 314)`);
+    });
+    const belt = svg.querySelector('[data-line-belt]');
+    if (belt) belt.setAttribute('stroke-dashoffset',String(-instance.visualOffset * PITCH));
+    // Mechanical motion follows the same frozen position as the pieces.
+    const phase = Math.sin(mod(instance.visualOffset,1) * Math.PI * 2);
+    svg.querySelectorAll('[data-line-actuator]').forEach(node => {
+      const index = finite(node.dataset.lineActuator,0);
+      node.setAttribute('transform',index === 0 ? `translate(${(phase * 9).toFixed(2)} 0)` : `translate(0 ${(phase * (index === 2 ? 7 : 10)).toFixed(2)})`);
+    });
+    const scan = svg.querySelector('[data-line-scan]');
+    if (scan) { scan.setAttribute('transform',`translate(0 ${(-13 + phase * 10).toFixed(2)})`); scan.setAttribute('opacity',svg.classList.contains('has-unknown-state') ? '.18' : '.75'); }
+  }
+
+  function smoothPosition(svg, instance, kind) {
+    const target = instance.offset;
+    if (!instance.running || !MSA.motion?.enabled() || !svg.isConnected || !svg.getClientRects().length) {
+      if (!instance.running) stopMotion(svg, instance);
+      else { stopMotion(svg, instance); }
+      renderPosition(svg, instance, kind); return;
+    }
+    if (instance.target === target && instance.animation) return;
+    instance.animation?.stop(); instance.target = target;
+    renderPosition(svg, instance, kind);
+    if (Math.abs(target - instance.visualOffset) < .00001) return;
+    moving.set(svg, instance);
+    const generation=instance.generation=(instance.generation||0)+1;
+    instance.animation = Motion.animate(instance.visualOffset, target, {
+      duration: 1, ease: 'linear',
+      onUpdate(value) {
+        if(generation!==instance.generation||!instance.running||MSA.telemetry?.paused)return;
+        if (!svg.isConnected || !svg.getClientRects().length || !MSA.motion.enabled()) { stopMotion(svg, instance); return; }
+        instance.visualOffset = value; renderPosition(svg, instance, kind);
+      },
+      onComplete() { if(generation===instance.generation){instance.animation = null; moving.delete(svg);} }
+    });
+  }
+
   /** Update a mounted SVG without rebuilding it; a paused or stopped scene keeps its position. */
   function update(container, machine, sample, paused) {
     if (!container || typeof container.querySelector !== 'function') return;
@@ -233,7 +294,7 @@
     const progress = progressOf(sample), running = isRunning(sample,paused), kind = kindOf(machine), selected = stationOf(machine), state = stateOf(sample), color = stateColors[state] || stateColors.desconhecido;
     let instance = instances.get(svg);
     if (!instance) {
-      instance = {offset:finite(svg.dataset.lineOffset,0), lastProgress:finite(svg.dataset.lineInitialProgress,0), running:svg.dataset.lineRunning === 'true', kind:svg.dataset.lineKind};
+      instance = {visualOffset:finite(svg.dataset.lineOffset,0), offset:finite(svg.dataset.lineOffset,0), lastProgress:finite(svg.dataset.lineInitialProgress,0), running:svg.dataset.lineRunning === 'true', kind:svg.dataset.lineKind};
       instances.set(svg,instance);
     }
     if (running) {
@@ -241,7 +302,7 @@
         let delta = progress - instance.lastProgress;
         // A wrap advances the pipeline one piece pitch. Small backwards changes are a rebase.
         if (delta < -.5) delta += 1;
-        if (delta > 0 && delta <= 1) instance.offset = mod(instance.offset + delta,COUNT);
+        if (delta > 0 && delta <= 1) instance.offset += delta;
       }
       instance.lastProgress = progress;
     }
@@ -253,14 +314,7 @@
     svg.classList.toggle('is-running',running);
     svg.classList.toggle('is-paused',!running);
     svg.classList.toggle('has-unknown-state',state === 'desconhecido');
-    svg.querySelectorAll('[data-line-piece]').forEach((node,index) => {
-      const pieceIndex = finite(node.dataset.index,index), x = START + mod(pieceIndex * PITCH + instance.offset * PITCH,END - START), stage = stageAt(x);
-      if (node.dataset.stage !== String(stage) || instance.kind !== kind) {
-        node.innerHTML = product(kind,stage,0,0,.68);
-        node.dataset.stage = String(stage);
-      }
-      node.setAttribute('transform',`translate(${x.toFixed(2)} 314)`);
-    });
+    smoothPosition(svg,instance,kind);
     const pieces=[...svg.querySelectorAll('[data-line-piece]')];
     if(sample.recentReject&&instance.rejectId!==sample.recentReject.id){
       instance.rejectId=sample.recentReject.id;
@@ -296,16 +350,7 @@
     svg.querySelectorAll('[data-line-sensor]').forEach(node => node.setAttribute('fill',running ? '#65c8b4' : '#607b85'));
     const rejected = svg.querySelector('[data-line-rejected]');
     if (rejected) rejected.textContent = Number.isFinite(sample.rejectedCount) ? String(Math.max(0,Math.round(sample.rejectedCount))) : '—';
-    const belt = svg.querySelector('[data-line-belt]');
-    if (belt) belt.setAttribute('stroke-dashoffset',String(-instance.offset * PITCH));
-    // Mechanical motion follows the same frozen position as the pieces.
-    const phase = Math.sin(mod(instance.offset,1) * Math.PI * 2);
-    svg.querySelectorAll('[data-line-actuator]').forEach(node => {
-      const index = finite(node.dataset.lineActuator,0);
-      node.setAttribute('transform',index === 0 ? `translate(${(phase * 9).toFixed(2)} 0)` : `translate(0 ${(phase * (index === 2 ? 7 : 10)).toFixed(2)})`);
-    });
-    const scan = svg.querySelector('[data-line-scan]');
-    if (scan) { scan.setAttribute('transform',`translate(0 ${(-13 + phase * 10).toFixed(2)})`); scan.setAttribute('opacity',state === 'desconhecido' ? '.18' : '.75'); }
+
   }
 
   MSA.processVisuals = {product, line, update};

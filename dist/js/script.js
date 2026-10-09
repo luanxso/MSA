@@ -32,7 +32,10 @@
     return tabletViewport.matches ? 'tablet' : 'desktop';
   }
 
-  function updateLayout() {
+  let layoutReady=false;
+  function updateLayout({ animate = true } = {}) {
+    MSA.motion.stop(sidebar);MSA.motion.stop(workspace);MSA.motion.stop(backdrop);
+    const before=layoutReady&&animate?{width:sidebar.getBoundingClientRect().width,margin:getComputedStyle(workspace).marginLeft,transform:getComputedStyle(sidebar).transform,drawer:shell.classList.contains("is-drawer-open")}:null;
     const isMobile = mobileViewport.matches;
     const expanded = isMobile ? drawerOpen : !collapsed;
 
@@ -42,6 +45,8 @@
     sidebar.inert = isMobile && !drawerOpen;
     workspace.inert = isMobile && drawerOpen;
 
+    MSA.motion.sidebarLayout(sidebar,workspace,backdrop,before,isMobile,expanded);
+    layoutReady=true;
     toggleButton.setAttribute('aria-expanded', String(expanded));
     const toggleLabel = isMobile
       ? 'Abrir menu lateral'
@@ -111,7 +116,7 @@
       const closeButtonWasFocused = focusedElement === closeButton;
       drawerOpen = false;
       previousViewport = viewport;
-      updateLayout();
+      updateLayout({ animate: false });
       if ((viewport === 'mobile' && focusWasInSidebar) || closeButtonWasFocused) {
         toggleButton.focus();
       }
@@ -121,6 +126,7 @@
   mobileViewport.addEventListener('change', handleViewportChange);
   tabletViewport.addEventListener('change', handleViewportChange);
 
+  let previousMotionRoute='';
   // A mesma navegação adapta páginas e contexto à sessão atual.
   function updatePage({ moveFocus = false } = {}) {
     const currentUser = MSA.auth.session();
@@ -168,11 +174,11 @@
     const descriptions = {
       'visao-geral': currentUser.cargo === 'operador' ? 'Sua máquina, produção registrada e pendências.' : 'Produção registrada e condições das máquinas em acompanhamento.',
       producao: 'Metas, apontamentos e parâmetros do período.', maquinas: 'Localize equipamentos por setor e acompanhe situação, produção e parâmetros.',
-      apontamentos: 'Registre a produção e os parâmetros da máquina em uso.', conferencia: 'Confira os registros e consolide as informações do setor.',
+      'registro-foto': 'Fotografe instrumentos e encaminhe as leituras ao lote em produção.', apontamentos: 'Registre a produção e os parâmetros da máquina em uso.', conferencia: 'Confira os registros e consolide as informações do setor.',
       paradas: 'Microparadas, motivos selecionáveis e duração das interrupções.', qualidade: 'Refugos, lotes suspeitos, reinspeção e decisões da Qualidade.',
       ocorrencias: 'Problemas registrados e ações de resolução.', funcionarios: 'Presença, postos de trabalho e distribuição da equipe por turno.',
-      indicadores: 'Compare a produção dos setores e acompanhe as consolidações.', relatorios: 'Registros e resumos para acompanhamento da produção.',
-      passagem: 'Entrega, recebimento e pendências entre turnos.', notificacoes: 'Alertas, responsáveis e acompanhamento das ações.', configuracoes: 'Seu acesso e o catálogo de equipamentos.',
+      'analise-producao': 'Explore os gráficos por setor, máquina, turno e lote.', indicadores: 'Compare a produção dos setores e acompanhe as consolidações.', relatorios: 'Registros e resumos para acompanhamento da produção.',
+      passagem: 'Entrega, recebimento e pendências entre turnos.', notificacoes: 'Alertas, responsáveis e acompanhamento das ações.', configuracoes: 'Acessibilidade, preferências e seu acesso ao sistema.',
       chat: 'Conversas entre funcionários e passagem de turno'
     };
     pageDescription.textContent = descriptions[pageId] || '';
@@ -183,6 +189,7 @@
     MSA.operations.open(pageId, sectorSelector.value);
     if (isChat) window.MSAChat.show(sectorSelector.value);
     else window.MSAChat.hide();
+    if(previousMotionRoute!==pageId){MSA.motion.enter(document.querySelector('.page-heading'));if(isChat)MSA.motion.enter(document.querySelector('#chat-view'));previousMotionRoute=pageId;}
     document.title = `${title} | MSA do Brasil`;
     main.scrollTop = 0;
     closeDrawer({ restoreFocus: false });

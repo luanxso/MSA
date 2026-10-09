@@ -39,10 +39,10 @@ try{
   assert(await page.locator('#operation-save').isHidden());assert(await page.locator('.machine-parameters[open] .ops-table').isVisible());
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.screenshot({path:'.qa-output/maquina-detalhes-'+theme+'-'+width+'.png',fullPage:false});
-  await page.locator('#operation-cancel').click();
+  await page.locator('#operation-cancel').click();await page.waitForFunction(()=>!document.querySelector('#operation-dialog').open);
  }
  await search.fill('NHPL');assert.equal(await rows.count(),1);await rows.getByRole('button',{name:'Detalhes',exact:true}).click();
- await page.locator('.equipment-detail [data-action="target"]').click();assert(await page.locator('#operation-save').isVisible());await page.locator('#operation-cancel').click();
+ await page.locator('.equipment-detail [data-action="target"]').click();assert(await page.locator('#operation-save').isVisible());await page.locator('#operation-cancel').click();await page.waitForFunction(()=>!document.querySelector('#operation-dialog').open);
  await rows.getByRole('button',{name:'Detalhes',exact:true}).click();await page.locator('.equipment-detail-links a[href="#mapa-planta/@NHPL"]').click();await page.waitForSelector('.nhpl-dialog[open]');assert(await page.locator('#operation-dialog').evaluate(e=>!e.open));
  const operator=await browser.newPage();await operator.goto('http://127.0.0.1:4173/sistema.html?demonstracao=1&cargo=operador#maquinas');await operator.waitForSelector('.equipment-row');assert(await operator.locator('#catalogue-sector').isDisabled());assert.equal(await operator.locator('#catalogue-sector option').count(),1);assert.deepEqual(await operator.locator('.equipment-row').evaluateAll(els=>els.map(e=>e.dataset.equipmentId)),['NHPL']);
  const supervisor=await browser.newPage();await supervisor.goto('http://127.0.0.1:4173/sistema.html?demonstracao=1&cargo=supervisor#maquinas');await supervisor.waitForSelector('.equipment-row');assert.equal(await supervisor.locator('#catalogue-sector option').count(),8);await supervisor.locator('#catalogue-sector').selectOption('expedicao');await supervisor.waitForFunction(()=>MSA.auth.session().setorId==='expedicao'&&document.querySelector('#catalogue-sector')?.value==='expedicao');assert.deepEqual(await supervisor.locator('.equipment-row').evaluateAll(els=>els.map(e=>e.dataset.equipmentId).sort()),['EXP-01','EXP-02','EXP-03']);

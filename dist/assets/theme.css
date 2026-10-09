@@ -82,6 +82,8 @@ html[data-theme] .operation-dialog, html[data-theme] .profile-dialog, html[data-
 html[data-theme] .secondary-button { background:var(--theme-surface); color:var(--theme-text); border-color:var(--theme-border); }
 html[data-theme] .secondary-button:hover { background:var(--theme-hover); }
 html[data-theme] .text-button, html[data-theme] .ops-link { color:var(--theme-good); }
+html[data-theme] .text-button:hover { background:var(--theme-hover); }
+html.theme-changing :is(button,a,[role="tab"]) { transition:none !important; }
 html[data-theme] .ops-badge { background:var(--theme-hover); color:var(--theme-muted); }
 html[data-theme] .ops-badge.good, html[data-theme] .operation-feedback { background:var(--theme-good-bg); color:var(--theme-good); }
 html[data-theme] .ops-badge.warning { background:var(--theme-warning-bg); color:var(--theme-warning); }

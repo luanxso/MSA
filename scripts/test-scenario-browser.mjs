@@ -35,7 +35,7 @@ try{
  await page.locator('#page-content a[href="#mapa-planta/@NHPL"]').first().click();await page.waitForSelector('.nhpl-dialog[open]');
  const popup=await page.locator('.nhpl-dialog').innerText();assert(popup.includes(sample.s.batch));assert(popup.includes(String(sample.s.goodCount)));assert(popup.includes('Cenário fictício'));
  await page.screenshot({path:'.qa-output/nhpl.png',fullPage:false});
- await page.locator('.nhpl-dialog a[href="#qualidade/NHPL"]').click();await page.waitForFunction(()=>document.querySelector('#ops-machine')?.value==='NHPL');assert.equal(await page.locator('dialog[open]').count(),0);
+ await page.locator('.nhpl-dialog a[href="#qualidade/NHPL"]').click();await page.waitForFunction(()=>document.querySelector('#ops-machine')?.value==='NHPL');await page.waitForFunction(()=>!document.querySelector('dialog[open]'));assert.equal(await page.locator('dialog[open]').count(),0);
  await page.evaluate(()=>location.hash='mapa-planta/@INJ-01');await page.waitForSelector('.plant-machine-dialog[open]');assert((await page.locator('.plant-machine-dialog').innerText()).includes('MTTR'));
  await page.locator('.plant-machine-dialog a[href="#paradas/INJ-01"]').click();await page.waitForFunction(()=>document.querySelector('#ops-machine')?.value==='INJ-01');
  await page.evaluate(()=>location.hash='chat');await page.waitForSelector('#chat-messages .message');await page.locator('#chat-message').fill('Mensagem fictícia de teste');await page.locator('#chat-send').click();await page.getByText('Mensagem fictícia de teste',{exact:true}).waitFor();

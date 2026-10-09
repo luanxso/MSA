@@ -32,9 +32,13 @@
   }
   function set(theme, persist = true) {
     if (!valid(theme)) return;
+    // Texto e fundo mudam juntos; interpolar só o texto reduz o contraste.
+    root.classList.add('theme-changing');
     current = theme;
     if (persist) { try { localStorage.setItem(key, theme); } catch {} }
     update();
+    void root.offsetWidth;
+    root.classList.remove('theme-changing');
   }
   update();
   function mount() {

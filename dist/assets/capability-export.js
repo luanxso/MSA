@@ -40,7 +40,8 @@ window.MSA=window.MSA||{};
  function build(state,machines,readings,production,losses){
   const equipment=new Map(machines.filter(compatible).map(m=>[m.id,m])),totals=new Map();
   const add=(r,key)=>{if(!equipment.has(r.maquinaId)||!r.lote||numeric(r.quantidade)===null)return;const k=group(r),t=totals.get(k)||{good:0,rejected:0,hasGood:false};t[key]+=Number(r.quantidade);if(key==='good')t.hasGood=true;totals.set(k,t);};
-  production.forEach(r=>add(r,'good'));losses.filter(r=>r.tipo==='refugo'&&r.unidade!=='kg').forEach(r=>add(r,'rejected'));
+  const approved=MSA.metrics?.netProduction?MSA.metrics.netProduction(state):production;
+  production.forEach(r=>add(approved.find(x=>r.id&&x.id===r.id)||r,'good'));losses.filter(r=>r.tipo==='refugo'&&r.unidade!=='kg').forEach(r=>add(r,'rejected'));
   const heads=['Data','Material','Espessura (mm)','% Scrap','Lote',...fields.map(f=>f.label+' ('+f.unit+')'),'Hora','Máquina','Produto','Turno','RE','ID da leitura','Origem'];
   const rows=[],items=[];let missing=0;
   for(const r of [...readings].sort((a,b)=>a.data-b.data||String(a.id).localeCompare(String(b.id)))){
@@ -70,6 +71,11 @@ window.MSA=window.MSA||{};
   if(Number.isFinite(base.pressao))vals.pressao_ar=base.pressao;if(Number.isFinite(base.vacuo))vals.vacuo=base.vacuo;
   return {material:'Material demonstrativo',espessura:.5,valores:Object.fromEntries(Object.entries(vals).map(([k,v])=>[k,Number(v.toFixed(3))]))};
  }
- function seedDemo(state){if(!state.demo)return;for(const r of state.leituras){const m=state.maquinas.find(m=>m.id===r.maquinaId);if(compatible(m)&&!r.estudoSelo)r.estudoSelo=demoSample(m,r.data,0,r.valores);}}
+ function seedDemo(state){if(!state.demo)return;for(const r of state.leituras){
+  // Remove também campos inventados em fotos restauradas de versões anteriores.
+  if(r.origem==='foto'||r.fotoProcesso){delete r.estudoSelo;continue;}
+  const m=state.maquinas.find(m=>m.id===r.maquinaId),simulated=r.simulacaoParametros===true||r.id?.startsWith('exemplo-read-');
+  if(compatible(m)&&simulated&&!r.estudoSelo)r.estudoSelo=demoSample(m,r.data,0,r.valores);
+ }}
  MSA.capability=Object.freeze({fields,compatible,clean,build,csv,demoSample,seedDemo});
 })();

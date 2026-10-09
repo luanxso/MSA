@@ -21,7 +21,7 @@ try{
  await dialog.locator('[data-nhpl="operando"]').click();await page.waitForFunction(()=>document.querySelector('.nhpl-dialog [data-kpi="2"]')?.textContent==='Operando');assert.equal(await dialog.locator('[data-kpi="2"]').textContent(),'Operando');
  for(let i=0;i<30;i++){await page.keyboard.press('Tab');assert(await dialog.evaluate(d=>d.contains(document.activeElement)));}
  await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});assert.equal(await page.locator('#plant-world').getAttribute('transform'),before);assert.equal(await page.locator('#plant-sector').inputValue(),'montagem');assert(await nhpl.evaluate(n=>document.activeElement===n));
- await nhpl.click();await page.locator('[data-nhpl="close"]').click();assert(await nhpl.evaluate(n=>document.activeElement===n));
+ await nhpl.click();await page.locator('[data-nhpl="close"]').click();await dialog.waitFor({state:'detached'});assert(await nhpl.evaluate(n=>document.activeElement===n));
  await page.setViewportSize({width:390,height:844});await nhpl.click();await dialog.waitFor();assert.equal(await page.evaluate(()=>document.querySelector('.nhpl-dialog').scrollWidth<=innerWidth),true);await page.screenshot({path:'docs/qa-nhpl/mobile.png'});await page.keyboard.press('Escape');
  // Permissões reais, consultas manuais e API com fixtures isoladas, sem Firebase.
  await page.setViewportSize({width:1440,height:1000});await page.goto(base+'/sistema.html?dados=reais&qa=chefe#mapa-planta');await page.waitForFunction(()=>MSA.nhpl && document.querySelector('[data-machine="NHPL"]'));await page.locator('[data-machine="NHPL"]').click();

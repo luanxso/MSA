@@ -29,7 +29,7 @@
     const s=MSA.metrics.summarize(context.state,[machine],start,end);
     const readings=(context.state.leituras||[]).filter(r=>r.maquinaId===machine.id).sort((a,b)=>b.data-a.data);
     const latest=readings[0],open=s.abertas[0];
-    const parameters=Object.fromEntries(Object.entries(machine.parametros||{}).map(([key,p])=>[key,{...p,value:latest?.valores?.[key]??null,updatedAt:latest?.data||null,quality:'manual',alarm:latest?.valores?.[key]!==undefined&&(latest.valores[key]<p.min||latest.valores[key]>p.max)}]));
+    const parameters=MSA.photoRecords?MSA.photoRecords.parameters(machine,context.state):Object.fromEntries(Object.entries(machine.parametros||{}).map(([key,p])=>[key,{...p,value:latest?.valores?.[key]??null,updatedAt:latest?.data||null,quality:'manual',alarm:latest?.valores?.[key]!==undefined&&(latest.valores[key]<p.min||latest.valores[key]>p.max)}]));
     const alarms=Object.entries(parameters).filter(([,p])=>p.alarm).map(([id,p])=>({code:'LEI-'+id,description:p.nome+' fora do limite registrado',severity:'aviso',since:p.updatedAt,parameterId:id,active:true}));
     const stops=(context.state.paradas||[]).filter(r=>r.maquinaId===machine.id&&r.inicio<end&&(!r.fim||r.fim>=start));
     const occurrences=(context.state.ocorrencias||[]).filter(r=>r.maquinaId===machine.id&&r.status==='aberta');
@@ -134,16 +134,16 @@
     return 'M-3-2a3 3 0 0 1 6 0c0 2-3 2-3 4M0 4.5v.01';
   }
   function startMapFlow() {
-    cancelAnimationFrame(flowFrame);let last=performance.now();const offsets={capacetes:0,fones:.055};
+    cancelAnimationFrame(flowFrame);if(!MSA.motion.enabled())return;let last=performance.now();const offsets={capacetes:0,fones:.055};
     function frame(now) {
-      if(!active||selected)return;
+      if(!active||selected||!MSA.motion.enabled())return;
       const seconds=Math.min(.1,(now-last)/1000);last=now;
       layout.routes.forEach(route=>{
         const nodes=root.querySelectorAll(`[data-flow-kind="${route.id}"]`),path=root.querySelector('#route-'+route.id);
         if(!path)return;
         const routeMachine=catalog().find(m=>m.id===(route.id==='fones'?'ABF-01':'INJ-01'))||catalog()[0];
         const routeSample=routeMachine?sample(routeMachine):{state:'desconhecido',stale:true};
-        const moving=(telemetry.mode==='simulation'||context.state.demo)&&!telemetry.paused&&routeSample.state==='operando'&&!routeSample.stale;
+        const moving=MSA.motion.enabled()&&(telemetry.mode==='simulation'||context.state.demo)&&!telemetry.paused&&routeSample.state==='operando'&&!routeSample.stale;
         if(moving)offsets[route.id]=(offsets[route.id]+seconds/100)%1;
         path.closest('[data-route]').classList.toggle('is-moving',moving);
         const length=path.getTotalLength();nodes.forEach((node,i)=>{const point=path.getPointAtLength(((offsets[route.id]+i/nodes.length)%1)*length);node.setAttribute('transform',`translate(${point.x} ${point.y})`);});
@@ -152,6 +152,8 @@
     }
     flowFrame=requestAnimationFrame(frame);
   }
+
+  document.addEventListener('msa:motion-preference',()=>{if(active&&!selected)startMapFlow();});
 
   function renderMap() {
     const unplaced=catalog().filter(m=>!layout.placements[m.id]);
@@ -196,7 +198,7 @@
   }
   function parameterList(s) {
     const entries=Object.entries(s.parameters);
-    return entries.length?entries.map(([id,p])=>`<div class="hmi-reading ${p.alarm?'has-alarm':''}" id="reading-${esc(id)}" data-parameter="${esc(id)}" role="button" tabindex="0"><div><span>${esc(p.nome||id)}</span><strong data-value="param:${esc(id)}">${tag(s,id)}</strong></div><span class="hmi-reading-limits">${Number.isFinite(p.min)&&Number.isFinite(p.max)?`Limites ${number(p.min,2)} a ${number(p.max,2)} ${esc(p.unidade)}`:'Limites não configurados'}</span><span class="hmi-reading-origin" data-parameter-time="${esc(id)}">${s.source==='manual'?'Apontamento':'Leitura da fonte'} · ${clock(p.updatedAt)}</span></div>`).join(''):'<p class="plant-muted">Nenhum parâmetro disponível para este equipamento.</p>';
+    return entries.length?entries.map(([id,p])=>`<div class="hmi-reading ${p.alarm?'has-alarm':''}" id="reading-${esc(id)}" data-parameter="${esc(id)}" role="button" tabindex="0"><div><span>${esc(p.nome||id)}</span><strong data-value="param:${esc(id)}">${tag(s,id)}</strong></div><span class="hmi-reading-limits">${Number.isFinite(p.min)&&Number.isFinite(p.max)?`Limites ${number(p.min,2)} a ${number(p.max,2)} ${esc(p.unidade)}`:'Limites não configurados'}</span><span class="hmi-reading-origin" data-parameter-time="${esc(id)}">${p.origin||(s.source==='manual'?'Apontamento':'Leitura da fonte')} · ${clock(p.updatedAt)}</span></div>`).join(''):'<p class="plant-muted">Nenhum parâmetro disponível para este equipamento.</p>';
   }
   function alarms(s) {
     return s.alarms.length?`<ul class="hmi-alarms">${s.alarms.map(a=>`<li class="${a.severity==='critico'?'is-critical':''}"><strong>${esc(a.code)}</strong><span>${esc(a.description)}</span><small>${clock(a.since)}</small></li>`).join('')}</ul>`:'<p class="plant-clear">Nenhum alarme ativo na fonte selecionada.</p>';
@@ -221,6 +223,7 @@
     if(tab==='qualidade')panel.innerHTML=`<div class="hmi-quality-totals">${metric('Total produzido','totalCount',' peças')}${metric('Peças aprovadas','goodCount',' peças')}${metric('Refugos','rejectedCount',' peças')}${metric('Taxa de refugo','rejectRate','%')}</div><div class="hmi-quality-bar" role="img" aria-label="Distribuição entre aprovadas e refugos"><span data-good-bar></span><span data-reject-bar></span></div><div class="plant-legend"><span><i class="plant-state-marker state-operando" aria-hidden="true"></i>Aprovadas</span><span><i class="plant-state-marker state-parada" aria-hidden="true"></i>Refugos</span></div>${s.source==='manual'?`<p class="plant-muted">Peças suspeitas: ${number(s.suspectCount)} · perda de material: ${number(s.materialLoss,2)} kg. Material e peças são contabilizados separadamente.</p>`:`<p class="plant-muted">${s.source==='simulated'?'Contagem demonstrativa':'Contagem recebida da fonte'} de aprovação e rejeição no processo.</p>`}`;
     if(tab==='historico')panel.innerHTML=`<h3>Eventos do equipamento</h3>${eventTable(s)}<h3 class="hmi-section-heading">Evolução do tempo de ciclo <span>(s)</span></h3><div data-cycle-chart>${chart(s)}</div>`;
     if(tab==='operacao'&&existingDiagram)panel.querySelector('.process-line')?.replaceWith(existingDiagram);
+    if(panel.dataset.motionTab!==tab){panel.dataset.motionTab=tab;MSA.motion.enter(panel);}
     updateDetail(machine,s);
   }
   function render() {
@@ -229,7 +232,7 @@
     resizeObserver?.disconnect();cancelAnimationFrame(flowFrame);pointers.clear();hovered='';tableSignature='';
     const focusId=root.contains(document.activeElement)||headerControls?.contains(document.activeElement)?document.activeElement.id:'';
     const machine=catalog().find(m=>m.id===selected);
-    root.innerHTML=`<div class="plant-page ${selected?'is-supervisory':'is-map'}" data-mode="${telemetry.mode}">${selected?(machine?supervisory(machine):`<div class="plant-unavailable">${button('Voltar à planta','back')}<h2>Equipamento indisponível nesta fonte</h2><p>Selecione outro equipamento ou altere a fonte de dados.</p>${sourceControls()}</div>`):renderMap()}<p class="plant-feedback" role="status" aria-live="polite" hidden></p><p class="plant-data-error" role="status" hidden></p></div>`;
+    MSA.motion.replace(root,`<div class="plant-page ${selected?'is-supervisory':'is-map'}" data-mode="${telemetry.mode}">${selected?(machine?supervisory(machine):`<div class="plant-unavailable">${button('Voltar à planta','back')}<h2>Equipamento indisponível nesta fonte</h2><p>Selecione outro equipamento ou altere a fonte de dados.</p>${sourceControls()}</div>`):renderMap()}<p class="plant-feedback" role="status" aria-live="polite" hidden></p><p class="plant-data-error" role="status" hidden></p></div>`,"plant:"+selected+":"+sector+":"+telemetry.mode);
     renderHeader();
     lastMode=telemetry.mode+'|'+telemetry.adapterName;catalogSignature=JSON.stringify(catalog());
     if(machine)renderTab(machine,sample(machine));
@@ -328,6 +331,7 @@
     if(period)period.textContent=s.periodLabel||'Período da fonte';
     const scenario=root.querySelector('#plant-scenario');if(scenario&&document.activeElement!==scenario)scenario.value=s.alarms.some(a=>a.parameterId)?'alerta':s.state;
     const phaseNode=root.querySelector('[data-phase]');if(phaseNode)phaseNode.textContent=s.stale?'Aguardando comunicação':s.phase||stateLabel(s.state);
+    root.querySelector('.hmi-cycle')?.classList.toggle('is-paused',telemetry.paused||s.state!=='operando'||s.stale);
     const fill=root.querySelector('[data-cycle-fill]');if(fill)fill.style.width=Math.min(100,Math.max(0,(s.cycleProgress||0)*100))+'%';
     const diagram=root.querySelector('.hmi-diagram');if(diagram)diagram.classList.toggle('is-running',s.state==='operando'&&!telemetry.paused&&!s.stale);
     const mould=root.querySelector('#hmi-moving-mould'),part=root.querySelector('#hmi-moving-part');
@@ -339,7 +343,7 @@
     const beacon=root.querySelector('[data-hmi-beacon]');if(beacon)beacon.setAttribute('class','hmi-beacon state-'+(s.stale?'desconhecido':s.state));
     Object.entries(s.parameters).forEach(([id,p])=>{
       const entry=root.querySelector('#reading-'+CSS.escape(id));entry?.classList.toggle('has-alarm',!!p.alarm);
-      const origin=entry?.querySelector('[data-parameter-time]');if(origin)origin.textContent=(s.source==='manual'?'Apontamento':'Leitura da fonte')+' · '+clock(p.updatedAt);
+      const origin=entry?.querySelector('[data-parameter-time]');if(origin)origin.textContent=(p.origin||(s.source==='manual'?'Apontamento':'Leitura da fonte'))+' · '+clock(p.updatedAt);
       const sensorNode=[...root.querySelectorAll('[data-parameter]')].find(n=>n.dataset.parameter===id);
       if(sensorNode){sensorNode.classList.toggle('has-alarm',!!p.alarm);sensorNode.setAttribute('aria-label',`${p.nome}: ${number(p.value,2)} ${p.unidade||''}. Localizar parâmetro.`);}
     });
@@ -380,7 +384,7 @@
   function closeSummary(restore=true) {
     restoreSummaryFocus=restore;
     const dialog=root?.querySelector('.plant-machine-dialog');
-    summaryId='';if(dialog?.open)dialog.close();
+    summaryId='';if(dialog?.open)MSA.motion.closeDialog(dialog,{immediate:!restore});
   }
   function updateSummary() {
     const dialog=root?.querySelector('.plant-machine-dialog');if(!dialog?.open)return;
@@ -425,7 +429,7 @@
       if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();
       if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)closeSummary();
     });
-    root.querySelector('.plant-page').append(dialog);dialog.showModal();updateSummary();updateMap();
+    root.querySelector('.plant-page').append(dialog);MSA.motion.openDialog(dialog);updateSummary();updateMap();
   }
 
   function handleClick(event) {

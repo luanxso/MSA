@@ -421,3 +421,18 @@
   .auth-page[data-page='cadastro'] .auth-layout { padding: 16px 12px; }
   .auth-page[data-page='cadastro'] .login-card { padding: 20px; }
 }
+
+/* Escolha de cargo restrita à entrada do cenário de apresentação. */
+#demo-role-dialog{width:min(560px,calc(100% - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:28px;background:var(--theme-surface,var(--white));color:var(--theme-text,var(--charcoal))}
+.demo-role-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+#demo-role-dialog h2{margin:0;font-size:25px;line-height:1.25}
+#demo-role-dialog p{margin:12px 0 22px;color:var(--theme-muted,var(--auth-muted));font-size:15px;line-height:1.5}
+.demo-role-close{display:grid;place-items:center;flex-shrink:0;width:44px;height:44px;border:1px solid var(--theme-border,var(--auth-border));border-radius:4px;background:transparent;color:inherit;font-size:26px;cursor:pointer}
+.demo-role-options{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.demo-role-options a{display:flex;flex-direction:column;gap:8px;min-height:120px;padding:18px;border:1px solid var(--theme-border,var(--auth-border));border-radius:4px;background:var(--theme-surface,var(--white));color:var(--theme-text,var(--charcoal));text-decoration:none;transition:border-color .15s}
+.demo-role-options strong{font-size:18px;font-weight:600}
+.demo-role-options span{font-size:14px;line-height:1.45;color:var(--theme-muted,var(--auth-muted))}
+.demo-role-options a:hover{border-color:var(--msa-green)}
+.demo-role-options a:focus-visible,.demo-role-close:focus-visible{outline:2px solid var(--msa-green);outline-offset:3px}
+@media(max-width:500px){#demo-role-dialog{padding:20px}.demo-role-options{grid-template-columns:1fr}.demo-role-options a{min-height:0;padding:14px 16px}}
+@media(prefers-reduced-motion:reduce){.demo-role-options a{transition:none}}

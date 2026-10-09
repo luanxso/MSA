@@ -16,7 +16,7 @@ export default {
         'Cache-Control': path.endsWith('.html') ? 'no-cache' : 'public, max-age=0, must-revalidate',
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'same-origin',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self' https://www.gstatic.com https://www.googletagmanager.com; style-src 'self'; img-src 'self' data: https://*.google-analytics.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://firebase.googleapis.com https://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebaseio.com wss://*.firebasedatabase.app https://*.google-analytics.com https://analytics.google.com https://www.googletagmanager.com; frame-src https://msa-safety-9f978.firebaseapp.com; base-uri 'self'; form-action 'self'",
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://www.googletagmanager.com; worker-src 'self'; style-src 'self'; img-src 'self' data: https://*.google-analytics.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://firebase.googleapis.com https://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebaseio.com wss://*.firebasedatabase.app https://*.google-analytics.com https://analytics.google.com https://www.googletagmanager.com; frame-src https://msa-safety-9f978.firebaseapp.com; base-uri 'self'; form-action 'self'",
       },
     });
   },

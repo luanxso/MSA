@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 const root = process.cwd();
 const staticDirectory = path.join(root, 'dist');
 const assets = {};
-const types = { '.svg': 'image/svg+xml', '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+const types = { '.gz': 'application/gzip', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml', '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
 
 async function collect(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -15,10 +15,16 @@ async function collect(directory) {
     const extension = path.extname(entry.name);
     if (!types[extension]) continue;
     const data = await readFile(file);
-    const binary = ['.png', '.jpg', '.ttf', '.xlsx'].includes(extension);
+    const binary = ['.png', '.jpg', '.ttf', '.xlsx', '.gz'].includes(extension);
     assets[`/${path.relative(staticDirectory, file).split(path.sep).join('/')}`] = { type: types[extension], base64: binary, body: data.toString(binary ? 'base64' : 'utf8') };
   }
 }
+
+// Visualizadores Android podem servir JavaScript, mas bloquear fetch de .gz.
+// Empacota os mesmos bytes do modelo como um script local, sem API nem CDN.
+const modelBytes = await readFile(path.join(staticDirectory, 'assets/ocr/lang/eng.traineddata.gz'));
+await writeFile(path.join(staticDirectory, 'assets/ocr/lang/eng-model.js'),
+  '/* Modelo OCR local, gerado do eng.traineddata.gz pelo build. */\nwindow.MSA=window.MSA||{};MSA.ocrModelData=Uint8Array.from(atob(' + JSON.stringify(modelBytes.toString('base64')) + '),c=>c.charCodeAt(0));\n');
 
 // Link each page to the current bytes of its scripts and styles, including presentation mode.
 for (const entry of await readdir(staticDirectory, { withFileTypes: true })) {
