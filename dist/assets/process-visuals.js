@@ -274,15 +274,24 @@
     if (Math.abs(target - instance.visualOffset) < .00001) return;
     moving.set(svg, instance);
     const generation=instance.generation=(instance.generation||0)+1;
-    instance.animation = Motion.animate(instance.visualOffset, target, {
-      duration: 1, ease: 'linear',
-      onUpdate(value) {
-        if(generation!==instance.generation||!instance.running||MSA.telemetry?.paused)return;
-        if (!svg.isConnected || !svg.getClientRects().length || !MSA.motion.enabled()) { stopMotion(svg, instance); return; }
-        instance.visualOffset = value; renderPosition(svg, instance, kind);
-      },
-      onComplete() { if(generation===instance.generation){instance.animation = null; moving.delete(svg);} }
-    });
+    // Native frames avoid making the conveyor depend on the optional Motion bundle.
+    // Interpolate only the progress received from the source, without inventing production.
+    const from = instance.visualOffset, started = performance.now();
+    let frame = 0;
+    const animation = {stop() { cancelAnimationFrame(frame); }};
+    instance.animation = animation;
+    function draw(now) {
+      if (generation !== instance.generation || !instance.running) return;
+      if (MSA.telemetry?.paused || !svg.isConnected || !svg.getClientRects().length || !MSA.motion.enabled()) {
+        stopMotion(svg, instance); return;
+      }
+      const elapsed = clamp((now - started) / 1000, 0, 1);
+      instance.visualOffset = from + (target - from) * elapsed;
+      renderPosition(svg, instance, kind);
+      if (elapsed < 1) frame = requestAnimationFrame(draw);
+      else { instance.animation = null; moving.delete(svg); }
+    }
+    frame = requestAnimationFrame(draw);
   }
 
   /** Update a mounted SVG without rebuilding it; a paused or stopped scene keeps its position. */

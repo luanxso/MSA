@@ -16,6 +16,7 @@
     "test:shifts": "node scripts/test-shifts-browser.mjs",
     "test:photo": "node scripts/test-photo-browser.mjs",
     "test:motion": "node scripts/test-motion-browser.mjs",
+    "test:conveyor": "node scripts/test-conveyor-browser.mjs",
     "test:analysis": "node scripts/test-analysis-browser.mjs",
     "test:ocr": "node scripts/test-ocr-browser.mjs",
     "test:camera": "node scripts/test-camera-browser.mjs",

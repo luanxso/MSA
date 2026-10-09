@@ -5,7 +5,7 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const active = new Map(), keys = new WeakMap(), dialogs = new WeakMap();
   const ease = [.22, 1, .36, 1];
-  const enabled = () => !!window.Motion?.animate && !reduced.matches && document.documentElement.dataset.a11yMotion !== 'true' && !document.hidden;
+  const enabled = () => !reduced.matches && document.documentElement.dataset.a11yMotion !== 'true' && !document.hidden;
   function stop(element, finish = false) {
     const job = active.get(element);
     if (!job) return;
@@ -13,7 +13,7 @@
   }
   function play(element, values, duration = .22, cleanup = () => {}) {
     stop(element);
-    if (!enabled() || !element?.isConnected || !element.getClientRects().length) { cleanup(); return Promise.resolve(true); }
+    if (!enabled() || !window.Motion?.animateMini || !element?.isConnected || !element.getClientRects().length) { cleanup(); return Promise.resolve(true); }
     return new Promise(resolve => {
       const job = { cleanup, resolve, control: null };
       active.set(element, job);
